@@ -328,7 +328,10 @@ function saveEdit() {
                 </svg>
               </div>
               <div class="lc-main" :class="{ 'no-sep': !prayerStore.aiAutoAnswer }">
-                <span class="lc-title">{{ i18n.t('aiAutoAnswerTitle') }}</span>
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ i18n.t('aiAutoAnswerTitle') }}</span>
+                  <span class="lc-sub-desc">{{ i18n.t('aiAutoAnswerDesc') }}</span>
+                </div>
                 <div class="lc-right">
                   <ToggleSwitch v-model="prayerStore.aiAutoAnswer" />
                 </div>

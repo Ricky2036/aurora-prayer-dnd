@@ -84,6 +84,7 @@ export const MESSAGES = {
     autoGeofenceTitle: '自动启用',
     autoGeofenceDesc: '进入、离开清真寺范围自动启用/退出勿扰模式。',
     aiAnswerHeader: 'AI 通话助理',
+    aiAutoAnswerDesc: '礼拜中来电，指定联系人启用AI自动接听回复',
     aiAutoAnswerTitle: 'AI自动接听',
     aiDesignatedContacts: '选择联系人',
     aiContactsCount: '老婆、老板等3人',
