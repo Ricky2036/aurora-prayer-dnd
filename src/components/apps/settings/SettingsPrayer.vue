@@ -40,7 +40,8 @@ function getShortRepeatTag(prayer) {
   if (prayer.repeatType === 'weekend') return i18n.t('repeatWeekend')
   if (prayer.repeatType === 'everyday') return i18n.t('repeatEveryday')
   if (prayer.repeatDays?.length === 7) return i18n.t('repeatEveryday')
-  if (prayer.repeatDays?.length === 5 && !prayer.repeatDays.includes(6) && !prayer.repeatDays.includes(0)) return i18n.t('repeatWeekday')
+  if (prayer.repeatDays?.length === 5 && !prayer.repeatDays.includes(5) && !prayer.repeatDays.includes(6)) return i18n.t('repeatWeekday')
+  if (prayer.repeatDays?.length === 2 && prayer.repeatDays.includes(5) && prayer.repeatDays.includes(6)) return i18n.t('repeatWeekend')
   return i18n.t('repeatCustom')
 }
 
@@ -160,12 +161,12 @@ function selectRepeatPreset(type) {
   if (type === 'everyday') {
     editForm.value.repeatDays = [0, 1, 2, 3, 4, 5, 6]
   } else if (type === 'weekday') {
-    editForm.value.repeatDays = [1, 2, 3, 4, 5]
+    editForm.value.repeatDays = [0, 1, 2, 3, 4] // 工作日 (周日至周四)
   } else if (type === 'weekend') {
-    editForm.value.repeatDays = [0, 6]
+    editForm.value.repeatDays = [5, 6] // 周末 (周五至周六)
   } else if (type === 'custom') {
     if (editForm.value.repeatDays.length === 7 || editForm.value.repeatDays.length === 0) {
-      editForm.value.repeatDays = [1, 2, 3, 4, 5] // 默认选中工作日
+      editForm.value.repeatDays = [0, 1, 2, 3, 4] // 默认选中工作日
     }
   }
 }
@@ -191,8 +192,8 @@ function saveEdit() {
     label = '仅周末启用'
   } else if (editForm.value.repeatType === 'custom') {
     if (editForm.value.repeatDays.length === 7) label = '每天'
-    else if (editForm.value.repeatDays.length === 5 && !editForm.value.repeatDays.includes(6) && !editForm.value.repeatDays.includes(0)) label = '工作日启用 · 周末关闭'
-    else label = '每周 ' + editForm.value.repeatDays.map(d => weekDays.find(w => w.day === d)?.label).join('、')
+    else if (editForm.value.repeatDays.length === 5 && !editForm.value.repeatDays.includes(5) && !editForm.value.repeatDays.includes(6)) label = '工作日启用 · 周末关闭'
+    else label = '每周 ' + editForm.value.repeatDays.map(d => weekDays.value.find(w => w.day === d)?.label).join('、')
   }
 
   prayerStore.updatePrayer(editingPrayer.value.id, {
@@ -316,7 +317,7 @@ function saveEdit() {
               @click="selectRepeatPreset('weekday')"
             >
               <div class="lc-main">
-                <span class="lc-title">{{ i18n.locale === 'zh' ? '工作日 (周一至周五)' : i18n.locale === 'en' ? 'Weekdays (Mon-Fri)' : 'কার্যদিবস (সোম-শুক্র)' }}</span>
+                <span class="lc-title">{{ i18n.locale === 'zh' ? '工作日 (周日至周四)' : i18n.locale === 'en' ? 'Weekdays (Sun-Thu)' : 'কার্যদিবস (রবি-বৃহঃ)' }}</span>
                 <div class="lc-right">
                   <svg v-if="editForm.repeatType === 'weekday'" width="18" height="18" viewBox="0 0 24 24">
                     <path :d="GLYPHS.check" fill="#007AFF" />
@@ -330,7 +331,7 @@ function saveEdit() {
               @click="selectRepeatPreset('weekend')"
             >
               <div class="lc-main" :class="{ 'no-sep': editForm.repeatType !== 'custom' }">
-                <span class="lc-title">{{ i18n.locale === 'zh' ? '周末 (周六至周日)' : i18n.locale === 'en' ? 'Weekends (Sat-Sun)' : 'সাপ্তাহিক ছুটি (শনি-রবি)' }}</span>
+                <span class="lc-title">{{ i18n.locale === 'zh' ? '周末 (周五至周六)' : i18n.locale === 'en' ? 'Weekend (Fri-Sat)' : 'ছুটির দিন (শুক্র-শনি)' }}</span>
                 <div class="lc-right">
                   <svg v-if="editForm.repeatType === 'weekend'" width="18" height="18" viewBox="0 0 24 24">
                     <path :d="GLYPHS.check" fill="#007AFF" />
