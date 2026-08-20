@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    /* 默认浅色模式颜色 */
+    .outline {
+      fill: none;
+      stroke: #1C1C1E;
+      stroke-width: 8;
+    }
+    .solid {
+      fill: #1C1C1E;
+    }
+    
+    /* 自动适应浏览器的深色模式标签页 */
+    @media (prefers-color-scheme: dark) {
+      .outline {
+        stroke: #F2F2F7;
+      }
+      .solid {
+        fill: #F2F2F7;
+      }
+    }
+  </style>
+
+  <!-- 手机边框轮廓 -->
+  <rect class="outline" x="22" y="5" width="56" height="90" rx="15" />
+  
+  <!-- 顶部居中圆点挖孔 (屏下前摄隐喻) -->
+  <circle class="solid" cx="50" cy="18" r="4" />
+
+  <!-- 底部导航条 (Home Indicator 隐喻) -->
+  <rect class="solid" x="34" y="82" width="32" height="4" rx="2" />
+</svg>
