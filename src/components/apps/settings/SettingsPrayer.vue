@@ -255,15 +255,15 @@ function saveEdit() {
                 </svg>
               </div>
               <div class="lc-main no-sep">
-                <span class="lc-title">{{ i18n.t('prayerDnd') }}</span>
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ i18n.t('prayerDnd') }}</span>
+                  <span class="lc-sub-desc">{{ i18n.t('prayerDndDesc') }}</span>
+                </div>
                 <div class="lc-right">
                   <ToggleSwitch v-model="prayerStore.masterEnabled" />
                 </div>
               </div>
             </div>
-          </div>
-          <div class="group-footer">
-            {{ i18n.t('prayerDndDesc') }}
           </div>
 
           <!-- 五大时段列表 -->
