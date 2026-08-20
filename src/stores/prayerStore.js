@@ -63,23 +63,39 @@ const DEFAULT_PRAYERS = [
   }
 ]
 
+export function getPrayerDurationSeconds(prayer) {
+  if (!prayer || !prayer.startTime || !prayer.endTime) return 1800
+  const [sh, sm] = prayer.startTime.split(':').map(Number)
+  const [eh, em] = prayer.endTime.split(':').map(Number)
+  let startMins = sh * 60 + sm
+  let endMins = eh * 60 + em
+  if (endMins < startMins) {
+    endMins += 24 * 60 // 跨午夜
+  }
+  const diffMinutes = endMins - startMins
+  return Math.max(diffMinutes * 60, 60)
+}
+
 export const usePrayerStore = defineStore('prayer', {
-  state: () => ({
-    masterEnabled: true,
-    targetView: 'main', // 'main' | 'prayer'
-    advanceMins: 15,
-    extendMins: 15,
-    allowRepeatedCalls: true,
-    prayers: JSON.parse(JSON.stringify(DEFAULT_PRAYERS)),
+  state: () => {
+    const defaultFajr = DEFAULT_PRAYERS.find((p) => p.id === 'fajr')
+    return {
+      masterEnabled: true,
+      targetView: 'main', // 'main' | 'prayer'
+      advanceMins: 15,
+      extendMins: 15,
+      allowRepeatedCalls: true,
+      prayers: JSON.parse(JSON.stringify(DEFAULT_PRAYERS)),
 
-    /* ---- 智慧建议与用户模式 ---- */
-    userMode: 'normal', // 'normal' (普通用户: 默认天气) | 'muslim' (穆斯林用户: 穆斯林卡片)
+      /* ---- 智慧建议与用户模式 ---- */
+      userMode: 'normal', // 'normal' (普通用户: 默认天气) | 'muslim' (穆斯林用户: 穆斯林卡片)
 
-    /* ---- 灵动岛与控制台模拟状态 ---- */
-    simulatedPrayerId: 'fajr', // 默认初始化为晨礼，方便即时预览
-    islandExpanded: false,
-    islandCountdownSeconds: 1800 // 30 分钟倒计时 (1800秒)
-  }),
+      /* ---- 灵动岛与控制台模拟状态 ---- */
+      simulatedPrayerId: 'fajr', // 默认初始化为晨礼，方便即时预览
+      islandExpanded: false,
+      islandCountdownSeconds: getPrayerDurationSeconds(defaultFajr)
+    }
+  },
 
   getters: {
     enabledCount: (s) => s.prayers.filter((p) => p.enabled).length,
@@ -127,6 +143,10 @@ export const usePrayerStore = defineStore('prayer', {
       const index = this.prayers.findIndex((item) => item.id === id)
       if (index !== -1) {
         this.prayers[index] = { ...this.prayers[index], ...updates }
+        // 动态联动：若当前灵动岛正是该礼拜，实时刷新倒计时为新的时间差
+        if (this.currentIslandPrayer?.id === id) {
+          this.islandCountdownSeconds = getPrayerDurationSeconds(this.prayers[index])
+        }
       }
     },
 
@@ -134,10 +154,11 @@ export const usePrayerStore = defineStore('prayer', {
       this.userMode = mode
     },
 
-    /* 灵动岛控制 */
+    /* 灵动岛控制：切换礼拜时精确关联对应时间间隔 */
     setSimulatedPrayer(id) {
       this.simulatedPrayerId = id
-      this.islandCountdownSeconds = 1800
+      const prayer = this.prayers.find((p) => p.id === id)
+      this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
       if (id) {
         this.islandExpanded = true
       }
@@ -154,7 +175,8 @@ export const usePrayerStore = defineStore('prayer', {
     closeIsland() {
       this.simulatedPrayerId = null
       this.islandExpanded = false
-      this.islandCountdownSeconds = 1800
+      const prayer = this.prayers.find((p) => p.id === 'fajr')
+      this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
     },
 
     toggleIslandExpanded() {
@@ -174,7 +196,8 @@ export const usePrayerStore = defineStore('prayer', {
       this.prayers = JSON.parse(JSON.stringify(DEFAULT_PRAYERS))
       this.masterEnabled = true
       this.simulatedPrayerId = 'fajr'
-      this.islandCountdownSeconds = 1800
+      const prayer = this.prayers.find((p) => p.id === 'fajr')
+      this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
     }
   }
 })

@@ -21,11 +21,15 @@ onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
 })
 
-/* 格式化倒计时文本 MM:SS */
+/* 格式化倒计时文本 MM:SS 或 HH:MM:SS */
 const formattedCountdown = computed(() => {
   const s = prayerStore.islandCountdownSeconds
-  const mins = Math.floor(s / 60)
+  const hrs = Math.floor(s / 3600)
+  const mins = Math.floor((s % 3600) / 60)
   const secs = s % 60
+  if (hrs > 0) {
+    return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 })
 
