@@ -86,7 +86,14 @@ export const MESSAGES = {
     aiAnswerHeader: 'AI 通话助理',
     aiAutoAnswerTitle: 'AI自动接听',
     aiDesignatedContacts: '选择联系人',
-    aiContactsCount: '老婆、老板等3人'
+    aiContactsCount: '老婆、老板等3人',
+
+    // 联系人选择
+    searchContactsPlaceholder: '搜索姓名或电话号码',
+    selectedCountLabel: (n) => `已选择 ${n} 人`,
+    selectAll: '全选',
+    clearAll: '清空',
+    noContactsFound: '未找到匹配的联系人'
   },
   en: {
     // Widgets & Smart Suggestion
@@ -173,7 +180,14 @@ export const MESSAGES = {
     aiAnswerHeader: 'AI CALL ASSISTANT',
     aiAutoAnswerTitle: 'AI Auto-Answer',
     aiDesignatedContacts: 'Select Contacts',
-    aiContactsCount: 'Wife, Boss & 1 other'
+    aiContactsCount: 'Wife, Boss & 1 other',
+
+    // Contacts
+    searchContactsPlaceholder: 'Search name or phone number',
+    selectedCountLabel: (n) => `${n} selected`,
+    selectAll: 'Select All',
+    clearAll: 'Clear',
+    noContactsFound: 'No contacts found'
   },
   bn: {
     // বাংলা (Bengali) - 精简凝练，地道自然
@@ -261,7 +275,14 @@ export const MESSAGES = {
     aiAnswerHeader: 'এআই কল সহকারী',
     aiAutoAnswerTitle: 'এআই স্বয়ংক্রিয় উত্তর',
     aiDesignatedContacts: 'পরিচিতি নির্বাচন',
-    aiContactsCount: 'স্ত্রী, বসসহ ৩ জন'
+    aiContactsCount: 'স্ত্রী, বসসহ ৩ জন',
+
+    // Contacts
+    searchContactsPlaceholder: 'নাম বা ফোন নম্বর খুঁজুন',
+    selectedCountLabel: (n) => `${n} জন নির্বাচিত`,
+    selectAll: 'সব নির্বাচন',
+    clearAll: 'মুছুন',
+    noContactsFound: 'কোনো পরিচিতি পাওয়া যায়নি'
   }
 }
 
