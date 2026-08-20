@@ -87,7 +87,7 @@ export const MESSAGES = {
     weatherLow: '26',
     prayerWidgetTitle1: 'Prayer DND',
     prayerWidgetTitle2: 'Schedule',
-    prayerWidgetSub1: 'Auto silent mode',
+    prayerWidgetSub1: 'Auto on or off',
     prayerWidgetSub2: 'on prayer times',
     prayerWidgetBtn: 'Set Up',
     suggestionTitle: 'Suggestions',
