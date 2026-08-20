@@ -1,0 +1,177 @@
+{"kind":"deck","id":"pr/fwvrgs","name":"Deck"}
+{"kind":"layout","layoutId":"fb27961a-d8bc-4f2a-9162-37e5a3843c72","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"18a3746c-7ab5-4172-8d00-54c63391c463","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/w9zeoz","slide":1,"title":"VIBE CODING","textShapes":11}
+{"kind":"textbox","id":"sh/at4ji5oj","slide":1,"text":"VIBE CODING","textPreview":"VIBE CODING","textChars":11,"textLines":1,"bbox":[64,54,500,30]}
+{"kind":"textbox","id":"sh/xgvid0na","slide":1,"text":"不会写代码，\n也能做出软件？","textPreview":"不会写代码， | 也能做出软件？","textChars":14,"textLines":2,"bbox":[64,128,700,180]}
+{"kind":"textbox","id":"sh/wfm1kf6p","slide":1,"text":"一场关于 AI 编程的扫盲课","textPreview":"一场关于 AI 编程的扫盲课","textChars":14,"textLines":1,"bbox":[68,336,620,42]}
+{"kind":"shape","id":"sh/nqt07q58","slide":1,"bbox":[820,122,330,390]}
+{"kind":"textbox","id":"sh/mpkjelon","slide":1,"text":"idea","textPreview":"idea","textChars":4,"textLines":1,"bbox":[866,156,100,30]}
+{"kind":"textbox","id":"sh/9svi90ne","slide":1,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[960,154,40,30]}
+{"kind":"textbox","id":"sh/orm1gv6t","slide":1,"text":"product","textPreview":"product","textChars":7,"textLines":1,"bbox":[1008,156,110,30]}
+{"kind":"shape","id":"sh/zmt03q5w","slide":1,"bbox":[866,216,244,0]}
+{"kind":"textbox","id":"sh/elkzalor","slide":1,"text":"“做一个能记录\n灵感的网页”","textPreview":"“做一个能记录 | 灵感的网页”","textChars":14,"textLines":2,"bbox":[866,250,230,72]}
+{"kind":"textbox","id":"sh/o361kjmh","slide":1,"text":"AI","textPreview":"AI","textChars":2,"textLines":1,"bbox":[1022,368,76,58]}
+{"kind":"textbox","id":"sh/94z2do32","slide":1,"text":"把自然语言\n变成可运行的东西","textPreview":"把自然语言 | 变成可运行的东西","textChars":14,"textLines":2,"bbox":[866,436,235,52]}
+{"kind":"textbox","id":"sh/m1ojit4b","slide":1,"text":"适合：产品、设计、运营、创业者","textPreview":"适合：产品、设计、运营、创业者","textChars":15,"textLines":1,"bbox":[68,592,600,28]}
+{"kind":"shape","id":"sh/n2xkbylw","slide":1,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/0z61gjm5","slide":1,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,686,240,18]}
+{"kind":"notes","id":"nt/w9zeoz","slide":1,"text":""}
+{"kind":"slide","id":"sl/9tlkmt","slide":2,"title":"VIBE CODING 101","textShapes":13}
+{"kind":"textbox","id":"sh/l0jytobm","slide":2,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,34,300,24]}
+{"kind":"textbox","id":"sh/yd8fy9cb","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1160,34,56,24]}
+{"kind":"shape","id":"sh/zehgretg","slide":2,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/cbqxwzu5","slide":2,"text":"把想法说清楚，剩下的交给协作。","textPreview":"把想法说清楚，剩下的交给协作。","textChars":15,"textLines":1,"bbox":[64,686,500,18]}
+{"kind":"textbox","id":"sh/xczyp4bq","slide":2,"text":"它到底是什么？","textPreview":"它到底是什么？","textChars":7,"textLines":1,"bbox":[64,82,1120,70]}
+{"kind":"textbox","id":"sh/a98fupcz","slide":2,"text":"一句话：用自然语言，和 AI 一起“编程”。","textPreview":"一句话：用自然语言，和 AI 一起“编程”。","textChars":22,"textLines":1,"bbox":[68,154,1050,34]}
+{"kind":"shape","id":"sh/bahgnutk","slide":2,"bbox":[64,236,1152,190]}
+{"kind":"textbox","id":"sh/w7ah83a9","slide":2,"text":"你负责","textPreview":"你负责","textChars":3,"textLines":1,"bbox":[104,270,160,30]}
+{"kind":"textbox","id":"sh/h83y18bu","slide":2,"text":"目标、场景、判断与取舍","textPreview":"目标、场景、判断与取舍","textChars":11,"textLines":1,"bbox":[104,318,340,46]}
+{"kind":"textbox","id":"sh/psrmx4fa","slide":2,"text":"AI 负责","textPreview":"AI 负责","textChars":5,"textLines":1,"bbox":[518,270,160,30]}
+{"kind":"textbox","id":"sh/o7i54zyp","slide":2,"text":"代码、结构、调试与迭代","textPreview":"代码、结构、调试与迭代","textChars":11,"textLines":1,"bbox":[518,318,390,46]}
+{"kind":"textbox","id":"sh/3694vuxk","slide":2,"text":"最终交付","textPreview":"最终交付","textChars":4,"textLines":1,"bbox":[950,270,180,30]}
+{"kind":"textbox","id":"sh/250n2pgz","slide":2,"text":"可运行的产品","textPreview":"可运行的产品","textChars":6,"textLines":1,"bbox":[950,318,230,46]}
+{"kind":"shape","id":"sh/14rmtkfe","slide":2,"bbox":[454,280,0,108]}
+{"kind":"shape","id":"sh/g3i50zyt","slide":2,"bbox":[908,280,0,108]}
+{"kind":"textbox","id":"sh/f2p4rux8","slide":2,"text":"关键变化：编程从“写语法”变成“做判断”。","textPreview":"关键变化：编程从“写语法”变成“做判断”。","textChars":21,"textLines":1,"bbox":[68,500,980,50]}
+{"kind":"textbox","id":"sh/e1g3ypgn","slide":2,"text":"但它不是魔法，也不是“按一下就完事”。","textPreview":"但它不是魔法，也不是“按一下就完事”。","textChars":19,"textLines":1,"bbox":[68,560,900,34]}
+{"kind":"notes","id":"nt/9tlkmt","slide":2,"text":""}
+{"kind":"slide","id":"sl/80e9yy","slide":3,"title":"VIBE CODING 101","textShapes":21}
+{"kind":"textbox","id":"sh/alwnexw7","slide":3,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,34,300,24]}
+{"kind":"textbox","id":"sh/xo769svy","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1160,34,56,24]}
+{"kind":"shape","id":"sh/wny5gned","slide":3,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/jqpob2d4","slide":3,"text":"把想法说清楚，剩下的交给协作。","textPreview":"把想法说清楚，剩下的交给协作。","textChars":15,"textLines":1,"bbox":[64,686,500,18]}
+{"kind":"textbox","id":"sh/ypgnixwj","slide":3,"text":"工作方式变了：从敲代码到搭回路","textPreview":"工作方式变了：从敲代码到搭回路","textChars":15,"textLines":1,"bbox":[64,82,1120,70]}
+{"kind":"textbox","id":"sh/lc76dcvu","slide":3,"text":"Vibe Coding 的核心，不是一次生成，而是持续对话。","textPreview":"Vibe Coding 的核心，不是一次生成，而是持续对话。","textChars":30,"textLines":1,"bbox":[68,154,1050,34]}
+{"kind":"shape","id":"sh/kby5k7e9","slide":3,"bbox":[70,250,240,205]}
+{"kind":"textbox","id":"sh/7epofmd0","slide":3,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[90,274,50,30]}
+{"kind":"textbox","id":"sh/6dgnmhwf","slide":3,"text":"描述目标","textPreview":"描述目标","textChars":4,"textLines":1,"bbox":[90,324,200,36]}
+{"kind":"textbox","id":"sh/ov69srqt","slide":3,"text":"先说清楚要解决谁的什么问题","textPreview":"先说清楚要解决谁的什么问题","textChars":13,"textLines":1,"bbox":[90,374,195,54]}
+{"kind":"textbox","id":"sh/pwfa1wry","slide":3,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[318,330,38,30]}
+{"kind":"shape","id":"sh/29orqh8n","slide":3,"bbox":[360,250,240,205]}
+{"kind":"textbox","id":"sh/3ax8zm98","slide":3,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[380,274,50,30]}
+{"kind":"textbox","id":"sh/cz69wrqp","slide":3,"text":"让 AI 动手","textPreview":"让 AI 动手","textChars":7,"textLines":1,"bbox":[380,324,200,36]}
+{"kind":"textbox","id":"sh/d0za5w7a","slide":3,"text":"生成页面、逻辑和基础结构","textPreview":"生成页面、逻辑和基础结构","textChars":12,"textLines":1,"bbox":[380,374,195,54]}
+{"kind":"textbox","id":"sh/qxoru18j","slide":3,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[608,330,38,30]}
+{"kind":"shape","id":"sh/byxs3m94","slide":3,"bbox":[650,250,240,205]}
+{"kind":"textbox","id":"sh/03q90bql","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[670,274,50,30]}
+{"kind":"textbox","id":"sh/l4za9g76","slide":3,"text":"亲自试用","textPreview":"亲自试用","textChars":4,"textLines":1,"bbox":[670,324,200,36]}
+{"kind":"textbox","id":"sh/9kvqdgza","slide":3,"text":"用真实场景找出不对的地方","textPreview":"用真实场景找出不对的地方","textChars":12,"textLines":1,"bbox":[670,374,195,54]}
+{"kind":"textbox","id":"sh/8jm9kbi5","slide":3,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[898,330,38,30]}
+{"kind":"shape","id":"sh/7id8b6hk","slide":3,"bbox":[940,250,240,205]}
+{"kind":"textbox","id":"sh/mh4ri10z","slide":3,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[960,274,50,30]}
+{"kind":"textbox","id":"sh/hofahgzm","slide":3,"text":"反馈迭代","textPreview":"反馈迭代","textChars":4,"textLines":1,"bbox":[960,324,200,36]}
+{"kind":"textbox","id":"sh/wn69obi1","slide":3,"text":"告诉 AI 哪里不对、为什么","textPreview":"告诉 AI 哪里不对、为什么","textChars":14,"textLines":1,"bbox":[960,374,195,54]}
+{"kind":"textbox","id":"sh/vmxsf6hg","slide":3,"text":"像带一个“速度很快、但需要复核的实习生”。","textPreview":"像带一个“速度很快、但需要复核的实习生”。","textChars":21,"textLines":1,"bbox":[70,532,1000,44]}
+{"kind":"notes","id":"nt/80e9yy","slide":3,"text":""}
+{"kind":"slide","id":"sl/30uaym","slide":4,"title":"VIBE CODING 101","textShapes":18}
+{"kind":"textbox","id":"sh/v2dwraxs","slide":4,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,34,300,24]}
+{"kind":"textbox","id":"sh/g3mxkfed","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1160,34,56,24]}
+{"kind":"shape","id":"sh/h4fetkfy","slide":4,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/i5ofm5wj","slide":4,"text":"把想法说清楚，剩下的交给协作。","textPreview":"把想法说清楚，剩下的交给协作。","textChars":15,"textLines":1,"bbox":[64,686,500,18]}
+{"kind":"textbox","id":"sh/36xgvaxo","slide":4,"text":"最适合从哪里开始？","textPreview":"最适合从哪里开始？","textChars":9,"textLines":1,"bbox":[64,82,1120,70]}
+{"kind":"textbox","id":"sh/476xofe9","slide":4,"text":"先做“看得见、改得动、风险低”的小东西。","textPreview":"先做“看得见、改得动、风险低”的小东西。","textChars":20,"textLines":1,"bbox":[68,154,1050,34]}
+{"kind":"textbox","id":"sh/58fyxkfu","slide":4,"text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[74,240,54,30]}
+{"kind":"textbox","id":"sh/q9ofqpwf","slide":4,"text":"个人工具","textPreview":"个人工具","textChars":4,"textLines":1,"bbox":[160,228,220,34]}
+{"kind":"textbox","id":"sh/raxgzux0","slide":4,"text":"表单、计算器、清单、仪表盘","textPreview":"表单、计算器、清单、仪表盘","textChars":13,"textLines":1,"bbox":[420,230,640,32]}
+{"kind":"shape","id":"sh/rexgnmxo","slide":4,"bbox":[160,294,950,0]}
+{"kind":"textbox","id":"sh/qdofuhg3","slide":4,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[74,332,54,30]}
+{"kind":"textbox","id":"sh/dgfypwfu","slide":4,"text":"内部效率","textPreview":"内部效率","textChars":4,"textLines":1,"bbox":[160,320,220,34]}
+{"kind":"textbox","id":"sh/cf6xwry9","slide":4,"text":"自动整理、查询、生成、提醒","textPreview":"自动整理、查询、生成、提醒","textChars":13,"textLines":1,"bbox":[420,322,640,32]}
+{"kind":"shape","id":"sh/3axgjmxc","slide":4,"bbox":[160,386,950,0]}
+{"kind":"textbox","id":"sh/29ofqhg7","slide":4,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[74,424,54,30]}
+{"kind":"textbox","id":"sh/pcfylwfi","slide":4,"text":"原型验证","textPreview":"原型验证","textChars":4,"textLines":1,"bbox":[160,412,220,34]}
+{"kind":"textbox","id":"sh/4b6xsryx","slide":4,"text":"快速验证一个产品想法","textPreview":"快速验证一个产品想法","textChars":10,"textLines":1,"bbox":[420,414,640,32]}
+{"kind":"shape","id":"sh/n6hgv6xw","slide":4,"bbox":[160,478,950,0]}
+{"kind":"textbox","id":"sh/m58z2lgb","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[74,516,54,30]}
+{"kind":"textbox","id":"sh/y1cju50j","slide":4,"text":"学习实验","textPreview":"学习实验","textChars":4,"textLines":1,"bbox":[160,504,220,34]}
+{"kind":"textbox","id":"sh/j2l03ah4","slide":4,"text":"把抽象概念变成可操作 demo","textPreview":"把抽象概念变成可操作 demo","textChars":15,"textLines":1,"bbox":[420,506,640,32]}
+{"kind":"shape","id":"sh/k3u1wfip","slide":4,"bbox":[160,570,950,0]}
+{"kind":"shape","id":"sh/l43i5kzu","slide":4,"bbox":[950,520,260,64]}
+{"kind":"textbox","id":"sh/65cjyp0f","slide":4,"text":"先做一个周末能完成的","textPreview":"先做一个周末能完成的","textChars":10,"textLines":1,"bbox":[970,537,220,24]}
+{"kind":"notes","id":"nt/30uaym","slide":4,"text":""}
+{"kind":"slide","id":"sl/rz5jgy","slide":5,"title":"VIBE CODING 101","textShapes":11}
+{"kind":"textbox","id":"sh/vm9wnqpg","slide":5,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,34,300,24]}
+{"kind":"textbox","id":"sh/wnixwvq1","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1160,34,56,24]}
+{"kind":"shape","id":"sh/horep07m","slide":5,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/ip0fyl8r","slide":5,"text":"把想法说清楚，剩下的交给协作。","textPreview":"把想法说清楚，剩下的交给协作。","textChars":15,"textLines":1,"bbox":[64,686,500,18]}
+{"kind":"textbox","id":"sh/jq9wrqpc","slide":5,"text":"好结果的分水岭：你会不会“提需求”","textPreview":"好结果的分水岭：你会不会“提需求”","textChars":17,"textLines":1,"bbox":[64,82,1120,70]}
+{"kind":"textbox","id":"sh/4rix0vqx","slide":5,"text":"不是一句“帮我做个网站”，而是一份可验证的说明。","textPreview":"不是一句“帮我做个网站”，而是一份可验证的说明。","textChars":24,"textLines":1,"bbox":[68,154,1050,34]}
+{"kind":"shape","id":"sh/5sret07i","slide":5,"bbox":[64,230,520,330]}
+{"kind":"textbox","id":"sh/ytwvm18n","slide":5,"text":"模糊说法","textPreview":"模糊说法","textChars":4,"textLines":1,"bbox":[96,264,180,28]}
+{"kind":"textbox","id":"sh/zu5wf6p8","slide":5,"text":"“做个好看的记账 App”","textPreview":"“做个好看的记账 App”","textChars":13,"textLines":1,"bbox":[96,320,390,44]}
+{"kind":"textbox","id":"sh/r650rqhc","slide":5,"text":"结果：AI 只能猜。\n猜错了，再返工。","textPreview":"结果：AI 只能猜。 | 猜错了，再返工。","textChars":19,"textLines":2,"bbox":[96,410,360,70]}
+{"kind":"shape","id":"sh/q5wji5gr","slide":5,"bbox":[650,230,566,330]}
+{"kind":"textbox","id":"sh/d8nit0zi","slide":5,"text":"可执行说法","textPreview":"可执行说法","textChars":5,"textLines":1,"bbox":[682,264,200,28]}
+{"kind":"textbox","id":"sh/s7e1kvyx","slide":5,"text":"“为自由职业者做一个\n记录收入与待收款的网页”","textPreview":"“为自由职业者做一个 | 记录收入与待收款的网页”","textChars":23,"textLines":2,"bbox":[682,316,450,78]}
+{"kind":"textbox","id":"sh/32l0nqh0","slide":5,"text":"补上：用户 · 场景 · 输入 · 输出 · 限制","textPreview":"补上：用户 · 场景 · 输入 · 输出 · 限制","textChars":25,"textLines":1,"bbox":[682,436,470,32]}
+{"kind":"notes","id":"nt/rz5jgy","slide":5,"text":""}
+{"kind":"slide","id":"sl/r5ajm9","slide":6,"title":"VIBE CODING 101","textShapes":12}
+{"kind":"textbox","id":"sh/218rq9wr","slide":6,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,34,300,24]}
+{"kind":"textbox","id":"sh/p4ja1of2","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1160,34,56,24]}
+{"kind":"shape","id":"sh/o3a9sjex","slide":6,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/bq1s3yx8","slide":6,"text":"把想法说清楚，剩下的交给协作。","textPreview":"把想法说清楚，剩下的交给协作。","textChars":15,"textLines":1,"bbox":[64,686,500,18]}
+{"kind":"textbox","id":"sh/a5sbutwn","slide":6,"text":"AI 很强，但它不替你承担责任","textPreview":"AI 很强，但它不替你承担责任","textChars":15,"textLines":1,"bbox":[64,82,1120,70]}
+{"kind":"textbox","id":"sh/xsja58fe","slide":6,"text":"生成速度 ≠ 结果可靠。","textPreview":"生成速度 ≠ 结果可靠。","textChars":12,"textLines":1,"bbox":[68,154,1050,34]}
+{"kind":"shape","id":"sh/cratw3et","slide":6,"bbox":[92,250,300,248]}
+{"kind":"textbox","id":"sh/zuls7yxk","slide":6,"text":"它擅长","textPreview":"它擅长","textChars":3,"textLines":1,"bbox":[120,280,240,30]}
+{"kind":"textbox","id":"sh/ytcbytwz","slide":6,"text":"搭骨架\n写样式\n改小问题","textPreview":"搭骨架 | 写样式 | 改小问题","textChars":12,"textLines":3,"bbox":[120,346,240,108]}
+{"kind":"shape","id":"sh/cfydw3ed","slide":6,"bbox":[472,250,300,248]}
+{"kind":"textbox","id":"sh/dg7e58fy","slide":6,"text":"它可能出错","textPreview":"它可能出错","textChars":5,"textLines":1,"bbox":[500,280,240,30]}
+{"kind":"textbox","id":"sh/qdgvudw7","slide":6,"text":"理解偏差\n隐藏 Bug\n过时做法","textPreview":"理解偏差 | 隐藏 Bug | 过时做法","textChars":16,"textLines":3,"bbox":[500,346,240,108]}
+{"kind":"shape","id":"sh/bepw3ixs","slide":6,"bbox":[852,250,300,248]}
+{"kind":"textbox","id":"sh/0jid0ne9","slide":6,"text":"你要把关","textPreview":"你要把关","textChars":4,"textLines":1,"bbox":[880,280,240,30]}
+{"kind":"textbox","id":"sh/lkre9svu","slide":6,"text":"数据安全\n真实流程\n最终体验","textPreview":"数据安全 | 真实流程 | 最终体验","textChars":14,"textLines":3,"bbox":[880,346,240,108]}
+{"kind":"textbox","id":"sh/yhgvydw3","slide":6,"text":"底线：涉及隐私、支付、权限、生产数据时，必须加人工审核。","textPreview":"底线：涉及隐私、支付、权限、生产数据时，必须加人工审核。","textChars":28,"textLines":1,"bbox":[92,558,1080,34]}
+{"kind":"notes","id":"nt/r5ajm9","slide":6,"text":""}
+{"kind":"slide","id":"sl/8fepkw","slide":7,"title":"VIBE CODING 101","textShapes":16}
+{"kind":"textbox","id":"sh/dsb6tsji","slide":7,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,34,300,24]}
+{"kind":"textbox","id":"sh/qp07ixkr","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1160,34,56,24]}
+{"kind":"shape","id":"sh/bq9ori1c","slide":7,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/onipgn2l","slide":7,"text":"把想法说清楚，剩下的交给协作。","textPreview":"把想法说清楚，剩下的交给协作。","textChars":15,"textLines":1,"bbox":[64,686,500,18]}
+{"kind":"textbox","id":"sh/por6psj6","slide":7,"text":"一套可复用的安全起步法","textPreview":"一套可复用的安全起步法","textChars":11,"textLines":1,"bbox":[64,82,1120,70]}
+{"kind":"textbox","id":"sh/2l0nedkv","slide":7,"text":"把第一次成功，拆成 5 个小回合。","textPreview":"把第一次成功，拆成 5 个小回合。","textChars":17,"textLines":1,"bbox":[68,154,1050,34]}
+{"kind":"textbox","id":"sh/3m9onil0","slide":7,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[90,280,54,54]}
+{"kind":"shape","id":"sh/8j2ps725","slide":7,"bbox":[78,348,174,8]}
+{"kind":"textbox","id":"sh/9kvq1cja","slide":7,"text":"选一个小问题","textPreview":"选一个小问题","textChars":6,"textLines":1,"bbox":[72,386,190,64]}
+{"kind":"shape","id":"sh/xor6xwbu","slide":7,"bbox":[260,352,42,0]}
+{"kind":"textbox","id":"sh/wny54ru9","slide":7,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[315,280,54,54]}
+{"kind":"shape","id":"sh/bmpovmto","slide":7,"bbox":[303,348,174,8]}
+{"kind":"textbox","id":"sh/algn2hc3","slide":7,"text":"写清验收标准","textPreview":"写清验收标准","textChars":6,"textLines":1,"bbox":[297,386,190,64]}
+{"kind":"shape","id":"sh/9k7mtcbi","slide":7,"bbox":[485,352,42,0]}
+{"kind":"textbox","id":"sh/ojy50rud","slide":7,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[540,280,54,54]}
+{"kind":"shape","id":"sh/nip4rmds","slide":7,"bbox":[528,348,174,8]}
+{"kind":"textbox","id":"sh/mhgnyhc7","slide":7,"text":"让 AI 先出最小版","textPreview":"让 AI 先出最小版","textChars":10,"textLines":1,"bbox":[522,386,190,64]}
+{"kind":"shape","id":"sh/tgb65gb2","slide":7,"bbox":[710,352,42,0]}
+{"kind":"textbox","id":"sh/sfi5cbuh","slide":7,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[765,280,54,54]}
+{"kind":"shape","id":"sh/cvahoj6p","slide":7,"bbox":[753,348,174,8]}
+{"kind":"textbox","id":"sh/dwjyxona","slide":7,"text":"逐步加功能","textPreview":"逐步加功能","textChars":5,"textLines":1,"bbox":[747,386,190,64]}
+{"kind":"shape","id":"sh/q9szm9oz","slide":7,"bbox":[935,352,42,0]}
+{"kind":"textbox","id":"sh/ru1gve54","slide":7,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[990,280,54,54]}
+{"kind":"shape","id":"sh/47ahkz6t","slide":7,"bbox":[978,348,174,8]}
+{"kind":"textbox","id":"sh/p8jyt4ne","slide":7,"text":"保存可回退版本","textPreview":"保存可回退版本","textChars":7,"textLines":1,"bbox":[972,386,190,64]}
+{"kind":"shape","id":"sh/25szi9on","slide":7,"bbox":[160,520,960,72]}
+{"kind":"textbox","id":"sh/361gre58","slide":7,"text":"每一轮只回答一个问题：现在的版本，离“能用”还差什么？","textPreview":"每一轮只回答一个问题：现在的版本，离“能用”还差什么？","textChars":27,"textLines":1,"bbox":[190,541,900,30]}
+{"kind":"notes","id":"nt/8fepkw","slide":7,"text":""}
+{"kind":"slide","id":"sl/hnamxp","slide":8,"title":"VIBE CODING 101","textShapes":18}
+{"kind":"textbox","id":"sh/id8b6tcj","slide":8,"text":"VIBE CODING 101","textPreview":"VIBE CODING 101","textChars":15,"textLines":1,"bbox":[64,34,300,24]}
+{"kind":"textbox","id":"sh/50zah8vu","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1160,34,56,24]}
+{"kind":"shape","id":"sh/4fqt83u9","slide":8,"bbox":[64,676,1152,0]}
+{"kind":"textbox","id":"sh/vahsbeds","slide":8,"text":"把想法说清楚，剩下的交给协作。","textPreview":"把想法说清楚，剩下的交给协作。","textChars":15,"textLines":1,"bbox":[64,686,500,18]}
+{"kind":"textbox","id":"sh/u9ob29c7","slide":8,"text":"现在就可以开始","textPreview":"现在就可以开始","textChars":7,"textLines":1,"bbox":[64,82,1120,70]}
+{"kind":"textbox","id":"sh/hczadovy","slide":8,"text":"别从“学会编程”开始，从“解决一个小问题”开始。","textPreview":"别从“学会编程”开始，从“解决一个小问题”开始。","textChars":24,"textLines":1,"bbox":[68,154,1050,34]}
+{"kind":"textbox","id":"sh/wbqt4jud","slide":8,"text":"今天的行动","textPreview":"今天的行动","textChars":5,"textLines":1,"bbox":[82,246,220,30]}
+{"kind":"textbox","id":"sh/f61s7itc","slide":8,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[88,300,30,30]}
+{"kind":"textbox","id":"sh/e5sbedcr","slide":8,"text":"找一个重复做、很烦的小任务","textPreview":"找一个重复做、很烦的小任务","textChars":13,"textLines":1,"bbox":[138,300,740,30]}
+{"kind":"textbox","id":"sh/k7qto7ip","slide":8,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[88,358,30,30]}
+{"kind":"textbox","id":"sh/l8zaxsja","slide":8,"text":"用 3 句话写清楚用户与结果","textPreview":"用 3 句话写清楚用户与结果","textChars":14,"textLines":1,"bbox":[138,358,740,30]}
+{"kind":"textbox","id":"sh/y5obmx0j","slide":8,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[88,416,30,30]}
+{"kind":"textbox","id":"sh/z6xsv214","slide":8,"text":"让 AI 先做最小可用版本","textPreview":"让 AI 先做最小可用版本","textChars":13,"textLines":1,"bbox":[138,416,740,30]}
+{"kind":"textbox","id":"sh/c36tknit","slide":8,"text":"✓","textPreview":"✓","textChars":1,"textLines":1,"bbox":[88,474,30,30]}
+{"kind":"textbox","id":"sh/x4fatsje","slide":8,"text":"亲自试 10 分钟，再反馈","textPreview":"亲自试 10 分钟，再反馈","textChars":13,"textLines":1,"bbox":[138,474,740,30]}
+{"kind":"shape","id":"sh/a1orid0n","slide":8,"bbox":[930,246,236,198]}
+{"kind":"textbox","id":"sh/b2xsri18","slide":8,"text":"VIBE","textPreview":"VIBE","textChars":4,"textLines":1,"bbox":[958,278,180,44]}
+{"kind":"textbox","id":"sh/ozm9gnih","slide":8,"text":"→","textPreview":"→","textChars":1,"textLines":1,"bbox":[1004,332,86,30]}
+{"kind":"textbox","id":"sh/p0fap8j2","slide":8,"text":"MAKE","textPreview":"MAKE","textChars":4,"textLines":1,"bbox":[958,370,180,44]}
+{"kind":"textbox","id":"sh/pw7qt4b6","slide":8,"text":"最好的入门课\n是做出第一个小东西。","textPreview":"最好的入门课 | 是做出第一个小东西。","textChars":17,"textLines":2,"bbox":[82,568,760,50]}
+{"kind":"notes","id":"nt/hnamxp","slide":8,"text":""}
