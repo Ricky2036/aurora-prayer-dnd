@@ -90,6 +90,10 @@ export const usePrayerStore = defineStore('prayer', {
       /* ---- 智慧建议与用户模式 ---- */
       userMode: 'normal', // 'normal' (普通用户: 默认天气) | 'muslim' (穆斯林用户: 穆斯林卡片)
 
+      /* ---- 自动启用与AI自动接听 ---- */
+      geoAutoEnable: true, // 进入、离开清真寺范围自动启用/退出勿扰模式
+      aiAutoAnswer: true,  // 指定联系人来电时自动启用AI接听回复
+
       /* ---- 灵动岛与控制台模拟状态 ---- */
       simulatedPrayerId: 'fajr', // 默认初始化为晨礼，方便即时预览
       islandExpanded: false,

@@ -16,7 +16,7 @@ const i18n = useI18nStore()
     <AppNavBar :title="i18n.t('dnd')" @back="emit('back')" />
 
     <div class="scrollable dnd-body">
-      <!-- 顶部勿扰与定时开关卡片（图 2 + 增加入口「朝拜勿扰」） -->
+      <!-- 顶部勿扰与定时开关卡片（图 2 + 增加入口「礼拜勿扰」） -->
       <div class="dnd-card">
         <!-- 勿扰模式开关 -->
         <div class="dnd-cell">
@@ -37,7 +37,7 @@ const i18n = useI18nStore()
           </div>
         </div>
 
-        <!-- 朝拜勿扰入口（新增） -->
+        <!-- 礼拜勿扰入口（新增） -->
         <div class="dnd-cell clickable no-sep" @click="emit('open-prayer')">
           <span class="dc-title">{{ i18n.t('prayerDnd') }}</span>
           <div class="dc-right">

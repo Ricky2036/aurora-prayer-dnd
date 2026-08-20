@@ -265,6 +265,66 @@ function saveEdit() {
               </div>
             </div>
           </div>
+
+          <!-- 功能 1：自动启用 (基于位置) -->
+          <div class="group-header">{{ i18n.t('autoEnableHeader') }}</div>
+          <div class="cell-group">
+            <div class="list-cell">
+              <div class="lc-icon" style="background: #007AFF;">
+                <svg width="17" height="17" viewBox="0 0 24 24">
+                  <path :d="GLYPHS.location" fill="#fff" />
+                </svg>
+              </div>
+              <div class="lc-main no-sep">
+                <span class="lc-title">{{ i18n.t('autoGeofenceTitle') }}</span>
+                <div class="lc-right">
+                  <ToggleSwitch v-model="prayerStore.geoAutoEnable" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="group-footer">
+            {{ i18n.t('autoGeofenceDesc') }}
+          </div>
+
+          <!-- 功能 2：AI 自动接听 -->
+          <div class="group-header">{{ i18n.t('aiAnswerHeader') }}</div>
+          <div class="cell-group">
+            <div class="list-cell">
+              <div class="lc-icon" style="background: #5856D6;">
+                <svg width="17" height="17" viewBox="0 0 24 24">
+                  <path :d="GLYPHS.sparklesPhone" fill="#fff" />
+                </svg>
+              </div>
+              <div class="lc-main" :class="{ 'no-sep': !prayerStore.aiAutoAnswer }">
+                <span class="lc-title">{{ i18n.t('aiAutoAnswerTitle') }}</span>
+                <div class="lc-right">
+                  <ToggleSwitch v-model="prayerStore.aiAutoAnswer" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 开启 AI 接听后的指定联系人栏 -->
+            <div v-if="prayerStore.aiAutoAnswer" class="list-cell clickable">
+              <div class="lc-icon" style="background: #FF9500;">
+                <svg width="17" height="17" viewBox="0 0 24 24">
+                  <path :d="GLYPHS.person" fill="#fff" />
+                </svg>
+              </div>
+              <div class="lc-main no-sep">
+                <span class="lc-title">{{ i18n.t('aiDesignatedContacts') }}</span>
+                <div class="lc-right">
+                  <span class="lc-sub-val">{{ i18n.t('aiContactsCount') }}</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" class="chevron-icon">
+                    <path :d="GLYPHS.chevronRight" fill="#C7C7CC" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="group-footer">
+            {{ i18n.t('aiAutoAnswerDesc') }}
+          </div>
         </div>
       </div>
 

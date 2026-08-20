@@ -284,10 +284,10 @@ async function toggleRecording() {
         </div>
       </div>
 
-      <!-- 朝拜勿扰灵动岛模拟控制 -->
+      <!-- 礼拜勿扰灵动岛模拟控制 -->
       <div class="pc-block">
         <p class="pc-label">
-          <span>朝拜勿扰灵动岛</span>
+          <span>礼拜勿扰灵动岛</span>
           <span class="pc-badge" style="background: rgba(52, 199, 89, 0.2); color: #34c759;">LIVE</span>
         </p>
         <div class="prayer-buttons-grid">

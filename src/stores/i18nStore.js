@@ -7,9 +7,9 @@ export const MESSAGES = {
     weatherCondition: '多云转晴',
     weatherHigh: '33',
     weatherLow: '26',
-    prayerWidgetTitle1: '设置朝拜',
+    prayerWidgetTitle1: '设置礼拜',
     prayerWidgetTitle2: '勿扰时段',
-    prayerWidgetSub1: '朝拜前后自动进入',
+    prayerWidgetSub1: '礼拜前后自动进入',
     prayerWidgetSub2: '退出勿扰模式',
     prayerWidgetBtn: '立即设置',
     suggestionTitle: '智慧建议',
@@ -61,7 +61,7 @@ export const MESSAGES = {
 
     // 勿扰模式
     dndDesc: '勿扰模式开启后，除允许的内容外，来电和提醒都将静音。',
-    prayerDnd: '朝拜勿扰',
+    prayerDnd: '礼拜勿扰',
     prayerDndDesc: '开启后系统将在设定的时间自动开启、关闭勿扰模式。',
     allowDisturb: '允许打扰',
     allowCalls: '来电提醒',
@@ -71,13 +71,23 @@ export const MESSAGES = {
     allowRepeatedCalls: '允许显示重复来电者',
     allowRepeatedCallsDesc: '相同号码在三分钟内再次来电将不会被静音。',
 
-    // 朝拜勿扰
+    // 礼拜勿扰
     prayerSlots: '礼拜时段',
     startTime: '开始时间',
     endTime: '结束时间',
     repeat: '重复',
     confirm: '完成',
-    cancel: '取消'
+    cancel: '取消',
+
+    // 新增：自动启用与AI自动接听
+    autoEnableHeader: '智能自动化',
+    autoGeofenceTitle: '自动启用',
+    autoGeofenceDesc: '进入、离开清真寺范围自动启用/退出勿扰模式。',
+    aiAnswerHeader: 'AI 通话助理',
+    aiAutoAnswerTitle: 'AI自动接听',
+    aiAutoAnswerDesc: '指定联系人来电时自动启用AI接听回复。',
+    aiDesignatedContacts: '指定联系人',
+    aiContactsCount: '家人、同事 (3人)'
   },
   en: {
     // Widgets & Smart Suggestion
@@ -155,7 +165,17 @@ export const MESSAGES = {
     endTime: 'End Time',
     repeat: 'Repeat',
     confirm: 'Done',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+
+    // New features: Auto-Enable & AI Auto-Answer
+    autoEnableHeader: 'AUTOMATION',
+    autoGeofenceTitle: 'Auto-Enable',
+    autoGeofenceDesc: 'Automatically enable/exit DND when entering or leaving mosque area.',
+    aiAnswerHeader: 'AI CALL ASSISTANT',
+    aiAutoAnswerTitle: 'AI Auto-Answer',
+    aiAutoAnswerDesc: 'Automatically answer and reply with AI when designated contacts call.',
+    aiDesignatedContacts: 'Designated Contacts',
+    aiContactsCount: 'Family, Work (3)'
   },
   bn: {
     // বাংলা (Bengali) - 精简凝练，地道自然
@@ -234,7 +254,17 @@ export const MESSAGES = {
     endTime: 'শেষের সময়',
     repeat: 'পুনরাবৃত্তি',
     confirm: 'সম্পন্ন',
-    cancel: 'বাতিল'
+    cancel: 'বাতিল',
+
+    // New features: Auto-Enable & AI Auto-Answer
+    autoEnableHeader: 'স্মার্ট অটোমেশন',
+    autoGeofenceTitle: 'স্বয়ংক্রিয় চালু',
+    autoGeofenceDesc: 'মসজিদে প্রবেশ বা প্রস্থান করলে স্বয়ংক্রিয়ভাবে ডিএনডি চালু/বন্ধ হবে।',
+    aiAnswerHeader: 'এআই কল সহকারী',
+    aiAutoAnswerTitle: 'এআই স্বয়ংক্রিয় উত্তর',
+    aiAutoAnswerDesc: 'নির্দিষ্ট পরিচিতি থেকে কল আসলে স্বয়ংক্রিয়ভাবে এআই উত্তর দেবে।',
+    aiDesignatedContacts: 'নির্দিষ্ট পরিচিতি',
+    aiContactsCount: 'পরিবার ও সহকর্মী (৩ জন)'
   }
 }
 
