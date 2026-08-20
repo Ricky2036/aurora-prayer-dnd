@@ -129,18 +129,49 @@ async function toggleRecording() {
       
       const canvasStream = canvas.captureStream(60) // 60 FPS
       recordedChunks = []
-      mediaRecorder = new MediaRecorder(canvasStream, { mimeType: 'video/webm' })
+
+      // 优先采用 H.265 / HEVC 编码与 MP4 封装
+      const preferredMimeTypes = [
+        'video/mp4;codecs=hevc,mp4a.40.2',
+        'video/mp4;codecs=hevc',
+        'video/mp4;codecs=hvc1',
+        'video/mp4;codecs=h265',
+        'video/mp4;codecs=avc1.42E01E',
+        'video/mp4;codecs=avc1',
+        'video/mp4',
+        'video/webm;codecs=h265',
+        'video/webm;codecs=vp9',
+        'video/webm'
+      ]
+
+      let selectedMime = ''
+      for (const mime of preferredMimeTypes) {
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(mime)) {
+          selectedMime = mime
+          break
+        }
+      }
+
+      const recorderOptions = {
+        videoBitsPerSecond: 8000000 // 8 Mbps 高清画质
+      }
+      if (selectedMime) {
+        recorderOptions.mimeType = selectedMime
+      }
+
+      mediaRecorder = new MediaRecorder(canvasStream, recorderOptions)
       
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordedChunks.push(e.data)
       }
       
       mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' })
+        const outMime = selectedMime || 'video/mp4'
+        const blob = new Blob(recordedChunks, { type: outMime })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `prototype-recording-${Date.now()}.webm`
+        a.download = `prototype-recording-${Date.now()}.mp4`
         a.click()
         URL.revokeObjectURL(url)
         
