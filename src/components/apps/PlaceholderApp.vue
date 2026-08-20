@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { useClock } from '../../composables/useClock'
 
@@ -10,12 +11,20 @@ const props = defineProps({
 const { today, hourDeg, minuteDeg, secondDeg } = useClock()
 const WEEK_SHORT = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 const weekday = WEEK_SHORT[new Date().getDay()]
+
+const resolvedImage = computed(() => {
+  if (!props.app.image) return null
+  if (props.app.image.startsWith('http') || props.app.image.startsWith('data:')) return props.app.image
+  const clean = props.app.image.replace(/^\/+/, '')
+  const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+  return `${base}${clean}`
+})
 </script>
 
 <template>
   <div class="placeholder-app">
     <div class="pa-icon squircle-mask" :style="{ background: app.special === 'clock' ? '#1c1c1e' : (app.special === 'calendar' ? 'linear-gradient(180deg, #ffffff 0%, #f6f6f8 100%)' : (app.gradient || (app.image ? '#fff' : 'linear-gradient(180deg,#c7c7cc,#8e8e93)'))) }">
-      <img v-if="app.image" :src="app.image" alt="" :style="{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }" />
+      <img v-if="app.image" :src="resolvedImage" alt="" :style="{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }" />
       <svg v-else-if="app.glyph" width="44" height="44" viewBox="0 0 24 24">
         <path :d="GLYPHS[app.glyph]" :fill="app.glyphColor || '#fff'" />
       </svg>

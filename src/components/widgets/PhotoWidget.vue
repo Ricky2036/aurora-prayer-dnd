@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useSystemStore } from '../../stores/systemStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useI18nStore } from '../../stores/i18nStore'
@@ -13,6 +13,11 @@ const system = useSystemStore()
 const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
 const widgetRef = ref(null)
+
+const mosqueImg = computed(() => {
+  const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
+  return `${base}photo-widget.jpg`
+})
 
 function handleAction() {
   prayerStore.setTargetView('prayer')
@@ -29,7 +34,7 @@ function handleAction() {
 <template>
   <div ref="widgetRef" class="widget prayer-widget" @click="handleAction">
     <!-- 背景插画 -->
-    <img src="/photo-widget.jpg" alt="Prayer Mosque" class="pw-image" />
+    <img :src="mosqueImg" alt="Prayer Mosque" class="pw-image" />
 
     <!-- 文本与交互按钮层 -->
     <div class="pw-content">
