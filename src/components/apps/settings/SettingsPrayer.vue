@@ -689,10 +689,11 @@ function saveEdit() {
 
 /* 单元格与分组 */
 .cell-group {
-  margin: 0 16px 8px;
+  margin: 0 16px 18px;
   background: var(--bg-cell);
   border-radius: var(--radius-cell-group);
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .group-header {
@@ -700,13 +701,13 @@ function saveEdit() {
   color: var(--label-secondary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin: 16px 20px 6px;
+  margin: 20px 20px 7px;
 }
 
 .group-footer {
   font: var(--text-caption);
   color: var(--label-tertiary);
-  margin: 4px 20px 16px;
+  margin: 4px 20px 18px;
   line-height: 1.4;
 }
 
@@ -715,7 +716,7 @@ function saveEdit() {
   align-items: center;
   background: var(--bg-cell);
   padding-left: 16px;
-  min-height: 44px;
+  min-height: 48px;
   cursor: default;
 }
 .list-cell.clickable { cursor: pointer; }
@@ -723,13 +724,13 @@ function saveEdit() {
 
 .lc-icon {
   flex: none;
-  width: 29px;
-  height: 29px;
-  border-radius: 6.5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 13px;
 }
 
 .lc-main {
@@ -737,21 +738,21 @@ function saveEdit() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 16px 11px 0;
+  padding: 12px 16px 12px 0;
   border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
   min-width: 0;
 }
 .lc-main.no-sep { border-bottom: none; }
 
 .lc-title {
-  font: 400 15px/1.25 var(--font-stack);
+  font: 400 15.5px/1.25 var(--font-stack);
   color: var(--label);
 }
 
 .lc-title-col {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 2.5px;
   min-width: 0;
   padding-right: 8px;
 }
@@ -783,7 +784,7 @@ function saveEdit() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 16px;
+  padding: 13px 18px;
   border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
   background: var(--bg-cell);
   cursor: pointer;

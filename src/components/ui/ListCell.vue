@@ -45,7 +45,7 @@ const emit = defineEmits(['click'])
   align-items: center;
   background: var(--bg-cell);
   padding-left: 16px;
-  min-height: 44px;
+  min-height: 48px;
   cursor: default;
 }
 .list-cell.clickable { cursor: pointer; }
@@ -53,13 +53,13 @@ const emit = defineEmits(['click'])
 
 .lc-icon {
   flex: none;
-  width: 29px;
-  height: 29px;
-  border-radius: 6.5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8.5px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 13px;
 }
 .lc-icon-text {
   color: #fff;
@@ -71,7 +71,7 @@ const emit = defineEmits(['click'])
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 16px 10px 0;
+  padding: 12px 16px 12px 0;
   border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
   min-width: 0;
 }

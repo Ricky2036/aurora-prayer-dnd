@@ -27,9 +27,9 @@ function toggle() {
 <style scoped>
 .toggle-switch {
   position: relative;
-  width: 51px;
-  height: 31px;
-  border-radius: 15.5px;
+  width: 46px;
+  height: 26px;
+  border-radius: 13px;
   background: #E9E9EA;
   transition: background 0.25s ease;
   flex: none;
@@ -40,14 +40,14 @@ function toggle() {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 27px;
-  height: 27px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.22), 0 0 1px rgba(0, 0, 0, 0.1);
-  transition: transform 0.25s cubic-bezier(0.3, 0.9, 0.35, 1.15);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: transform 0.25s cubic-bezier(0.3, 0.9, 0.35, 1.15), width 0.2s ease;
 }
 .toggle-switch.on .knob { transform: translateX(20px); }
-.toggle-switch:active .knob { width: 30px; }
+.toggle-switch:active .knob { width: 25px; }
 .toggle-switch.on:active .knob { transform: translateX(17px); }
 </style>

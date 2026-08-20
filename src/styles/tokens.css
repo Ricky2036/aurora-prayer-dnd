@@ -45,10 +45,10 @@
   --screen-w: 389px;
   --screen-h: 848px;
   --screen-radius: 47px;
-  --radius-icon: 13.5px;      /* 60px 图标的 22.5% */
+  --radius-icon: 14px;      /* 60px 图标的 22.5% */
   --radius-widget: 22px;
-  --radius-card: 18px;
-  --radius-cell-group: 12px;
+  --radius-card: 22px;
+  --radius-cell-group: 16px;
   --radius-module: 18px;      /* 控制中心模块 */
 
   /* 安全区 */
