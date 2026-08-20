@@ -266,7 +266,7 @@ function saveEdit() {
             </div>
           </div>
 
-          <!-- 功能 1：自动启用 (基于位置) -->
+          <!-- 功能 1：智能识别 (基于位置自动启用) -->
           <div class="group-header">{{ i18n.t('autoEnableHeader') }}</div>
           <div class="cell-group">
             <div class="list-cell">
@@ -276,15 +276,15 @@ function saveEdit() {
                 </svg>
               </div>
               <div class="lc-main no-sep">
-                <span class="lc-title">{{ i18n.t('autoGeofenceTitle') }}</span>
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ i18n.t('autoGeofenceTitle') }}</span>
+                  <span class="lc-sub-desc">{{ i18n.t('autoGeofenceDesc') }}</span>
+                </div>
                 <div class="lc-right">
                   <ToggleSwitch v-model="prayerStore.geoAutoEnable" />
                 </div>
               </div>
             </div>
-          </div>
-          <div class="group-footer">
-            {{ i18n.t('autoGeofenceDesc') }}
           </div>
 
           <!-- 功能 2：AI 自动接听 -->
@@ -314,16 +314,13 @@ function saveEdit() {
               <div class="lc-main no-sep">
                 <span class="lc-title">{{ i18n.t('aiDesignatedContacts') }}</span>
                 <div class="lc-right">
-                  <span class="lc-sub-val">{{ i18n.t('aiContactsCount') }}</span>
+                  <span class="lc-sub-val dark-text">{{ i18n.t('aiContactsCount') }}</span>
                   <svg width="14" height="14" viewBox="0 0 24 24" class="chevron-icon">
                     <path :d="GLYPHS.chevronRight" fill="#C7C7CC" />
                   </svg>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="group-footer">
-            {{ i18n.t('aiAutoAnswerDesc') }}
           </div>
         </div>
       </div>
@@ -633,6 +630,29 @@ function saveEdit() {
 .lc-title {
   font: 400 15px/1.25 var(--font-stack);
   color: var(--label);
+}
+
+.lc-title-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-right: 8px;
+}
+
+.lc-sub-desc {
+  font: 400 12px/1.35 var(--font-stack);
+  color: var(--label-secondary);
+}
+
+.lc-sub-val {
+  font: 400 14px/1.2 var(--font-stack);
+  color: var(--label-secondary);
+}
+
+.lc-sub-val.dark-text {
+  color: #3C3C43;
+  font-weight: 400;
 }
 
 .lc-right {

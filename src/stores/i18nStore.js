@@ -79,15 +79,14 @@ export const MESSAGES = {
     confirm: '完成',
     cancel: '取消',
 
-    // 新增：自动启用与AI自动接听
-    autoEnableHeader: '智能自动化',
+    // 智能识别与AI自动接听
+    autoEnableHeader: '智能识别',
     autoGeofenceTitle: '自动启用',
     autoGeofenceDesc: '进入、离开清真寺范围自动启用/退出勿扰模式。',
     aiAnswerHeader: 'AI 通话助理',
     aiAutoAnswerTitle: 'AI自动接听',
-    aiAutoAnswerDesc: '指定联系人来电时自动启用AI接听回复。',
-    aiDesignatedContacts: '指定联系人',
-    aiContactsCount: '家人、同事 (3人)'
+    aiDesignatedContacts: '选择联系人',
+    aiContactsCount: '老婆、老板等3人'
   },
   en: {
     // Widgets & Smart Suggestion
@@ -168,14 +167,13 @@ export const MESSAGES = {
     cancel: 'Cancel',
 
     // New features: Auto-Enable & AI Auto-Answer
-    autoEnableHeader: 'AUTOMATION',
+    autoEnableHeader: 'SMART RECOGNITION',
     autoGeofenceTitle: 'Auto-Enable',
-    autoGeofenceDesc: 'Automatically enable/exit DND when entering or leaving mosque area.',
+    autoGeofenceDesc: 'Enable/exit DND when entering or leaving mosque area.',
     aiAnswerHeader: 'AI CALL ASSISTANT',
     aiAutoAnswerTitle: 'AI Auto-Answer',
-    aiAutoAnswerDesc: 'Automatically answer and reply with AI when designated contacts call.',
-    aiDesignatedContacts: 'Designated Contacts',
-    aiContactsCount: 'Family, Work (3)'
+    aiDesignatedContacts: 'Select Contacts',
+    aiContactsCount: 'Wife, Boss & 1 other'
   },
   bn: {
     // বাংলা (Bengali) - 精简凝练，地道自然
@@ -257,14 +255,13 @@ export const MESSAGES = {
     cancel: 'বাতিল',
 
     // New features: Auto-Enable & AI Auto-Answer
-    autoEnableHeader: 'স্মার্ট অটোমেশন',
+    autoEnableHeader: 'স্মার্ট সনাক্তকরণ',
     autoGeofenceTitle: 'স্বয়ংক্রিয় চালু',
     autoGeofenceDesc: 'মসজিদে প্রবেশ বা প্রস্থান করলে স্বয়ংক্রিয়ভাবে ডিএনডি চালু/বন্ধ হবে।',
     aiAnswerHeader: 'এআই কল সহকারী',
     aiAutoAnswerTitle: 'এআই স্বয়ংক্রিয় উত্তর',
-    aiAutoAnswerDesc: 'নির্দিষ্ট পরিচিতি থেকে কল আসলে স্বয়ংক্রিয়ভাবে এআই উত্তর দেবে।',
-    aiDesignatedContacts: 'নির্দিষ্ট পরিচিতি',
-    aiContactsCount: 'পরিবার ও সহকর্মী (৩ জন)'
+    aiDesignatedContacts: 'পরিচিতি নির্বাচন',
+    aiContactsCount: 'স্ত্রী, বসসহ ৩ জন'
   }
 }
 
