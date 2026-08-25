@@ -1,5 +1,95 @@
 import { defineStore } from 'pinia'
 
+export const APP_NAMES = {
+  zh: {
+    phone: '电话',
+    messages: '信息',
+    safari: '浏览器',
+    camera: '相机',
+    weather: '天气',
+    notes: '备忘录',
+    files: '文件',
+    voicememos: '语音备忘录',
+    fitness: '健身',
+    calculator: '计算器',
+    theme: '主题',
+    settings: '设置',
+    calendar: '日历',
+    photos: '照片',
+    clock: '时钟',
+    keynote: '演示',
+    games: '游戏',
+    tips: '提示',
+    compass: '指南针'
+  },
+  en: {
+    phone: 'Phone',
+    messages: 'Messages',
+    safari: 'Safari',
+    camera: 'Camera',
+    weather: 'Weather',
+    notes: 'Notes',
+    files: 'Files',
+    voicememos: 'Voice Memos',
+    fitness: 'Fitness',
+    calculator: 'Calculator',
+    theme: 'Themes',
+    settings: 'Settings',
+    calendar: 'Calendar',
+    photos: 'Photos',
+    clock: 'Clock',
+    keynote: 'Keynote',
+    games: 'Games',
+    tips: 'Tips',
+    compass: 'Compass'
+  },
+  bn: {
+    phone: 'ফোন',
+    messages: 'বার্তা',
+    safari: 'সাফারি',
+    camera: 'ক্যামেরা',
+    weather: 'আবহাওয়া',
+    notes: 'নোট',
+    files: 'ফাইল',
+    voicememos: 'ভয়েস মেমো',
+    fitness: 'ফিটনেস',
+    calculator: 'ক্যালকুলেটর',
+    theme: 'থিম',
+    settings: 'সেটিংস',
+    calendar: 'ক্যালেন্ডার',
+    photos: 'ছবি',
+    clock: 'ঘড়ি',
+    keynote: 'কিনোট',
+    games: 'গেমস',
+    tips: 'পরামর্শ',
+    compass: 'কম্পাস'
+  }
+}
+
+export const CATEGORIES_NAMES = {
+  zh: {
+    social: '社交与通信',
+    productivity: '效率',
+    creativity: '创意',
+    utilities: '工具',
+    searchResults: '搜索结果'
+  },
+  en: {
+    social: 'Social & Communication',
+    productivity: 'Productivity',
+    creativity: 'Creativity',
+    utilities: 'Utilities',
+    searchResults: 'Search Results'
+  },
+  bn: {
+    social: 'সামাজিক ও যোগাযোগ',
+    productivity: 'উৎপাদনশীলতা',
+    creativity: 'সৃজনশীলতা',
+    utilities: 'সরঞ্জাম',
+    searchResults: 'অনুসন্ধানের ফলাফল'
+  }
+}
+
 export const MESSAGES = {
   zh: {
     // 智慧建议与桌面卡片
@@ -28,6 +118,7 @@ export const MESSAGES = {
 
     // 星期与重复
     weekDays: ['日', '一', '二', '三', '四', '五', '六'],
+    calWeekDays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
     repeatEveryday: '每天',
     repeatWeekday: '工作日',
     repeatWeekend: '周末',
@@ -59,9 +150,10 @@ export const MESSAGES = {
     hapticsOn: '开启',
     ringtoneSettings: '铃声设置',
 
-    // 勿扰模式
+    // 勿扰模式与礼拜模式
     dndDesc: '勿扰模式开启后，除允许的内容外，来电和提醒都将静音。',
     prayerDnd: '礼拜模式',
+    prayerMode: '礼拜模式',
     prayerDndDesc: '开启后系统将在设定的时间自动开启、关闭勿扰模式。',
     allowDisturb: '允许打扰',
     allowCalls: '来电提醒',
@@ -71,7 +163,7 @@ export const MESSAGES = {
     allowRepeatedCalls: '允许显示重复来电者',
     allowRepeatedCallsDesc: '相同号码在三分钟内再次来电将不会被静音。',
 
-    // 礼拜勿扰
+    // 礼拜模式
     prayerSlots: '礼拜时段',
     startTime: '开始时间',
     endTime: '结束时间',
@@ -123,6 +215,7 @@ export const MESSAGES = {
 
     // Weekdays & Repeat
     weekDays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+    calWeekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     repeatEveryday: 'Everyday',
     repeatWeekday: 'Weekdays',
     repeatWeekend: 'Weekends',
@@ -156,7 +249,8 @@ export const MESSAGES = {
 
     // DND
     dndDesc: 'When Do Not Disturb is enabled, incoming calls and alerts will be silenced except for allowed items.',
-    prayerDnd: 'Prayer DND',
+    prayerDnd: 'Prayer Mode',
+    prayerMode: 'Prayer Mode',
     prayerDndDesc: 'Automatically turn Do Not Disturb on and off at prayer times.',
     allowDisturb: 'ALLOW NOTIFICATIONS',
     allowCalls: 'Allow Calls From',
@@ -179,6 +273,7 @@ export const MESSAGES = {
     autoGeofenceTitle: 'Auto-Enable',
     autoGeofenceDesc: 'Enable/exit DND when entering or leaving mosque area.',
     aiAnswerHeader: 'AI CALL ASSISTANT',
+    aiAutoAnswerDesc: 'Auto-answer calls from selected contacts during prayer',
     aiAutoAnswerTitle: 'AI Auto-Answer',
     aiDesignatedContacts: 'Select Contacts',
     aiContactsCount: 'Wife, Boss & 1 other',
@@ -218,6 +313,7 @@ export const MESSAGES = {
 
     // Weekdays & Repeat
     weekDays: ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'],
+    calWeekDays: ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'],
     repeatEveryday: 'প্রতিদিন',
     repeatWeekday: 'কার্যদিবস',
     repeatWeekend: 'ছুটির দিন',
@@ -251,7 +347,8 @@ export const MESSAGES = {
 
     // DND
     dndDesc: 'বিরক্ত করবেন না মোড চালু থাকলে অনুমোদিত আইটেম ছাড়া সব কল ও বিজ্ঞপ্তি নীরব থাকবে।',
-    prayerDnd: 'নামাজ ডিএনডি',
+    prayerDnd: 'নামাজ মোড',
+    prayerMode: 'নামাজ মোড',
     prayerDndDesc: 'নামাজের সময় স্বয়ংক্রিয়ভাবে ডিএনডি চালু ও বন্ধ হবে।',
     allowDisturb: 'বিজ্ঞপ্তির অনুমতি',
     allowCalls: 'কলের অনুমতি',
@@ -274,6 +371,7 @@ export const MESSAGES = {
     autoGeofenceTitle: 'স্বয়ংক্রিয় চালু',
     autoGeofenceDesc: 'মসজিদে প্রবেশ বা প্রস্থান করলে স্বয়ংক্রিয়ভাবে ডিএনডি চালু/বন্ধ হবে।',
     aiAnswerHeader: 'এআই কল সহকারী',
+    aiAutoAnswerDesc: 'নামাজের সময় নির্দিষ্ট পরিচিতিদের কলে এআই স্বয়ংক্রিয় উত্তর দেবে',
     aiAutoAnswerTitle: 'এআই স্বয়ংক্রিয় উত্তর',
     aiDesignatedContacts: 'পরিচিতি নির্বাচন',
     aiContactsCount: 'স্ত্রী, বসসহ ৩ জন',
@@ -300,7 +398,10 @@ export const useI18nStore = defineStore('i18n', {
     },
     prayerName: (s) => (prayerId) => MESSAGES[s.locale]?.prayers?.[prayerId]?.name || prayerId,
     prayerFull: (s) => (prayerId) => MESSAGES[s.locale]?.prayers?.[prayerId]?.full || prayerId,
-    currentWeekDays: (s) => MESSAGES[s.locale]?.weekDays || MESSAGES.zh.weekDays
+    currentWeekDays: (s) => MESSAGES[s.locale]?.weekDays || MESSAGES.zh.weekDays,
+    calWeekDays: (s) => MESSAGES[s.locale]?.calWeekDays || MESSAGES.zh.calWeekDays,
+    appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || appId,
+    categoryName: (s) => (catKey) => CATEGORIES_NAMES[s.locale]?.[catKey] || CATEGORIES_NAMES.zh[catKey] || catKey
   },
   actions: {
     setLocale(loc) {

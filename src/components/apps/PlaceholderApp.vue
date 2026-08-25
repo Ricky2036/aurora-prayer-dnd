@@ -2,15 +2,17 @@
 import { computed } from 'vue'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { useClock } from '../../composables/useClock'
+import { useI18nStore } from '../../stores/i18nStore'
 
 /** 占位应用通用件：大图标 + 名称 + 占位说明 */
 const props = defineProps({
   app: { type: Object, required: true }
 })
 
+const i18n = useI18nStore()
 const { today, hourDeg, minuteDeg, secondDeg } = useClock()
-const WEEK_SHORT = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-const weekday = WEEK_SHORT[new Date().getDay()]
+const weekday = computed(() => i18n.calWeekDays[new Date().getDay()] || '周日')
+const displayName = computed(() => i18n.appName(props.app.id) || props.app.name)
 
 const resolvedImage = computed(() => {
   if (!props.app.image) return null
@@ -49,10 +51,10 @@ const resolvedImage = computed(() => {
           :transform="`rotate(${secondDeg} 23 23)`" />
         <circle cx="23" cy="23" r="1.6" fill="#1c1c1e"/>
       </svg>
-      <span v-else class="pa-icon-text">{{ app.name.slice(0, 1) }}</span>
+      <span v-else class="pa-icon-text">{{ displayName.slice(0, 1) }}</span>
     </div>
-    <div class="pa-name">{{ app.name }}</div>
-    <div class="pa-note">该应用为演示占位页<br />底部上滑或点击横条返回桌面</div>
+    <div class="pa-name">{{ displayName }}</div>
+    <div class="pa-note">{{ i18n.locale === 'zh' ? '该应用为演示占位页' : i18n.locale === 'en' ? 'Demo Placeholder App' : 'ডেমো প্লেসহোল্ডার অ্যাপ' }}<br />{{ i18n.locale === 'zh' ? '底部上滑或点击横条返回桌面' : i18n.locale === 'en' ? 'Swipe up from bottom to return home' : 'ফিরে যেতে নিচে থেকে সোয়াইপ করুন' }}</div>
   </div>
 </template>
 

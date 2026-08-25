@@ -5,6 +5,7 @@ import { useClock } from '../../composables/useClock'
 import { useHomeStore } from '../../stores/homeStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useSystemStore } from '../../stores/systemStore'
+import { useI18nStore } from '../../stores/i18nStore'
 import { rectRelativeToScreen } from '../../utils/dom'
 import { getAnchorRect, registerAnchor, setLaunchRect, unregisterAnchor } from '../../utils/appIconAnchors'
 
@@ -24,12 +25,13 @@ const props = defineProps({
 const home = useHomeStore()
 const notifications = useNotificationsStore()
 const system = useSystemStore()
+const i18n = useI18nStore()
 
 const anchorRef = ref(null)
 const { today, hourDeg, minuteDeg, secondDeg } = useClock()
 
-const WEEK_SHORT = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-const weekday = computed(() => WEEK_SHORT[new Date().getDay()])
+const appDisplayName = computed(() => i18n.appName(props.app.id) || props.app.name)
+const weekday = computed(() => i18n.calWeekDays[new Date().getDay()] || '周日')
 
 const badge = computed(() => notifications.countByApp[props.app.id] || 0)
 
@@ -118,7 +120,7 @@ onBeforeUnmount(() => {
       </span>
     </span>
 
-    <span v-if="showLabel" class="icon-label">{{ app.name }}</span>
+    <span v-if="showLabel" class="icon-label">{{ appDisplayName }}</span>
     <span v-if="badge" class="icon-badge">{{ badge }}</span>
   </button>
 </template>

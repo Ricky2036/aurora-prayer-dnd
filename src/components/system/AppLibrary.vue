@@ -8,12 +8,15 @@ import AppIcon from '../ui/AppIcon.vue'
 import SearchBar from '../ui/SearchBar.vue'
 import { clamp } from '../../utils/math'
 
+import { useI18nStore } from '../../stores/i18nStore'
+
 /**
  * App 资源库：搜索实时过滤 + 分类网格。
  * 打开：桌面左滑越界 / 点搜索胶囊；关闭：右滑 / 点空白 / Home 条。
  * 反向手势通过 driverRegistry 接管 ScreenView 的同一个 spring。
  */
 const system = useSystemStore()
+const i18n = useI18nStore()
 
 const overlay = computed(() => system.overlays.appLibrary)
 const visible = computed(() => overlay.value.status !== 'closed')
@@ -23,21 +26,29 @@ const layerStyle = computed(() => ({
 }))
 const blurStyle = computed(() => ({ opacity: clamp(overlay.value.progress * 1.2, 0, 1) }))
 
-/* 分类分组（8 个应用） */
+/* 分类分组 */
 const CATEGORIES = [
-  { name: '社交与通信', ids: ['phone', 'messages'] },
-  { name: '效率', ids: ['settings', 'calendar', 'clock'] },
-  { name: '创意', ids: ['photos', 'camera'] },
-  { name: '工具', ids: ['safari'] }
+  { key: 'social', ids: ['phone', 'messages'] },
+  { key: 'productivity', ids: ['settings', 'calendar', 'clock'] },
+  { key: 'creativity', ids: ['photos', 'camera'] },
+  { key: 'utilities', ids: ['safari'] }
 ]
 
 const query = ref('')
 
 const filteredCategories = computed(() => {
-  const q = query.value.trim()
-  if (!q) return CATEGORIES.map((c) => ({ ...c, apps: c.ids.map(getAppById) }))
-  const matched = APPS.filter((a) => a.name.includes(q))
-  return matched.length ? [{ name: '搜索结果', apps: matched }] : []
+  const q = query.value.trim().toLowerCase()
+  if (!q) {
+    return CATEGORIES.map((c) => ({
+      name: i18n.categoryName(c.key),
+      apps: c.ids.map(getAppById)
+    }))
+  }
+  const matched = APPS.filter((a) => {
+    const locName = i18n.appName(a.id)?.toLowerCase() || ''
+    return a.name.toLowerCase().includes(q) || locName.includes(q) || a.id.toLowerCase().includes(q)
+  })
+  return matched.length ? [{ name: i18n.categoryName('searchResults'), apps: matched }] : []
 })
 
 function getAppById(id) {

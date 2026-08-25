@@ -4,6 +4,9 @@ import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import AppIcon from '../../ui/AppIcon.vue'
 import { getApp } from '../../../config/apps'
+import { useI18nStore } from '../../../stores/i18nStore'
+
+const i18n = useI18nStore()
 
 /**
  * 通知设置页（完整移植自 settingsprototype.tsx）：
@@ -163,7 +166,7 @@ const emit = defineEmits(['back-to-settings'])
               <AppIcon v-if="getDesktopApp(app.id)" :app="getDesktopApp(app.id)" :size="36" :show-label="false" />
               <SettingsAppIcon v-else :type="app.type" :size="36" />
               <div class="ns-app-info">
-                <span class="ns-app-name">{{ app.name }}</span>
+                <span class="ns-app-name">{{ i18n.appName(app.id) || app.name }}</span>
                 <span class="ns-app-time">{{ app.time }}</span>
               </div>
             </div>
@@ -224,7 +227,7 @@ const emit = defineEmits(['back-to-settings'])
             <div class="ns-app">
               <AppIcon v-if="getDesktopApp(app.id)" :app="getDesktopApp(app.id)" :size="36" :show-label="false" />
               <SettingsAppIcon v-else :type="app.type" :size="36" />
-              <span class="ns-app-name">{{ app.name }}</span>
+              <span class="ns-app-name">{{ i18n.appName(app.id) || app.name }}</span>
             </div>
             <ToggleSwitch :model-value="appStates[app.id]" @update:modelValue="toggleAppState(app.id)" />
           </div>
@@ -262,7 +265,7 @@ const emit = defineEmits(['back-to-settings'])
             <div class="ns-app">
               <AppIcon v-if="getDesktopApp(app.id)" :app="getDesktopApp(app.id)" :size="36" :show-label="false" />
               <SettingsAppIcon v-else :type="app.type" :size="36" />
-              <span class="ns-app-name">{{ app.name }}</span>
+              <span class="ns-app-name">{{ i18n.appName(app.id) || app.name }}</span>
             </div>
             <div class="ns-app-right"><i class="ns-divider"></i><ToggleSwitch :model-value="appStates[app.id]" @update:modelValue="toggleAppState(app.id)" /></div>
           </div>
