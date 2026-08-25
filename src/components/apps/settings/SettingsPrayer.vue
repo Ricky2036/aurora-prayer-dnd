@@ -445,9 +445,9 @@ function saveEdit() {
               </div>
             </div>
 
-            <!-- 自定义重复周几选择器（仅选中自定义时展示） -->
-            <div v-if="editForm.repeatType === 'custom'" class="weekday-picker-card">
-              <div class="wp-circles">
+            <!-- 自定义重复周几选择器（仅选中自定义时展示，水平排布） -->
+            <Transition name="expand">
+              <div v-if="editForm.repeatType === 'custom'" class="weekday-circle-row">
                 <button
                   v-for="w in weekDays"
                   :key="w.day"
@@ -458,7 +458,7 @@ function saveEdit() {
                   {{ w.label }}
                 </button>
               </div>
-            </div>
+            </Transition>
           </div>
         </div>
       </div>
