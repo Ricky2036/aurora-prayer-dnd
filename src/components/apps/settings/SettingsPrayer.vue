@@ -6,7 +6,7 @@ import AppNavBar from '../../ui/AppNavBar.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 
-const emit = defineEmits(['back-to-dnd'])
+const emit = defineEmits(['back-to-dnd', 'back'])
 const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
 
@@ -240,10 +240,10 @@ function saveEdit() {
 <template>
   <div class="settings-prayer">
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
-      <!-- ================= 1. 朝拜勿扰主列表页 ================= -->
+      <!-- ================= 1. 礼拜模式主列表页 ================= -->
       <div v-if="currentView === 'list'" key="list" class="prayer-subpage">
-        <!-- 顶部导航：当前菜单名称「朝拜勿扰」左对齐 -->
-        <AppNavBar :title="i18n.t('prayerDnd')" @back="emit('back-to-dnd')" />
+        <!-- 顶部导航：当前菜单名称「礼拜模式」左对齐 -->
+        <AppNavBar :title="i18n.t('prayerDnd')" @back="emit('back')" />
 
         <div class="scrollable detail-body">
           <!-- 总开关 -->

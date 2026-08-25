@@ -26,8 +26,8 @@ const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
 const { timeShort } = useClock()
 
-/* 内部导航栈：若从朝拜 Widget 点入，则构建完整的返回层级 [main, sound, dnd, prayer] */
-const initialStack = prayerStore.targetView === 'prayer' ? ['main', 'sound', 'dnd', 'prayer'] : ['main']
+/* 内部导航栈：若从礼拜卡片点入，则构建层级 [main, sound, prayer] */
+const initialStack = prayerStore.targetView === 'prayer' ? ['main', 'sound', 'prayer'] : ['main']
 if (prayerStore.targetView === 'prayer') {
   prayerStore.setTargetView('main')
 }
@@ -46,7 +46,7 @@ function pop() {
   }
 }
 
-/* 全局侧滑返回：子页（通知/朝拜勿扰） → 首页（逐层消费），最后交还系统回桌面 */
+/* 全局侧滑返回：子页（通知/礼拜模式） → 首页（逐层消费），最后交还系统回桌面 */
 const notifRef = ref(null)
 const prayerRef = ref(null)
 useBackHandler(() => {
@@ -127,18 +127,18 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
       </div>
 
       <!-- ================= 声音与振动 (图 1) ================= -->
-      <div v-else-if="view === 'sound'" key="sound" class="settings-page">
-        <SettingsSound @back="pop" @open-dnd="push('dnd')" />
+      <div v-if="view === 'sound'" key="sound" class="settings-page">
+        <SettingsSound @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
       </div>
 
-      <!-- ================= 勿扰模式 (图 2 + 朝拜勿扰入口) ================= -->
+      <!-- ================= 勿扰模式 (图 2 + 礼拜模式入口) ================= -->
       <div v-else-if="view === 'dnd'" key="dnd" class="settings-page">
         <SettingsDND @back="pop" @open-prayer="push('prayer')" />
       </div>
 
-      <!-- ================= 朝拜勿扰 ================= -->
+      <!-- ================= 礼拜模式 ================= -->
       <div v-else-if="view === 'prayer'" key="prayer" class="settings-page">
-        <SettingsPrayer ref="prayerRef" @back-to-dnd="pop" />
+        <SettingsPrayer ref="prayerRef" @back="pop" @back-to-dnd="pop" />
       </div>
 
       <!-- ================= 通知（settingsprototype.tsx 移植） ================= -->

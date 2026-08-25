@@ -1,11 +1,13 @@
 <script setup>
 import { ref } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
+import { usePrayerStore } from '../../../stores/prayerStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 
-const emit = defineEmits(['back', 'open-dnd'])
+const emit = defineEmits(['back', 'open-dnd', 'open-prayer'])
 const control = useControlStore()
+const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
 
 const volumes = ref({
@@ -26,7 +28,7 @@ function setSoundMode(mode) {
     <AppNavBar :title="i18n.t('soundAndVibration')" @back="emit('back')" />
 
     <div class="scrollable sound-body">
-      <!-- 顶部模式选择卡片（图 1：铃声 / 振动 / 静音 + 勿扰模式入口） -->
+      <!-- 顶部模式选择卡片（铃声 / 振动 / 静音 + 勿扰模式 + 礼拜模式入口） -->
       <div class="sound-card">
         <div class="mode-options-row">
           <!-- 铃声 -->
@@ -83,11 +85,26 @@ function setSoundMode(mode) {
 
         <div class="card-divider"></div>
 
-        <!-- 勿扰模式入口（图 1） -->
+        <!-- 勿扰模式入口 -->
         <div class="dnd-entry-row" @click="emit('open-dnd')">
           <span class="der-title">{{ i18n.t('dnd') }}</span>
           <div class="der-right">
             <span class="der-sub">{{ control.doNotDisturb ? i18n.t('dndEnabled') : i18n.t('dndScheduled') }}</span>
+            <svg width="8" height="13" viewBox="0 0 8 13">
+              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="card-divider"></div>
+
+        <!-- 礼拜模式入口（改到勿扰模式下方，名称为礼拜模式） -->
+        <div class="dnd-entry-row" @click="emit('open-prayer')">
+          <span class="der-title">{{ i18n.t('prayerDnd') }}</span>
+          <div class="der-right">
+            <span class="der-sub" :class="{ 'is-active': prayerStore.masterEnabled }">
+              {{ prayerStore.masterEnabled ? (prayerStore.activePrayer ? (i18n.locale === 'zh' ? '生效中' : i18n.locale === 'en' ? 'Active' : 'সক্রিয়') : i18n.t('dndEnabled')) : (i18n.locale === 'zh' ? '关闭' : i18n.locale === 'en' ? 'Off' : 'বন্ধ') }}
+            </span>
             <svg width="8" height="13" viewBox="0 0 8 13">
               <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />
             </svg>
@@ -328,6 +345,11 @@ function setSoundMode(mode) {
 .der-sub {
   font-size: 14.5px;
   color: #8e8e93;
+}
+
+.der-sub.is-active {
+  color: #00C853;
+  font-weight: 500;
 }
 
 /* ================= 图 1 音量调节上下两层呼吸感布局 ================= */

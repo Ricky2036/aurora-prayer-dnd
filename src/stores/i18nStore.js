@@ -61,7 +61,7 @@ export const MESSAGES = {
 
     // 勿扰模式
     dndDesc: '勿扰模式开启后，除允许的内容外，来电和提醒都将静音。',
-    prayerDnd: '礼拜勿扰',
+    prayerDnd: '礼拜模式',
     prayerDndDesc: '开启后系统将在设定的时间自动开启、关闭勿扰模式。',
     allowDisturb: '允许打扰',
     allowCalls: '来电提醒',
