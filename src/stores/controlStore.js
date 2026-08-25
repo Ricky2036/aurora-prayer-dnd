@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 /** 控制中心 / 状态栏 / 亮度滤镜共享的真实开关状态 */
 export const useControlStore = defineStore('control', {
   state: () => ({
-    brightness: 0.82,     // 0.25..1，驱动屏幕滤镜
+    brightness: 1.0,     // 0.25..1，驱动屏幕滤镜（默认 1.0 全亮纯白）
     volume: 0.55,
     airplane: false,
     wifi: true,

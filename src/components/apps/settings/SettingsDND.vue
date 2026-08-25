@@ -102,7 +102,7 @@ const i18n = useI18nStore()
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f7f7f9;
+  background: #F2F2F7;
 }
 
 .dnd-body {
@@ -111,18 +111,18 @@ const i18n = useI18nStore()
 }
 
 .dnd-card {
-  margin: 0 16px 14px;
+  margin: 0 16px 18px;
   background: #ffffff;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .dnd-group-header {
   font-size: 13px;
   font-weight: 500;
   color: #8e8e93;
-  margin: 18px 22px 8px;
+  margin: 20px 22px 8px;
 }
 
 .dnd-cell {
