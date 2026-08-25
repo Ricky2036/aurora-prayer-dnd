@@ -127,7 +127,7 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
       </div>
 
       <!-- ================= 声音与振动 (图 1) ================= -->
-      <div v-if="view === 'sound'" key="sound" class="settings-page">
+      <div v-else-if="view === 'sound'" key="sound" class="settings-page">
         <SettingsSound @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
       </div>
 
