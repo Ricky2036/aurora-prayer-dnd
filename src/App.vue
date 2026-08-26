@@ -48,6 +48,7 @@ onBeforeUnmount(() => {
 /* ================= 录屏功能 ================= */
 const isRecording = ref(false)
 const recordWithFrame = ref(true)
+const recordFormat = ref('transparent') // 'transparent' (WebM Alpha) | 'white' (White BG MP4) | 'clean' (Full Bleed MP4)
 let mediaRecorder = null
 let recordedChunks = []
 
@@ -66,9 +67,9 @@ async function toggleRecording() {
       ? targetEl?.querySelector('.phone-frame') || targetEl
       : targetEl
     const shapeWidth = shapeEl?.offsetWidth || 1
-    const shapeRadius = (!isMobile.value && recordWithFrame.value && shapeEl)
+    const shapeRadius = (!isMobile.value && recordFormat.value !== 'clean' && shapeEl)
       ? Number.parseFloat(getComputedStyle(shapeEl).borderTopLeftRadius) || 0
-      : 0
+      : (recordFormat.value !== 'clean' ? 44 : 0)
     const captureRadiusRatio = shapeRadius / shapeWidth
 
     const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -94,7 +95,7 @@ async function toggleRecording() {
     video.muted = true
     video.playsInline = true
     
-    // 隐藏的 Canvas 用于处理透明圆角
+    // 隐藏的 Canvas 用于处理透明/白底圆角
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d', { alpha: true })
     
@@ -109,15 +110,21 @@ async function toggleRecording() {
       
       const drawFrame = () => {
         if (!isDrawing) return
+        
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         
+        if (recordFormat.value === 'white') {
+          // 纯白背景填充（完美融入 PPT / Keynote 幻灯片，绝无黑角）
+          ctx.fillStyle = '#ffffff'
+          ctx.fillRect(0, 0, canvas.width, canvas.height)
+        }
+        
         ctx.save()
-        ctx.beginPath()
         
-        // 圆角读取当前实际录制元素
+        // 圆角裁切
         const radius = canvas.width * captureRadiusRatio
-        
-        if (radius > 0) {
+        if (radius > 0 && recordFormat.value !== 'clean') {
+          ctx.beginPath()
           if (ctx.roundRect) {
             ctx.roundRect(0, 0, canvas.width, canvas.height, radius)
           } else {
@@ -137,19 +144,23 @@ async function toggleRecording() {
       const canvasStream = canvas.captureStream(60) // 60 FPS
       recordedChunks = []
 
-      // 优先采用 H.265 / HEVC 编码与 MP4 封装
-      const preferredMimeTypes = [
-        'video/mp4;codecs=hevc,mp4a.40.2',
-        'video/mp4;codecs=hevc',
-        'video/mp4;codecs=hvc1',
-        'video/mp4;codecs=h265',
-        'video/mp4;codecs=avc1.42E01E',
-        'video/mp4;codecs=avc1',
-        'video/mp4',
-        'video/webm;codecs=h265',
-        'video/webm;codecs=vp9',
-        'video/webm'
-      ]
+      // 格式优先级
+      const preferredMimeTypes = recordFormat.value === 'transparent'
+        ? [
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+            'video/webm',
+            'video/mp4;codecs=hevc',
+            'video/mp4'
+          ]
+        : [
+            'video/mp4;codecs=avc1.42E01E',
+            'video/mp4;codecs=avc1',
+            'video/mp4;codecs=hevc',
+            'video/mp4',
+            'video/webm;codecs=vp9',
+            'video/webm'
+          ]
 
       let selectedMime = ''
       for (const mime of preferredMimeTypes) {
@@ -173,12 +184,13 @@ async function toggleRecording() {
       }
       
       mediaRecorder.onstop = () => {
-        const outMime = selectedMime || 'video/mp4'
+        const outMime = selectedMime || (recordFormat.value === 'transparent' ? 'video/webm' : 'video/mp4')
+        const ext = outMime.includes('webm') ? 'webm' : 'mp4'
         const blob = new Blob(recordedChunks, { type: outMime })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `prototype-recording-${Date.now()}.mp4`
+        a.download = `prototype-recording-${recordFormat.value}-${Date.now()}.${ext}`
         a.click()
         URL.revokeObjectURL(url)
         
@@ -227,6 +239,7 @@ async function toggleRecording() {
       :mode="isMobile ? 'mobile' : 'desktop'"
       :is-recording="isRecording"
       v-model:record-with-frame="recordWithFrame"
+      v-model:record-format="recordFormat"
       @toggle-recording="toggleRecording"
     />
   </div>

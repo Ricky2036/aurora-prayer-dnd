@@ -17,10 +17,14 @@ const props = defineProps({
   recordWithFrame: {
     type: Boolean,
     default: true
+  },
+  recordFormat: {
+    type: String,
+    default: 'transparent' // 'transparent' | 'white' | 'clean'
   }
 })
 
-const emit = defineEmits(['toggle-recording', 'update:recordWithFrame'])
+const emit = defineEmits(['toggle-recording', 'update:recordWithFrame', 'update:recordFormat'])
 
 const control = useControlStore()
 const system = useSystemStore()
@@ -273,13 +277,20 @@ function closeDrawer() {
 
       <!-- 录屏功能 -->
       <div class="pc-block">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <p class="pc-label" style="margin-bottom: 0;">录制屏幕</p>
           <label class="pc-switch-wrap">
             <span>带壳录制</span>
             <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
             <div class="pc-switch"></div>
           </label>
+        </div>
+        <!-- 录制输出格式选择 -->
+        <div class="pc-seg pc-seg-3" style="margin-bottom: 10px;">
+          <div class="pc-seg-thumb-3" :style="{ transform: `translateX(${recordFormat === 'transparent' ? 0 : recordFormat === 'white' ? 100 : 200}%)` }"></div>
+          <button class="pc-seg-btn" :class="{ on: recordFormat === 'transparent' }" @click="emit('update:recordFormat', 'transparent')">透明 WebM</button>
+          <button class="pc-seg-btn" :class="{ on: recordFormat === 'white' }" @click="emit('update:recordFormat', 'white')">白底 MP4</button>
+          <button class="pc-seg-btn" :class="{ on: recordFormat === 'clean' }" @click="emit('update:recordFormat', 'clean')">满铺 MP4</button>
         </div>
         <div class="pc-actions">
           <button class="pc-btn" :class="isRecording ? 'pc-btn-danger' : 'pc-btn-primary'" @click="emit('toggle-recording')">
@@ -447,6 +458,12 @@ function closeDrawer() {
           <!-- 录屏功能 -->
           <div class="pc-block" style="margin-bottom: 30px;">
             <p class="pc-label">录制屏幕</p>
+            <div class="pc-seg pc-seg-3" style="margin-bottom: 10px;">
+              <div class="pc-seg-thumb-3" :style="{ transform: `translateX(${recordFormat === 'transparent' ? 0 : recordFormat === 'white' ? 100 : 200}%)` }"></div>
+              <button class="pc-seg-btn" :class="{ on: recordFormat === 'transparent' }" @click="emit('update:recordFormat', 'transparent')">透明 WebM</button>
+              <button class="pc-seg-btn" :class="{ on: recordFormat === 'white' }" @click="emit('update:recordFormat', 'white')">白底 MP4</button>
+              <button class="pc-seg-btn" :class="{ on: recordFormat === 'clean' }" @click="emit('update:recordFormat', 'clean')">满铺 MP4</button>
+            </div>
             <div class="pc-actions">
               <button class="pc-btn" :class="isRecording ? 'pc-btn-danger' : 'pc-btn-primary'" @click="emit('toggle-recording')">
                 {{ isRecording ? '⏹ 停止录制' : '⏺ 开始录制' }}
