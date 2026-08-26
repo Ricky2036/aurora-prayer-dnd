@@ -19,7 +19,8 @@ const mosqueImg = computed(() => {
   return `${base}photo-widget.jpg`
 })
 
-function handleAction() {
+function handleAction(e) {
+  if (e) e.stopPropagation?.()
   prayerStore.setTargetView('prayer')
   if (widgetRef.value) {
     const screenEl = document.querySelector('.screen-view')
@@ -32,12 +33,12 @@ function handleAction() {
 </script>
 
 <template>
-  <div ref="widgetRef" class="widget prayer-widget" @click="handleAction">
+  <div ref="widgetRef" class="widget prayer-widget" @click.stop="handleAction">
     <!-- 背景插画 -->
     <img :src="mosqueImg" alt="Prayer Mosque" class="pw-image" />
 
     <!-- 文本与交互按钮层 -->
-    <div class="pw-content">
+    <div class="pw-content" @click.stop="handleAction">
       <div class="pw-text-group">
         <div class="pw-title">
           <span>{{ i18n.t('prayerWidgetTitle1') }}</span>
@@ -49,7 +50,7 @@ function handleAction() {
         </div>
       </div>
 
-      <button class="pw-button" @click="handleAction">
+      <button class="pw-button" @click.stop="handleAction">
         {{ i18n.t('prayerWidgetBtn') }}
       </button>
     </div>

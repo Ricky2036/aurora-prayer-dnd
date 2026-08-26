@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useControlStore } from '../../../stores/controlStore'
 import { useClock } from '../../../composables/useClock'
 import { useBackHandler } from '../../../composables/backRegistry'
@@ -34,6 +34,17 @@ if (prayerStore.targetView === 'prayer') {
 const stack = ref(initialStack)
 const view = computed(() => stack.value[stack.value.length - 1])
 const isBack = ref(false)
+
+watch(
+  () => prayerStore.targetView,
+  (newTarget) => {
+    if (newTarget === 'prayer') {
+      isBack.value = false
+      stack.value = ['main', 'sound', 'prayer']
+      prayerStore.setTargetView('main')
+    }
+  }
+)
 
 function push(v) {
   isBack.value = false

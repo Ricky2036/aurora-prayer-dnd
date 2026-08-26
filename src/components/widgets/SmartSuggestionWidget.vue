@@ -14,17 +14,24 @@ function toggleMode() {
 </script>
 
 <template>
-  <div class="smart-suggestion-stack" @click="toggleMode">
+  <div class="smart-suggestion-stack">
     <!-- 1. 翻转动效过程中的浅色半透明磨砂底板（参考 111.mp4） -->
     <div class="stack-tray-backplate"></div>
 
-    <!-- 2. 普通用户：天气卡片 (默认) -->
-    <div class="stack-card weather-card" :class="{ active: currentMode === 'normal', exited: currentMode === 'muslim' }">
+    <!-- 2. 普通用户：天气卡片 (默认，点击翻转至穆斯林模式) -->
+    <div
+      class="stack-card weather-card"
+      :class="{ active: currentMode === 'normal', exited: currentMode === 'muslim' }"
+      @click="toggleMode"
+    >
       <WeatherWidget />
     </div>
 
-    <!-- 3. 穆斯林用户：朝拜时段卡片 -->
-    <div class="stack-card prayer-card" :class="{ active: currentMode === 'muslim', exited: currentMode === 'normal' }">
+    <!-- 3. 穆斯林用户：朝拜时段卡片 (点击进入设置-礼拜模式) -->
+    <div
+      class="stack-card prayer-card"
+      :class="{ active: currentMode === 'muslim', exited: currentMode === 'normal' }"
+    >
       <PhotoWidget />
     </div>
   </div>

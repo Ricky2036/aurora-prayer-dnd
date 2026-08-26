@@ -35,7 +35,16 @@ const isSnapping = ref(false)
 let isPointerDown = false
 let startPointer = { x: 0, y: 0 }
 let startFab = { x: 0, y: 0 }
+let startTime = 0
 let hasMoved = false
+let lastToggleTime = 0
+
+function toggleDrawer() {
+  const now = Date.now()
+  if (now - lastToggleTime < 300) return
+  lastToggleTime = now
+  isDrawerOpen.value = !isDrawerOpen.value
+}
 
 function initFabPosition() {
   if (typeof window === 'undefined') return
@@ -64,23 +73,27 @@ function handleWindowResize() {
 }
 
 function onFabPointerDown(e) {
-  if (e.button !== 0 && e.pointerType === 'mouse') return
+  if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return
   isPointerDown = true
   hasMoved = false
   isSnapping.value = false
+  startTime = Date.now()
   startPointer = { x: e.clientX, y: e.clientY }
   startFab = { ...fabPos.value }
 
-  const target = e.currentTarget
-  target.setPointerCapture?.(e.pointerId)
+  try {
+    e.currentTarget?.setPointerCapture?.(e.pointerId)
+  } catch (err) {}
 }
 
 function onFabPointerMove(e) {
   if (!isPointerDown) return
   const dx = e.clientX - startPointer.x
   const dy = e.clientY - startPointer.y
+  const dist = Math.hypot(dx, dy)
 
-  if (!hasMoved && Math.hypot(dx, dy) > 5) {
+  // 移动距离大于 12px 判定为拖拽（容忍移动端手指触控轻微抖动）
+  if (!hasMoved && dist > 12) {
     hasMoved = true
   }
 
@@ -96,13 +109,26 @@ function onFabPointerMove(e) {
 function onFabPointerUp(e) {
   if (!isPointerDown) return
   isPointerDown = false
+  const elapsed = Date.now() - startTime
+  const dx = e.clientX - startPointer.x
+  const dy = e.clientY - startPointer.y
+  const dist = Math.hypot(dx, dy)
+
+  try {
+    e.currentTarget?.releasePointerCapture?.(e.pointerId)
+  } catch (err) {}
   
-  if (!hasMoved) {
-    // 点击：展开或收起控制台抽屉
-    isDrawerOpen.value = !isDrawerOpen.value
+  if (!hasMoved || dist < 12 || elapsed < 320) {
+    toggleDrawer()
   } else {
     // 拖拽释放：吸附至左侧或右侧边缘
     snapToEdge()
+  }
+}
+
+function onFabClick(e) {
+  if (!hasMoved) {
+    toggleDrawer()
   }
 }
 
@@ -277,6 +303,7 @@ function closeDrawer() {
       @pointermove="onFabPointerMove"
       @pointerup="onFabPointerUp"
       @pointercancel="onFabPointerUp"
+      @click="onFabClick"
     >
       <div class="fab-inner">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -629,20 +656,20 @@ function closeDrawer() {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 99999;
 }
 
 .fab-btn {
   position: fixed;
   top: 0;
   left: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
-  background: rgba(24, 24, 28, 0.88);
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  background: rgba(24, 24, 28, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   display: flex;
   flex-direction: column;
@@ -653,6 +680,7 @@ function closeDrawer() {
   touch-action: none;
   pointer-events: auto;
   user-select: none;
+  -webkit-user-select: none;
   will-change: transform;
 }
 
@@ -688,10 +716,11 @@ function closeDrawer() {
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   pointer-events: auto;
+  z-index: 100000;
 }
 
 /* 抽屉主体 */
@@ -711,7 +740,7 @@ function closeDrawer() {
   color: #fff;
   pointer-events: auto;
   overflow: hidden;
-  z-index: 10000;
+  z-index: 100001;
 }
 
 .drawer-handle-bar {
