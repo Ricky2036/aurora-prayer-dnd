@@ -5,7 +5,7 @@ import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 
-const emit = defineEmits(['back', 'open-prayer'])
+const emit = defineEmits(['back'])
 const control = useControlStore()
 const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
@@ -16,7 +16,7 @@ const i18n = useI18nStore()
     <AppNavBar :title="i18n.t('dnd')" @back="emit('back')" />
 
     <div class="scrollable dnd-body">
-      <!-- 顶部勿扰与定时开关卡片（图 2 + 增加入口「礼拜勿扰」） -->
+      <!-- 顶部勿扰与定时开关卡片 -->
       <div class="dnd-card">
         <!-- 勿扰模式开关 -->
         <div class="dnd-cell">
@@ -27,23 +27,10 @@ const i18n = useI18nStore()
         </div>
 
         <!-- 定时开启 -->
-        <div class="dnd-cell clickable">
+        <div class="dnd-cell clickable no-sep">
           <span class="dc-title">{{ i18n.t('dndScheduled') }}</span>
           <div class="dc-right">
             <span class="dc-val">22:00 - 07:00</span>
-            <svg width="8" height="13" viewBox="0 0 8 13">
-              <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />
-            </svg>
-          </div>
-        </div>
-
-        <!-- 礼拜勿扰入口（新增） -->
-        <div class="dnd-cell clickable no-sep" @click="emit('open-prayer')">
-          <span class="dc-title">{{ i18n.t('prayerDnd') }}</span>
-          <div class="dc-right">
-            <span class="dc-val" :class="{ 'is-active': prayerStore.masterEnabled }">
-              {{ prayerStore.masterEnabled ? (prayerStore.activePrayer ? (i18n.locale === 'zh' ? '生效中' : i18n.locale === 'en' ? 'Active' : 'সক্রিয়') : i18n.t('dndEnabled')) : (i18n.locale === 'zh' ? '关闭' : i18n.locale === 'en' ? 'Off' : 'বন্ধ') }}
-            </span>
             <svg width="8" height="13" viewBox="0 0 8 13">
               <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />
             </svg>
