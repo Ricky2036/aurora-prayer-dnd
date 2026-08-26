@@ -10,7 +10,9 @@ function autoTranscodePlugin() {
     name: 'auto-transcode-mov',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (req.url === '/__transcode_mov' && req.method === 'POST') {
+        const urlObj = new URL(req.url, 'http://127.0.0.1')
+        if (urlObj.pathname === '/__transcode_mov' && req.method === 'POST') {
+          const radiusRatio = Number(urlObj.searchParams.get('radiusRatio')) || 0.136
           const chunks = []
           req.on('data', chunk => chunks.push(chunk))
           req.on('end', () => {
@@ -22,50 +24,33 @@ function autoTranscodePlugin() {
               
               fs.writeFileSync(inPath, buffer)
               
-              // 优先使用 macOS 原生 VideoToolbox 硬件加速编码 HEVC with Alpha
-              const hevcArgs = [
+              // 使用 FFmpeg 强制重构抗锯齿圆角 Alpha 蒙版，并输出 Apple ProRes 4444 (.mov)
+              const rRatio = Math.max(0.01, Math.min(0.3, radiusRatio))
+              const vfFilter = `format=yuva444p10le,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(X,W*${rRatio})*lt(Y,W*${rRatio}), clip((W*${rRatio}-hypot(X-W*${rRatio},Y-W*${rRatio})+0.5)*255*256, 0, 65535), if(gt(X,W-W*${rRatio})*lt(Y,W*${rRatio}), clip((W*${rRatio}-hypot(X-(W-W*${rRatio}),Y-W*${rRatio})+0.5)*255*256, 0, 65535), if(lt(X,W*${rRatio})*gt(Y,H-W*${rRatio}), clip((W*${rRatio}-hypot(X-W*${rRatio},Y-(H-W*${rRatio}))+0.5)*255*256, 0, 65535), if(gt(X,W-W*${rRatio})*gt(Y,H-W*${rRatio}), clip((W*${rRatio}-hypot(X-(W-W*${rRatio}),Y-(H-W*${rRatio}))+0.5)*255*256, 0, 65535), 65535))))'`
+              
+              const proresArgs = [
                 '-y',
                 '-i', inPath,
-                '-c:v', 'hevc_videotoolbox',
-                '-allow_sw', '1',
-                '-alpha_quality', '0.75',
-                '-vtag', 'hvc1',
-                '-pix_fmt', 'yuva420p',
+                '-vf', vfFilter,
+                '-c:v', 'prores_ks',
+                '-profile:v', '4444',
+                '-pix_fmt', 'yuva444p10le',
                 outPath
               ]
               
-              const proc = spawn('ffmpeg', hevcArgs)
+              const proc = spawn('ffmpeg', proresArgs)
               
               proc.on('close', (code) => {
                 if (code === 0 && fs.existsSync(outPath)) {
                   const outBuf = fs.readFileSync(outPath)
                   res.setHeader('Content-Type', 'video/quicktime')
-                  res.setHeader('Content-Disposition', 'attachment; filename="prototype-recording-alpha.mov"')
+                  res.setHeader('Content-Disposition', 'attachment; filename="prototype-alpha.mov"')
                   res.end(outBuf)
                   try { fs.unlinkSync(inPath); fs.unlinkSync(outPath) } catch (e) {}
                 } else {
-                  // 回退使用 Apple ProRes 4444 (100% 支持所有 macOS / iOS 软件)
-                  const proresArgs = [
-                    '-y',
-                    '-i', inPath,
-                    '-c:v', 'prores_ks',
-                    '-profile:v', '4444',
-                    '-pix_fmt', 'yuva444p10le',
-                    outPath
-                  ]
-                  const proc2 = spawn('ffmpeg', proresArgs)
-                  proc2.on('close', (code2) => {
-                    if (code2 === 0 && fs.existsSync(outPath)) {
-                      const outBuf = fs.readFileSync(outPath)
-                      res.setHeader('Content-Type', 'video/quicktime')
-                      res.setHeader('Content-Disposition', 'attachment; filename="prototype-recording-alpha.mov"')
-                      res.end(outBuf)
-                    } else {
-                      res.statusCode = 500
-                      res.end('Transcoding failed')
-                    }
-                    try { fs.unlinkSync(inPath); fs.unlinkSync(outPath) } catch (e) {}
-                  })
+                  res.statusCode = 500
+                  res.end('Transcoding failed')
+                  try { fs.unlinkSync(inPath) } catch (e) {}
                 }
               })
             } catch (err) {

@@ -179,9 +179,9 @@ async function toggleRecording() {
         const outMime = selectedMime || 'video/webm'
         const rawBlob = new Blob(recordedChunks, { type: outMime })
 
-        // 自动调用硬件转码管道（转为 Apple 原生 HEVC / ProRes with Alpha .mov）
+        // 自动调用硬件转码管道（转为 Apple 原生 ProRes 4444 with Alpha .mov）
         try {
-          const res = await fetch('/__transcode_mov', {
+          const res = await fetch(`/__transcode_mov?radiusRatio=${captureRadiusRatio}`, {
             method: 'POST',
             body: rawBlob
           })
