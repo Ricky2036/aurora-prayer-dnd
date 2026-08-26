@@ -66,7 +66,7 @@ async function toggleRecording() {
       ? targetEl?.querySelector('.phone-frame') || targetEl
       : targetEl
     const shapeWidth = shapeEl?.offsetWidth || 1
-    const shapeRadius = (!isMobile.value && shapeEl)
+    const shapeRadius = (!isMobile.value && recordWithFrame.value && shapeEl)
       ? Number.parseFloat(getComputedStyle(shapeEl).borderTopLeftRadius) || 0
       : 0
     const captureRadiusRatio = shapeRadius / shapeWidth
