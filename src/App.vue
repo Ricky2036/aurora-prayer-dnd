@@ -47,8 +47,8 @@ onBeforeUnmount(() => {
 
 /* ================= 录屏功能 ================= */
 const isRecording = ref(false)
+const isTranscoding = ref(false)
 const recordWithFrame = ref(true)
-const recordFormat = ref('transparent') // 'transparent' (WebM Alpha) | 'white' (White BG MP4) | 'clean' (Full Bleed MP4)
 let mediaRecorder = null
 let recordedChunks = []
 
@@ -67,9 +67,9 @@ async function toggleRecording() {
       ? targetEl?.querySelector('.phone-frame') || targetEl
       : targetEl
     const shapeWidth = shapeEl?.offsetWidth || 1
-    const shapeRadius = (!isMobile.value && recordFormat.value !== 'clean' && shapeEl)
+    const shapeRadius = (!isMobile.value && shapeEl)
       ? Number.parseFloat(getComputedStyle(shapeEl).borderTopLeftRadius) || 0
-      : (recordFormat.value !== 'clean' ? 44 : 0)
+      : 44
     const captureRadiusRatio = shapeRadius / shapeWidth
 
     const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -95,7 +95,7 @@ async function toggleRecording() {
     video.muted = true
     video.playsInline = true
     
-    // 隐藏的 Canvas 用于处理透明/白底圆角
+    // 隐藏的 Canvas 用于处理透明圆角
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d', { alpha: true })
     
@@ -112,18 +112,11 @@ async function toggleRecording() {
         if (!isDrawing) return
         
         ctx.clearRect(0, 0, canvas.width, canvas.height)
-        
-        if (recordFormat.value === 'white') {
-          // 纯白背景填充（完美融入 PPT / Keynote 幻灯片，绝无黑角）
-          ctx.fillStyle = '#ffffff'
-          ctx.fillRect(0, 0, canvas.width, canvas.height)
-        }
-        
         ctx.save()
         
-        // 圆角裁切
+        // 严格圆角透明裁切
         const radius = canvas.width * captureRadiusRatio
-        if (radius > 0 && recordFormat.value !== 'clean') {
+        if (radius > 0) {
           ctx.beginPath()
           if (ctx.roundRect) {
             ctx.roundRect(0, 0, canvas.width, canvas.height, radius)
@@ -144,23 +137,14 @@ async function toggleRecording() {
       const canvasStream = canvas.captureStream(60) // 60 FPS
       recordedChunks = []
 
-      // 格式优先级
-      const preferredMimeTypes = recordFormat.value === 'transparent'
-        ? [
-            'video/webm;codecs=vp9',
-            'video/webm;codecs=vp8',
-            'video/webm',
-            'video/mp4;codecs=hevc',
-            'video/mp4'
-          ]
-        : [
-            'video/mp4;codecs=avc1.42E01E',
-            'video/mp4;codecs=avc1',
-            'video/mp4;codecs=hevc',
-            'video/mp4',
-            'video/webm;codecs=vp9',
-            'video/webm'
-          ]
+      // 优先采用支持透明通道的编码
+      const preferredMimeTypes = [
+        'video/webm;codecs=vp9',
+        'video/webm;codecs=vp8',
+        'video/webm',
+        'video/mp4;codecs=hevc',
+        'video/mp4'
+      ]
 
       let selectedMime = ''
       for (const mime of preferredMimeTypes) {
@@ -171,7 +155,7 @@ async function toggleRecording() {
       }
 
       const recorderOptions = {
-        videoBitsPerSecond: 8000000 // 8 Mbps 高清画质
+        videoBitsPerSecond: 10000000 // 10 Mbps 高码率
       }
       if (selectedMime) {
         recorderOptions.mimeType = selectedMime
@@ -183,23 +167,47 @@ async function toggleRecording() {
         if (e.data.size > 0) recordedChunks.push(e.data)
       }
       
-      mediaRecorder.onstop = () => {
-        const outMime = selectedMime || (recordFormat.value === 'transparent' ? 'video/webm' : 'video/mp4')
-        const ext = outMime.includes('webm') ? 'webm' : 'mp4'
-        const blob = new Blob(recordedChunks, { type: outMime })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `prototype-recording-${recordFormat.value}-${Date.now()}.${ext}`
-        a.click()
-        URL.revokeObjectURL(url)
-        
+      mediaRecorder.onstop = async () => {
         isRecording.value = false
+        isTranscoding.value = true
         isDrawing = false
         cancelAnimationFrame(animationId)
         stream.getTracks().forEach(t => t.stop())
         video.remove()
         canvas.remove()
+
+        const outMime = selectedMime || 'video/webm'
+        const rawBlob = new Blob(recordedChunks, { type: outMime })
+
+        // 自动调用硬件转码管道（转为 Apple 原生 HEVC / ProRes with Alpha .mov）
+        try {
+          const res = await fetch('/__transcode_mov', {
+            method: 'POST',
+            body: rawBlob
+          })
+          if (res.ok) {
+            const movBlob = await res.blob()
+            const url = URL.createObjectURL(movBlob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `prototype-alpha-${Date.now()}.mov`
+            a.click()
+            URL.revokeObjectURL(url)
+            isTranscoding.value = false
+            return
+          }
+        } catch (e) {
+          console.warn('本地转码接口未响应，回退直接下载透明 WebM 文件', e)
+        }
+
+        // 静态托管环境（如 GitHub Pages）回退直接下载原生透明 WebM 视频
+        const url = URL.createObjectURL(rawBlob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `prototype-alpha-${Date.now()}.webm`
+        a.click()
+        URL.revokeObjectURL(url)
+        isTranscoding.value = false
       }
       
       mediaRecorder.start()
@@ -238,8 +246,8 @@ async function toggleRecording() {
     <DevConsole
       :mode="isMobile ? 'mobile' : 'desktop'"
       :is-recording="isRecording"
+      :is-transcoding="isTranscoding"
       v-model:record-with-frame="recordWithFrame"
-      v-model:record-format="recordFormat"
       @toggle-recording="toggleRecording"
     />
   </div>
