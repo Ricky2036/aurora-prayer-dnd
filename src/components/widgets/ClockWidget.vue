@@ -37,11 +37,12 @@ const { hourDeg, minuteDeg, secondDeg } = useClock()
 
 <style scoped>
 .widget {
-  width: 155px;
-  height: 155px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-widget);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
   overflow: hidden;
+  box-sizing: border-box;
 }
 .just-unlocked .widget {
   animation: icon-enter 0.5s cubic-bezier(0.25, 0.9, 0.3, 1.2) backwards;
@@ -58,8 +59,11 @@ const { hourDeg, minuteDeg, secondDeg } = useClock()
   align-items: center;
   justify-content: center;
 }
-/* 表盘放大至容器可用空间（155 - 2×10 内边距），居中显示 */
-.cw-face { width: 135px; height: 135px; }
+/* 表盘放大至容器可用空间，居中显示 */
+.cw-face {
+  width: 88%;
+  height: 88%;
+}
 .cw-num {
   font: 600 12px var(--font-stack);
   fill: #1c1c1e;

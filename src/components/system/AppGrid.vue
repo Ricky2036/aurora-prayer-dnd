@@ -30,17 +30,25 @@ import SmartSuggestionWidget from '../widgets/SmartSuggestionWidget.vue'
 
 <style scoped>
 .app-grid {
-  padding: 66px 24px 0;
+  padding: calc(var(--safe-top, 54px) + 12px) 24px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 .widget-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 30px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--grid-gap-x, 24px);
+  margin-bottom: 26px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .icon-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  row-gap: 28px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--grid-gap-x, 24px);
+  row-gap: 26px;
   justify-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>

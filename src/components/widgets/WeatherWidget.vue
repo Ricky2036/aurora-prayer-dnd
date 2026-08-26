@@ -32,11 +32,12 @@ const i18n = useI18nStore()
 
 <style scoped>
 .widget {
-  width: 155px;
-  height: 155px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-widget);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
   overflow: hidden;
+  box-sizing: border-box;
 }
 .just-unlocked .widget {
   animation: icon-enter 0.5s cubic-bezier(0.25, 0.9, 0.3, 1.2) backwards;
@@ -51,8 +52,9 @@ const i18n = useI18nStore()
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 13px 14px 12px;
+  padding: 10% 10% 9%;
   color: #fff;
+  box-sizing: border-box;
 }
 .ww-top {
   display: flex;
@@ -60,10 +62,10 @@ const i18n = useI18nStore()
   align-items: flex-start;
 }
 .ww-city {
-  font: 500 14px/1.2 var(--font-stack);
+  font: 500 clamp(13px, 3.8vw, 15px)/1.2 var(--font-stack);
 }
 .ww-temp {
-  font: 300 40px/1.1 var(--font-stack);
+  font: 300 clamp(36px, 10vw, 44px)/1.1 var(--font-stack);
   letter-spacing: -1px;
 }
 .ww-condition {

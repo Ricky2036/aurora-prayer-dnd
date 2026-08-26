@@ -40,13 +40,14 @@ function toggleMode() {
 <style scoped>
 .smart-suggestion-stack {
   position: relative;
-  width: 155px;
-  height: 155px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-widget);
   perspective: 800px;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
+  box-sizing: border-box;
 }
 
 /* ================= 浅色半透明磨砂玻璃背板 (111.mp4 翻转过程底衬) ================= */
@@ -69,8 +70,9 @@ function toggleMode() {
 .stack-card {
   position: absolute;
   inset: 0;
-  width: 155px;
-  height: 155px;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-widget);
   overflow: hidden;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);

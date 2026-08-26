@@ -62,14 +62,15 @@ function handleAction(e) {
 
 <style scoped>
 .widget {
-  width: 155px;
-  height: 155px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-widget);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
   overflow: hidden;
   position: relative;
   user-select: none;
   -webkit-user-select: none;
+  box-sizing: border-box;
 }
 .just-unlocked .widget {
   animation: icon-enter 0.5s cubic-bezier(0.25, 0.9, 0.3, 1.2) backwards;
@@ -100,12 +101,13 @@ function handleAction(e) {
 .pw-content {
   position: absolute;
   inset: 0;
-  padding: 24px 12px 14px 14px;
+  padding: 13% 8% 8% 9%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
   z-index: 2;
+  box-sizing: border-box;
 }
 
 .pw-text-group {
@@ -116,28 +118,28 @@ function handleAction(e) {
 
 .pw-title {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Noto Sans Bengali", sans-serif;
-  font-size: 16px;
+  font-size: clamp(14px, 4.3vw, 17px);
   font-weight: 800;
-  line-height: 1.16;
+  line-height: 1.18;
   color: #1a1a1a;
   letter-spacing: -0.2px;
   display: flex;
   flex-direction: column;
-  max-width: 92px;
+  max-width: 105px;
   white-space: nowrap;
 }
 
 .pw-subtitle {
-  margin-top: 7px;
+  margin-top: 6px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Noto Sans Bengali", sans-serif;
-  font-size: 8.5px;
+  font-size: clamp(8px, 2.3vw, 9.5px);
   font-weight: 500;
   line-height: 1.32;
   color: #5c626e;
   letter-spacing: -0.1px;
   display: flex;
   flex-direction: column;
-  max-width: 92px;
+  max-width: 105px;
   white-space: nowrap;
 }
 
@@ -145,12 +147,12 @@ function handleAction(e) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 11px;
+  padding: 4px 12px;
   background: rgba(255, 255, 255, 0.96);
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0.5px 1.5px rgba(0, 0, 0, 0.04);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: 9.5px;
+  font-size: clamp(9px, 2.6vw, 10.5px);
   font-weight: 700;
   color: #0b5e48;
   border: none;
