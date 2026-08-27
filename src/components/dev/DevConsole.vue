@@ -170,7 +170,7 @@ function closeDrawer() {
     <!-- 顶部标题 -->
     <header class="pc-header">
       <div class="pc-title-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
           <line x1="12" y1="18" x2="12.01" y2="18"/>
         </svg>
@@ -407,8 +407,8 @@ function closeDrawer() {
 
         <div class="drawer-header">
           <div class="dh-title-wrap" style="display: flex; align-items: center; gap: 8px;">
-            <div class="pc-title-icon" style="width: 26px; height: 26px; border-radius: 8px;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="pc-title-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
                 <line x1="12" y1="18" x2="12.01" y2="18"/>
               </svg>
@@ -647,16 +647,11 @@ function closeDrawer() {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 0;
 }
 
 .pc-title-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.15));
-  border: 1px solid rgba(96, 165, 250, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
