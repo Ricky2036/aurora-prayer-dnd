@@ -360,7 +360,7 @@ function closeDrawer() {
     </main>
   </aside>
 
-  <!-- ================= 2. 移动端悬浮球与抽屉模式 ================= -->
+  <!-- ================= 2. 移动端悬浮球与居中弹窗模式 ================= -->
   <aside v-else class="mobile-dev-console">
     <!-- 可拖动悬浮按钮 (FAB) -->
     <div
@@ -384,206 +384,213 @@ function closeDrawer() {
       <div class="fab-tag">控制台</div>
     </div>
 
-    <!-- 底部控制台抽屉 (Bottom Sheet) -->
-    <Transition name="drawer-fade">
-      <div v-if="isDrawerOpen" class="drawer-backdrop" @click="closeDrawer"></div>
-    </Transition>
+    <!-- 弹窗遮罩与居中弹窗 (Modal Popup) -->
+    <Transition name="modal-fade">
+      <div v-if="isDrawerOpen" class="modal-backdrop" @click="closeDrawer">
+        <Transition name="modal-pop">
+          <div v-if="isDrawerOpen" class="proto-console modal-console" @click.stop>
+            <!-- 背景流光 -->
+            <div class="pc-glow"></div>
 
-    <Transition name="drawer-slide">
-      <div v-if="isDrawerOpen" class="drawer-sheet">
-        <div class="drawer-handle-bar">
-          <div class="dh-indicator"></div>
-        </div>
+            <!-- 顶部标题 (居中加粗 + 关闭按钮) -->
+            <header class="pc-header">
+              <h2 class="pc-title">控制台</h2>
+              <button class="pc-close-btn" @click="closeDrawer" aria-label="关闭">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </header>
 
-        <div class="drawer-header">
-          <div class="dh-title-wrap">
-            <span class="dh-title">控制台</span>
-          </div>
-          <button class="dh-close-btn" @click="closeDrawer">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-
-        <!-- 移动端抽屉 Tab 卡片 -->
-        <div class="pc-card pc-tab-card mobile-tab-card">
-          <div class="pc-card-header">
-            <span class="pc-card-title">模块切换</span>
-          </div>
-          <nav class="pc-tab-bar">
-            <div
-              class="pc-tab-indicator"
-              :style="{
-                transform: activeTab === 'system'
-                  ? 'translateX(0)'
-                  : activeTab === 'prayer'
-                    ? 'translateX(100%)'
-                    : 'translateX(200%)'
-              }"
-            ></div>
-            <button
-              v-for="t in tabs"
-              :key="t.id"
-              class="pc-tab-btn"
-              :class="{ active: activeTab === t.id }"
-              @click="activeTab = t.id"
-            >
-              {{ t.name }}
-            </button>
-          </nav>
-        </div>
-
-        <div class="drawer-body scrollable">
-          <Transition name="tab-fade" mode="out-in">
-            <!-- 1. 系统控制 Tab -->
-            <div v-if="activeTab === 'system'" key="mob-system" class="pc-tab-panel">
-              <!-- 语言切换 -->
-              <div class="pc-card">
-                <div class="pc-card-header">
-                  <span class="pc-card-title">系统语言</span>
-                </div>
-                <div class="pc-seg pc-seg-3">
-                  <div
-                    class="pc-seg-thumb-3"
-                    :style="{
-                      transform: i18n.locale === 'zh'
-                        ? 'translateX(0)'
-                        : i18n.locale === 'en'
-                          ? 'translateX(100%)'
-                          : 'translateX(200%)'
-                    }"
-                  ></div>
-                  <button class="pc-seg-btn" :class="{ on: i18n.locale === 'zh' }" @click="i18n.setLocale('zh')">中文</button>
-                  <button class="pc-seg-btn" :class="{ on: i18n.locale === 'en' }" @click="i18n.setLocale('en')">English</button>
-                  <button class="pc-seg-btn" :class="{ on: i18n.locale === 'bn' }" @click="i18n.setLocale('bn')">বাংলা</button>
-                </div>
+            <!-- 模块切换卡片 -->
+            <div class="pc-card pc-tab-card">
+              <div class="pc-card-header">
+                <span class="pc-card-title">模块切换</span>
               </div>
-
-              <!-- 屏幕状态控制 -->
-              <div class="pc-card">
-                <div class="pc-card-header">
-                  <span class="pc-card-title">屏幕电源</span>
-                </div>
+              <nav class="pc-tab-bar">
+                <div
+                  class="pc-tab-indicator"
+                  :style="{
+                    transform: activeTab === 'system'
+                      ? 'translateX(0)'
+                      : activeTab === 'prayer'
+                        ? 'translateX(100%)'
+                        : 'translateX(200%)'
+                  }"
+                ></div>
                 <button
-                  class="pc-btn pc-btn-toggle"
-                  :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
-                  @click="system.screenOn ? system.powerOff() : system.powerOn()"
+                  v-for="t in tabs"
+                  :key="t.id"
+                  class="pc-tab-btn"
+                  :class="{ active: activeTab === t.id }"
+                  @click="activeTab = t.id"
                 >
-                  {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
+                  {{ t.name }}
                 </button>
-              </div>
-
-              <!-- 录屏功能 -->
-              <div class="pc-card">
-                <div class="pc-card-header">
-                  <span class="pc-card-title">录制屏幕</span>
-                </div>
-                <button
-                  class="pc-btn"
-                  :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
-                  :disabled="isTranscoding"
-                  @click="emit('toggle-recording')"
-                >
-                  {{ isTranscoding ? '⏳ 正在自动转码导出...' : isRecording ? '⏹ 停止录制并自动转码' : '⏺ 开始录制' }}
-                </button>
-              </div>
+              </nav>
             </div>
 
-            <!-- 2. 礼拜模式 Tab -->
-            <div v-else-if="activeTab === 'prayer'" key="mob-prayer" class="pc-tab-panel">
-              <!-- 智慧建议模式 -->
-              <div class="pc-card">
-                <div class="pc-card-header">
-                  <span class="pc-card-title">智慧建议</span>
-                </div>
-                <div class="pc-seg">
-                  <div
-                    class="pc-seg-thumb"
-                    :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
-                  ></div>
-                  <button
-                    class="pc-seg-btn"
-                    :class="{ on: prayerStore.userMode === 'normal' }"
-                    @click="prayerStore.setUserMode('normal')"
-                  >
-                    普通用户
-                  </button>
-                  <button
-                    class="pc-seg-btn"
-                    :class="{ on: prayerStore.userMode === 'muslim' }"
-                    @click="prayerStore.setUserMode('muslim')"
-                  >
-                    穆斯林用户
-                  </button>
-                </div>
-              </div>
+            <!-- Tab 内容区 -->
+            <main class="pc-content-body">
+              <Transition name="tab-fade" mode="out-in">
+                <!-- 1. 系统控制 Tab -->
+                <section v-if="activeTab === 'system'" key="mob-system" class="pc-tab-panel">
+                  <!-- 语言切换 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">系统语言</span>
+                    </div>
+                    <div class="pc-seg pc-seg-3">
+                      <div
+                        class="pc-seg-thumb-3"
+                        :style="{
+                          transform: i18n.locale === 'zh'
+                            ? 'translateX(0)'
+                            : i18n.locale === 'en'
+                              ? 'translateX(100%)'
+                              : 'translateX(200%)'
+                        }"
+                      ></div>
+                      <button class="pc-seg-btn" :class="{ on: i18n.locale === 'zh' }" @click="i18n.setLocale('zh')">中文</button>
+                      <button class="pc-seg-btn" :class="{ on: i18n.locale === 'en' }" @click="i18n.setLocale('en')">English</button>
+                      <button class="pc-seg-btn" :class="{ on: i18n.locale === 'bn' }" @click="i18n.setLocale('bn')">বাংলা</button>
+                    </div>
+                  </div>
 
-              <!-- 灵动岛模拟 -->
-              <div class="pc-card">
-                <div class="pc-card-header">
-                  <span class="pc-card-title">灵动岛</span>
-                  <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
-                    {{ prayerStore.currentIslandPrayer.cnName }}中
-                  </span>
-                </div>
-                <div class="prayer-buttons-grid">
-                  <button
-                    v-for="p in prayerStore.prayers"
-                    :key="p.id"
-                    class="pc-prayer-btn"
-                    :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
-                    @click="prayerStore.toggleSimulatedPrayer(p.id)"
-                  >
-                    {{ p.cnName }}
-                  </button>
-                </div>
-              </div>
-            </div>
+                  <!-- 屏幕状态控制 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">屏幕电源</span>
+                    </div>
+                    <button
+                      class="pc-btn pc-btn-toggle"
+                      :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
+                      @click="system.screenOn ? system.powerOff() : system.powerOn()"
+                    >
+                      {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
+                    </button>
+                  </div>
 
-            <!-- 3. 控制中心 Tab -->
-            <div v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
-              <!-- 排列算法 -->
-              <div class="pc-card">
-                <div class="pc-card-header">
-                  <span class="pc-card-title">控制中心编辑算法</span>
-                </div>
-                <div class="pc-seg">
-                  <div
-                    class="pc-seg-thumb"
-                    :style="{ transform: control.dragMode === 'flow' ? 'translateX(0)' : 'translateX(100%)' }"
-                  ></div>
-                  <button
-                    class="pc-seg-btn"
-                    :class="{ on: control.dragMode === 'flow' }"
-                    @click="control.setDragMode('flow')"
-                  >
-                    流式推挤
-                  </button>
-                  <button
-                    class="pc-seg-btn"
-                    :class="{ on: control.dragMode === 'swap' }"
-                    @click="control.setDragMode('swap')"
-                  >
-                    坐标沉降
-                  </button>
-                </div>
-              </div>
+                  <!-- 录屏功能 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">录制屏幕</span>
+                      <label class="pc-switch-wrap">
+                        <span>带壳录制</span>
+                        <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
+                        <div class="pc-switch"></div>
+                      </label>
+                    </div>
+                    <button
+                      class="pc-btn"
+                      :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+                      :disabled="isTranscoding"
+                      @click="emit('toggle-recording')"
+                    >
+                      {{ isTranscoding ? '⏳ 正在自动转码导出...' : isRecording ? '⏹ 停止录制并自动转码' : '⏺ 开始录制' }}
+                    </button>
+                  </div>
+                </section>
 
-              <!-- 提示卡片 -->
-              <div class="pc-hint-card">
-                <div class="pc-hint-icon">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="16" x2="12" y2="12"/>
-                    <line x1="12" y1="8" x2="12.01" y2="8"/>
-                  </svg>
-                </div>
-                <p class="pc-hint-text">
-                  在手机屏幕右上角边缘向下滑动，即可随时呼出控制中心；长按组件进入编辑网格。
-                </p>
-              </div>
-            </div>
-          </Transition>
-        </div>
+                <!-- 2. 礼拜模式 Tab -->
+                <section v-else-if="activeTab === 'prayer'" key="mob-prayer" class="pc-tab-panel">
+                  <!-- 智慧建议模式 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">智慧建议</span>
+                    </div>
+                    <div class="pc-seg">
+                      <div
+                        class="pc-seg-thumb"
+                        :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
+                      ></div>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: prayerStore.userMode === 'normal' }"
+                        @click="prayerStore.setUserMode('normal')"
+                      >
+                        普通用户
+                      </button>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: prayerStore.userMode === 'muslim' }"
+                        @click="prayerStore.setUserMode('muslim')"
+                      >
+                        穆斯林用户
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 灵动岛模拟 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">灵动岛</span>
+                      <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
+                        {{ prayerStore.currentIslandPrayer.cnName }}中
+                      </span>
+                    </div>
+                    <div class="prayer-buttons-grid">
+                      <button
+                        v-for="p in prayerStore.prayers"
+                        :key="p.id"
+                        class="pc-prayer-btn"
+                        :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
+                        @click="prayerStore.toggleSimulatedPrayer(p.id)"
+                      >
+                        {{ p.cnName }}
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <!-- 3. 控制中心 Tab -->
+                <section v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
+                  <!-- 排列算法 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">控制中心编辑算法</span>
+                    </div>
+                    <div class="pc-seg">
+                      <div
+                        class="pc-seg-thumb"
+                        :style="{ transform: control.dragMode === 'flow' ? 'translateX(0)' : 'translateX(100%)' }"
+                      ></div>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: control.dragMode === 'flow' }"
+                        @click="control.setDragMode('flow')"
+                      >
+                        流式推挤
+                      </button>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: control.dragMode === 'swap' }"
+                        @click="control.setDragMode('swap')"
+                      >
+                        坐标沉降
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 提示卡片 -->
+                  <div class="pc-hint-card">
+                    <div class="pc-hint-icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                      </svg>
+                    </div>
+                    <p class="pc-hint-text">
+                      在手机屏幕右上角边缘向下滑动，即可随时呼出控制中心；长按组件进入编辑网格。
+                    </p>
+                  </div>
+                </section>
+              </Transition>
+            </main>
+          </div>
+        </Transition>
       </div>
     </Transition>
   </aside>
@@ -988,7 +995,7 @@ function closeDrawer() {
   margin: 0;
 }
 
-/* ================= 移动端悬浮球与抽屉 ================= */
+/* ================= 移动端悬浮球与居中弹窗 ================= */
 .mobile-dev-console {
   position: fixed;
   inset: 0;
@@ -1046,89 +1053,54 @@ function closeDrawer() {
   letter-spacing: 0.2px;
 }
 
-/* 抽屉遮罩 */
-.drawer-backdrop {
+/* 弹窗遮罩 (居中容器) */
+.modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   pointer-events: auto;
   z-index: 100000;
-}
-
-/* 抽屉主体 */
-.drawer-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  max-height: 80dvh;
-  background: #18181c;
-  border-top-left-radius: 24px;
-  border-top-right-radius: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  color: #fff;
-  pointer-events: auto;
-  overflow: hidden;
-  z-index: 100001;
-}
-
-.drawer-handle-bar {
-  display: flex;
-  justify-content: center;
-  padding: 10px 0 4px;
-}
-
-.dh-indicator {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: #3f3f46;
-}
-
-.drawer-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 18px 12px;
+  justify-content: center;
+  padding: 16px;
 }
 
-.dh-title {
-  font: 700 15px/1.2 var(--font-stack);
-  letter-spacing: -0.1px;
-  color: #ffffff;
+/* 移动端弹窗控制台 (尺寸布局完全同桌面版) */
+.modal-console {
+  width: min(320px, calc(100vw - 32px));
+  max-height: 90dvh;
+  overflow-y: auto;
+  pointer-events: auto;
+  z-index: 100001;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
-.dh-close-btn {
-  width: 28px;
-  height: 28px;
+.pc-close-btn {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #27272a;
-  border: 1px solid #3f3f46;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #a1a1aa;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.dh-close-btn:hover {
-  background: #3f3f46;
+.pc-close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
-}
-
-.mobile-tab-bar {
-  margin: 0 16px 14px;
-}
-
-.drawer-body {
-  flex: 1;
-  padding: 0 16px calc(24px + env(safe-area-inset-bottom));
-  overflow-y: auto;
 }
 
 /* ================= 切换过渡动画 ================= */
@@ -1147,23 +1119,30 @@ function closeDrawer() {
   transform: translateY(-6px);
 }
 
-.drawer-fade-enter-active,
-.drawer-fade-leave-active {
+/* 弹窗背景淡入淡出 */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
   transition: opacity 0.25s ease;
 }
 
-.drawer-fade-enter-from,
-.drawer-fade-leave-to {
+.modal-fade-enter-from,
+.modal-fade-leave-to {
   opacity: 0;
 }
 
-.drawer-slide-enter-active,
-.drawer-slide-leave-active {
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+/* 弹窗微缩放弹出 */
+.modal-pop-enter-active,
+.modal-pop-leave-active {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.28s ease;
 }
 
-.drawer-slide-enter-from,
-.drawer-slide-leave-to {
-  transform: translateY(100%);
+.modal-pop-enter-from {
+  opacity: 0;
+  transform: scale(0.92) translateY(10px);
+}
+
+.modal-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.94) translateY(6px);
 }
 </style>
