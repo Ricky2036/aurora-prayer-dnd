@@ -207,9 +207,9 @@ function closeDrawer() {
         <!-- 1. 系统控制 Tab -->
         <section v-if="activeTab === 'system'" key="system" class="pc-tab-panel">
           <!-- 语言切换 -->
-          <div class="pc-block">
-            <div class="pc-block-header">
-              <span class="pc-block-title">系统语言</span>
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">系统语言</span>
             </div>
             <div class="pc-seg pc-seg-3">
               <div
@@ -229,9 +229,9 @@ function closeDrawer() {
           </div>
 
           <!-- 屏幕状态控制 -->
-          <div class="pc-block">
-            <div class="pc-block-header">
-              <span class="pc-block-title">屏幕电源</span>
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">屏幕电源</span>
               <span class="pc-state-tag" :class="{ 'is-on': system.screenOn }">
                 <span class="pc-dot"></span>
                 {{ system.screenOn ? '屏幕已亮起' : '屏幕已熄灭' }}
@@ -247,9 +247,9 @@ function closeDrawer() {
           </div>
 
           <!-- 录屏功能 -->
-          <div class="pc-block">
-            <div class="pc-block-header">
-              <span class="pc-block-title">录制屏幕</span>
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">录制屏幕</span>
               <label class="pc-switch-wrap">
                 <span>带壳录制</span>
                 <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
@@ -270,9 +270,9 @@ function closeDrawer() {
         <!-- 2. 礼拜与勿扰 Tab -->
         <section v-else-if="activeTab === 'prayer'" key="prayer" class="pc-tab-panel">
           <!-- 智慧建议模式 -->
-          <div class="pc-block">
-            <div class="pc-block-header">
-              <span class="pc-block-title">智慧建议堆叠</span>
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">智慧建议堆叠</span>
             </div>
             <div class="pc-seg">
               <div
@@ -297,9 +297,9 @@ function closeDrawer() {
           </div>
 
           <!-- 礼拜勿扰灵动岛模拟 -->
-          <div class="pc-block">
-            <div class="pc-block-header">
-              <span class="pc-block-title">礼拜勿扰灵动岛</span>
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">礼拜勿扰灵动岛</span>
               <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                 {{ prayerStore.currentIslandPrayer.cnName }}中
               </span>
@@ -321,9 +321,9 @@ function closeDrawer() {
         <!-- 3. 控制中心 Tab -->
         <section v-else-if="activeTab === 'control'" key="control" class="pc-tab-panel">
           <!-- 排列算法 -->
-          <div class="pc-block">
-            <div class="pc-block-header">
-              <span class="pc-block-title">控制中心编辑算法</span>
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">控制中心编辑算法</span>
             </div>
             <div class="pc-seg">
               <div
@@ -443,9 +443,9 @@ function closeDrawer() {
             <!-- 1. 系统控制 Tab -->
             <div v-if="activeTab === 'system'" key="mob-system" class="pc-tab-panel">
               <!-- 语言切换 -->
-              <div class="pc-block">
-                <div class="pc-block-header">
-                  <span class="pc-block-title">系统语言</span>
+              <div class="pc-card">
+                <div class="pc-card-header">
+                  <span class="pc-card-title">系统语言</span>
                 </div>
                 <div class="pc-seg pc-seg-3">
                   <div
@@ -465,9 +465,9 @@ function closeDrawer() {
               </div>
 
               <!-- 屏幕状态控制 -->
-              <div class="pc-block">
-                <div class="pc-block-header">
-                  <span class="pc-block-title">屏幕电源</span>
+              <div class="pc-card">
+                <div class="pc-card-header">
+                  <span class="pc-card-title">屏幕电源</span>
                   <span class="pc-state-tag" :class="{ 'is-on': system.screenOn }">
                     <span class="pc-dot"></span>
                     {{ system.screenOn ? '屏幕已亮起' : '屏幕已熄灭' }}
@@ -483,9 +483,9 @@ function closeDrawer() {
               </div>
 
               <!-- 录屏功能 -->
-              <div class="pc-block">
-                <div class="pc-block-header">
-                  <span class="pc-block-title">录制屏幕</span>
+              <div class="pc-card">
+                <div class="pc-card-header">
+                  <span class="pc-card-title">录制屏幕</span>
                 </div>
                 <button
                   class="pc-btn"
@@ -501,9 +501,9 @@ function closeDrawer() {
             <!-- 2. 礼拜与勿扰 Tab -->
             <div v-else-if="activeTab === 'prayer'" key="mob-prayer" class="pc-tab-panel">
               <!-- 智慧建议模式 -->
-              <div class="pc-block">
-                <div class="pc-block-header">
-                  <span class="pc-block-title">智慧建议堆叠</span>
+              <div class="pc-card">
+                <div class="pc-card-header">
+                  <span class="pc-card-title">智慧建议堆叠</span>
                 </div>
                 <div class="pc-seg">
                   <div
@@ -528,9 +528,9 @@ function closeDrawer() {
               </div>
 
               <!-- 礼拜勿扰灵动岛模拟 -->
-              <div class="pc-block">
-                <div class="pc-block-header">
-                  <span class="pc-block-title">礼拜勿扰灵动岛</span>
+              <div class="pc-card">
+                <div class="pc-card-header">
+                  <span class="pc-card-title">礼拜勿扰灵动岛</span>
                   <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                     {{ prayerStore.currentIslandPrayer.cnName }}中
                   </span>
@@ -552,9 +552,9 @@ function closeDrawer() {
             <!-- 3. 控制中心 Tab -->
             <div v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
               <!-- 排列算法 -->
-              <div class="pc-block">
-                <div class="pc-block-header">
-                  <span class="pc-block-title">控制中心编辑算法</span>
+              <div class="pc-card">
+                <div class="pc-card-header">
+                  <span class="pc-card-title">控制中心编辑算法</span>
                 </div>
                 <div class="pc-seg">
                   <div
@@ -717,7 +717,7 @@ function closeDrawer() {
   font-weight: 700;
 }
 
-/* ================= 设置项区块与控件 ================= */
+/* ================= 卡片与控件 ================= */
 .pc-content-body {
   position: relative;
   height: 295px;
@@ -727,23 +727,32 @@ function closeDrawer() {
 .pc-tab-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.pc-block {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.pc-card {
+  background: #1f1f26;
+  border: 1px solid #2e2e38;
+  border-radius: 16px;
+  padding: 13px 14px 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.pc-block-header {
+.pc-card:hover {
+  background: #23232c;
+  border-color: #3f3f4c;
+}
+
+.pc-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: 11px;
 }
 
-.pc-block-title {
-  font: 600 12.5px/1.2 var(--font-stack);
+.pc-card-title {
+  font: 600 13px/1.2 var(--font-stack);
   color: #f4f4f5;
   letter-spacing: 0.1px;
 }
