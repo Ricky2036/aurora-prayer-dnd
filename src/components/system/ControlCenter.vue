@@ -39,11 +39,19 @@ const rootRef = ref(null)
 const driver = getDriver('controlCenter')
 if (driver) useSwipeGesture(rootRef, driver.closeGesture)
 
-function onBackdropClick(e) {
-  // 点击根元素空白或液态玻璃底 → 收起（内容区有 @click.stop 拦截）
-  if (e.target === e.currentTarget || e.target.closest('.cc-backdrop')) {
-    system.requestCloseOverlay('controlCenter')
+function onCcClick(e) {
+  // 编辑模式下点空白区退出编辑模式
+  if (editing.value) {
+    if (!e.target.closest('.cc-icon-btn, .cc-edit-group, .gb-wrap, .cc-cell')) {
+      control.setEditing(false)
+    }
+    return
   }
+  // 点击卡片、胶囊、按钮、滑块等交互元素时不退出
+  if (e.target.closest('.cc-pill, .cc-media, .cc-sliders, .cc-vslider, .gb-wrap, .cc-grid-btn, .cc-icon-btn, .cc-edit-group, button, a, input, label')) {
+    return
+  }
+  system.requestCloseOverlay('controlCenter')
 }
 
 /* ================= 网格配置 ================= */
@@ -329,11 +337,11 @@ const glassRing = computed(() =>
 </script>
 
 <template>
-  <div ref="rootRef" class="control-center" :style="layerStyle" @click="onBackdropClick">
+  <div ref="rootRef" class="control-center" :style="layerStyle" @click="onCcClick">
     <!-- 动态高斯模糊与材质混色底 -->
     <MaterialBlur />
 
-    <div class="cc-scroll" :style="contentStyle" @click.stop>
+    <div class="cc-scroll" :style="contentStyle">
       <!-- 头部：设置 / 编辑 -->
       <div class="cc-header">
         <template v-if="!editing">

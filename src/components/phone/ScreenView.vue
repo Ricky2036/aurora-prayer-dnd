@@ -132,7 +132,10 @@ function useOverlayDriver(name, { axis = 'y', direction = 1, span = GESTURE_SPAN
     direction: -direction,
     span,
     threshold: 5,
-    canStart: () => system.overlays[name].status === 'open',
+    canStart: () => {
+      const status = system.overlays[name].status
+      return status === 'open' || status === 'settling'
+    },
     onStart: () => snapTo(system.overlays[name].progress),
     onProgress: (p) => {
       const next = 1 - p
@@ -141,7 +144,7 @@ function useOverlayDriver(name, { axis = 'y', direction = 1, span = GESTURE_SPAN
     },
     onRelease: (p, velocity) => {
       lastDragEnd = Date.now()
-      const close = p > 0.24 || velocity > 0.5
+      const close = p > 0.18 || velocity > 0.35
       const next = 1 - p
       system.beginSettle(name, next)
       animateTo(close ? 0 : 1, {

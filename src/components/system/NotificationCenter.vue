@@ -41,16 +41,12 @@ const rootRef = ref(null)
 const driver = getDriver('notificationCenter')
 if (driver) useSwipeGesture(rootRef, driver.closeGesture)
 
-function onBackdropClick(e) {
-  // 点击根元素空白 / 液态玻璃底 / 时间标题等非内容区 → 收起
-  // （列表内部有 @click.stop 拦截，卡片点击不会误关）
-  if (e.target === e.currentTarget || e.target.closest('.nc-backdrop, .nc-blobs')) {
-    system.requestCloseOverlay('notificationCenter')
+function onNcClick(e) {
+  // 点击卡片、播放器、清除按钮等交互元素时不退出
+  if (e.target.closest('.nc-card, .ls-player, .nc-clear-fab, .lp-play, button, a, input, label')) {
     return
   }
-  if (!e.target.closest('.nc-list, .nc-clear-fab')) {
-    system.requestCloseOverlay('notificationCenter')
-  }
+  system.requestCloseOverlay('notificationCenter')
 }
 
 /* ---------- 清除动画 ---------- */
@@ -124,12 +120,12 @@ function toggleExpand(id) {
 </script>
 
 <template>
-  <div ref="rootRef" class="notification-center" :style="layerStyle" @click="onBackdropClick">
+  <div ref="rootRef" class="notification-center" :style="layerStyle" @click="onNcClick">
     <!-- 动态高斯模糊与材质混色底 -->
     <MaterialBlur />
 
     <div class="nc-content">
-      <!-- 时间/日期标题（点击 = 空白，冒泡到根收起） -->
+      <!-- 时间/日期标题 -->
       <div class="nc-title">
         <span class="nc-title-time">{{ timeShort }}</span>
         <div class="nc-title-date">
@@ -138,8 +134,8 @@ function toggleExpand(id) {
         </div>
       </div>
 
-      <!-- 贯通式列表（内部卡片点击不冒泡，避免误关） -->
-      <div ref="listRef" class="nc-list scrollable" @click.stop @scroll.passive="onScroll">
+      <!-- 贯通式列表 -->
+      <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard class="nc-player-instance" />
 
