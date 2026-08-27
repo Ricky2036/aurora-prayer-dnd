@@ -27,11 +27,20 @@ input {
   background: none;
 }
 
-ul, ol { list-style: none; }
+/* 全局禁用点击高亮与外轮廓，模拟原生触感 */
+*, *::before, *::after {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+}
 
-/* 屏幕内一切元素禁用文本选择与点击高亮，模拟原生触感 */
-.screen * {
-  -webkit-tap-highlight-color: transparent;
+button, a, input, select, textarea, div {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  -webkit-touch-callout: none;
+}
+
+.screen *, .proto-console *, .mobile-dev-console * {
+  -webkit-tap-highlight-color: transparent !important;
   user-select: none;
   -webkit-user-select: none;
 }

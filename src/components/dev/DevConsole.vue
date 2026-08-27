@@ -68,6 +68,53 @@ function toggleModal() {
   }
 }
 
+/* ================= 全屏模式控制 (Chrome / Android / PC) ================= */
+const isFullscreen = ref(false)
+
+function updateFullscreenState() {
+  isFullscreen.value = !!(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  )
+}
+
+function toggleFullscreen() {
+  const doc = document
+  const docEl = document.documentElement
+
+  const requestFs =
+    docEl.requestFullscreen ||
+    docEl.webkitRequestFullscreen ||
+    docEl.mozRequestFullScreen ||
+    docEl.msRequestFullscreen
+
+  const exitFs =
+    doc.exitFullscreen ||
+    doc.webkitExitFullscreen ||
+    doc.mozCancelFullScreen ||
+    doc.msExitFullscreen
+
+  if (!isFullscreen.value) {
+    if (requestFs) {
+      requestFs.call(docEl).then(() => {
+        isFullscreen.value = true
+      }).catch((err) => {
+        console.warn('Fullscreen request failed:', err)
+      })
+    }
+  } else {
+    if (exitFs) {
+      exitFs.call(doc).then(() => {
+        isFullscreen.value = false
+      }).catch((err) => {
+        console.warn('Exit fullscreen failed:', err)
+      })
+    }
+  }
+}
+
 function initFabPosition() {
   if (typeof window === 'undefined') return
   const w = window.innerWidth
@@ -80,11 +127,16 @@ function initFabPosition() {
 
 onMounted(() => {
   initFabPosition()
+  updateFullscreenState()
   window.addEventListener('resize', handleWindowResize)
+  document.addEventListener('fullscreenchange', updateFullscreenState)
+  document.addEventListener('webkitfullscreenchange', updateFullscreenState)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleWindowResize)
+  document.removeEventListener('fullscreenchange', updateFullscreenState)
+  document.removeEventListener('webkitfullscreenchange', updateFullscreenState)
 })
 
 function handleWindowResize() {
@@ -239,18 +291,29 @@ function snapToEdge() {
             </div>
           </div>
 
-          <!-- 屏幕状态控制 -->
+          <!-- 屏幕状态控制与全屏 -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <span class="pc-card-title">屏幕电源</span>
+              <span class="pc-card-title">系统显示</span>
             </div>
-            <button
-              class="pc-btn pc-btn-toggle"
-              :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
-              @click="system.screenOn ? system.powerOff() : system.powerOn()"
-            >
-              {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
-            </button>
+            <div class="pc-btn-group-2">
+              <button class="pc-btn pc-btn-secondary" @click="toggleFullscreen">
+                <svg v-if="!isFullscreen" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+                <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                </svg>
+                {{ isFullscreen ? '退出全屏' : '进入全屏' }}
+              </button>
+              <button
+                class="pc-btn pc-btn-toggle"
+                :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
+                @click="system.screenOn ? system.powerOff() : system.powerOn()"
+              >
+                {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
+              </button>
+            </div>
           </div>
 
           <!-- 录屏功能 -->
@@ -269,7 +332,18 @@ function snapToEdge() {
               :disabled="isTranscoding"
               @click="emit('toggle-recording')"
             >
-              {{ isTranscoding ? '⏳ 正在自动转码导出...' : isRecording ? '⏹ 停止录制并自动转码' : '⏺ 开始录制' }}
+              <template v-if="isTranscoding">
+                <span class="pc-rec-spin">⏳</span>
+                <span>正在自动转码导出...</span>
+              </template>
+              <template v-else-if="isRecording">
+                <span class="pc-rec-square"></span>
+                <span>停止录制并自动转码</span>
+              </template>
+              <template v-else>
+                <span class="pc-rec-dot"></span>
+                <span>开始录制</span>
+              </template>
             </button>
           </div>
         </section>
@@ -470,18 +544,29 @@ function snapToEdge() {
                     </div>
                   </div>
 
-                  <!-- 屏幕状态控制 -->
+                  <!-- 屏幕状态控制与全屏 -->
                   <div class="pc-card">
                     <div class="pc-card-header">
-                      <span class="pc-card-title">屏幕电源</span>
+                      <span class="pc-card-title">系统显示</span>
                     </div>
-                    <button
-                      class="pc-btn pc-btn-toggle"
-                      :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
-                      @click="system.screenOn ? system.powerOff() : system.powerOn()"
-                    >
-                      {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
-                    </button>
+                    <div class="pc-btn-group-2">
+                      <button class="pc-btn pc-btn-secondary" @click="toggleFullscreen">
+                        <svg v-if="!isFullscreen" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                        </svg>
+                        <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                        </svg>
+                        {{ isFullscreen ? '退出全屏' : '进入全屏' }}
+                      </button>
+                      <button
+                        class="pc-btn pc-btn-toggle"
+                        :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
+                        @click="system.screenOn ? system.powerOff() : system.powerOn()"
+                      >
+                        {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
+                      </button>
+                    </div>
                   </div>
 
                   <!-- 录屏功能 -->
@@ -500,7 +585,18 @@ function snapToEdge() {
                       :disabled="isTranscoding"
                       @click="emit('toggle-recording')"
                     >
-                      {{ isTranscoding ? '⏳ 正在自动转码导出...' : isRecording ? '⏹ 停止录制并自动转码' : '⏺ 开始录制' }}
+                      <template v-if="isTranscoding">
+                        <span class="pc-rec-spin">⏳</span>
+                        <span>正在自动转码导出...</span>
+                      </template>
+                      <template v-else-if="isRecording">
+                        <span class="pc-rec-square"></span>
+                        <span>停止录制并自动转码</span>
+                      </template>
+                      <template v-else>
+                        <span class="pc-rec-dot"></span>
+                        <span>开始录制</span>
+                      </template>
                     </button>
                   </div>
                 </section>
@@ -704,6 +800,9 @@ function snapToEdge() {
   background: transparent;
   border: none;
   transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none;
 }
 
 .pc-tab-btn:hover {
@@ -824,6 +923,9 @@ function snapToEdge() {
   background: transparent;
   border: none;
   transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none;
 }
 
 .pc-seg-btn:hover {
@@ -836,6 +938,12 @@ function snapToEdge() {
 }
 
 /* 操作按钮 */
+.pc-btn-group-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .pc-btn {
   width: 100%;
   padding: 10px 0;
@@ -849,6 +957,8 @@ function snapToEdge() {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
 }
 
 .pc-btn:hover:not(:disabled) {
@@ -862,6 +972,19 @@ function snapToEdge() {
 .pc-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.pc-btn-secondary {
+  background: #27272a;
+  border-color: #3f3f46;
+  color: #e4e4e7;
+  box-shadow: none;
+}
+
+.pc-btn-secondary:hover:not(:disabled) {
+  background: #33333a;
+  border-color: #52525b;
+  color: #ffffff;
 }
 
 .pc-btn-primary {
@@ -885,6 +1008,33 @@ function snapToEdge() {
 
 .pc-btn-danger:hover:not(:disabled) {
   background: #b91c1c;
+}
+
+/* 录屏几何图标 */
+.pc-rec-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffffff;
+  margin-right: 6px;
+  vertical-align: middle;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+}
+
+.pc-rec-square {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 1.5px;
+  background: #ffffff;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.pc-rec-spin {
+  display: inline-block;
+  margin-right: 6px;
 }
 
 .pc-btn-toggle.pc-btn-danger {
@@ -927,6 +1077,9 @@ function snapToEdge() {
   color: #d4d4d8;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none;
 }
 
 .pc-prayer-btn:hover {
