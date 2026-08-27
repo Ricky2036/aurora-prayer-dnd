@@ -175,7 +175,7 @@ function closeDrawer() {
           <line x1="12" y1="18" x2="12.01" y2="18"/>
         </svg>
       </div>
-      <h2 class="pc-title">原型配置控制台</h2>
+      <h2 class="pc-title">控制台</h2>
     </header>
 
     <!-- 顶部多 Tab 切换条 -->
@@ -408,7 +408,7 @@ function closeDrawer() {
                 <line x1="12" y1="18" x2="12.01" y2="18"/>
               </svg>
             </div>
-            <span class="dh-title">原型配置控制台</span>
+            <span class="dh-title">控制台</span>
           </div>
           <button class="dh-close-btn" @click="closeDrawer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -687,10 +687,10 @@ function closeDrawer() {
   bottom: 3px;
   left: 3px;
   width: calc(33.333% - 2px);
-  background: #ffffff;
+  background: #2563eb;
   border-radius: 11px;
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.45);
 }
 
 .pc-tab-btn {
@@ -713,14 +713,14 @@ function closeDrawer() {
 }
 
 .pc-tab-btn.active {
-  color: #09090b;
+  color: #ffffff;
   font-weight: 700;
 }
 
 /* ================= 卡片与控件 ================= */
 .pc-content-body {
   position: relative;
-  height: 295px;
+  height: 318px;
   overflow: hidden;
 }
 
