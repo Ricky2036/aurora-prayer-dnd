@@ -729,7 +729,7 @@ function closeDrawer() {
 /* ================= 卡片与控件 ================= */
 .pc-content-body {
   position: relative;
-  height: 254px;
+  height: 284px;
   overflow: hidden;
 }
 
