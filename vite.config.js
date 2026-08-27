@@ -24,21 +24,20 @@ function autoTranscodePlugin() {
               
               fs.writeFileSync(inPath, buffer)
               
-              // 使用 FFmpeg 强制重构抗锯齿圆角 Alpha 蒙版，并输出 Apple ProRes 4444 (.mov)
-              const rRatio = Math.max(0.01, Math.min(0.3, radiusRatio))
-              const vfFilter = `format=yuva444p10le,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='if(lt(X,W*${rRatio})*lt(Y,W*${rRatio}), clip((W*${rRatio}-hypot(X-W*${rRatio},Y-W*${rRatio})+0.5)*255*256, 0, 65535), if(gt(X,W-W*${rRatio})*lt(Y,W*${rRatio}), clip((W*${rRatio}-hypot(X-(W-W*${rRatio}),Y-W*${rRatio})+0.5)*255*256, 0, 65535), if(lt(X,W*${rRatio})*gt(Y,H-W*${rRatio}), clip((W*${rRatio}-hypot(X-W*${rRatio},Y-(H-W*${rRatio}))+0.5)*255*256, 0, 65535), if(gt(X,W-W*${rRatio})*gt(Y,H-W*${rRatio}), clip((W*${rRatio}-hypot(X-(W-W*${rRatio}),Y-(H-W*${rRatio}))+0.5)*255*256, 0, 65535), 65535))))'`
-              
-              const proresArgs = [
+              // 优先使用 macOS 原生 VideoToolbox 硬件加速编码 HEVC with Alpha (体积小 ~2MB，毫秒级转码)
+              const hevcArgs = [
                 '-y',
                 '-i', inPath,
-                '-vf', vfFilter,
-                '-c:v', 'prores_ks',
-                '-profile:v', '4444',
-                '-pix_fmt', 'yuva444p10le',
+                '-c:v', 'hevc_videotoolbox',
+                '-allow_sw', '1',
+                '-alpha_quality', '0.75',
+                '-vtag', 'hvc1',
+                '-pix_fmt', 'bgra',
+                '-b:v', '6M',
                 outPath
               ]
               
-              const proc = spawn('ffmpeg', proresArgs)
+              const proc = spawn('ffmpeg', hevcArgs)
               
               proc.on('close', (code) => {
                 if (code === 0 && fs.existsSync(outPath)) {
