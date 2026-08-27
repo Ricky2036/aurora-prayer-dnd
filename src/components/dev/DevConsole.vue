@@ -231,10 +231,6 @@ function closeDrawer() {
           <div class="pc-card">
             <div class="pc-card-header">
               <span class="pc-card-title">屏幕电源</span>
-              <span class="pc-state-tag" :class="{ 'is-on': system.screenOn }">
-                <span class="pc-dot"></span>
-                {{ system.screenOn ? '屏幕已亮起' : '屏幕已熄灭' }}
-              </span>
             </div>
             <button
               class="pc-btn pc-btn-toggle"
@@ -466,10 +462,6 @@ function closeDrawer() {
               <div class="pc-card">
                 <div class="pc-card-header">
                   <span class="pc-card-title">屏幕电源</span>
-                  <span class="pc-state-tag" :class="{ 'is-on': system.screenOn }">
-                    <span class="pc-dot"></span>
-                    {{ system.screenOn ? '屏幕已亮起' : '屏幕已熄灭' }}
-                  </span>
                 </div>
                 <button
                   class="pc-btn pc-btn-toggle"
