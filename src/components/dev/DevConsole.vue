@@ -611,7 +611,6 @@ function closeDrawer() {
   box-shadow:
     0 24px 64px rgba(0, 0, 0, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  overflow: hidden;
   align-self: center;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: flex;
@@ -630,18 +629,19 @@ function closeDrawer() {
   pointer-events: none;
 }
 
-/* 顶部标题栏 */
+/* 顶部标题栏 (上下居中) */
 .pc-header {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  padding: 2px 0 4px;
   margin-bottom: 0;
 }
 
 .pc-title {
-  font: 800 16px/1.2 var(--font-stack);
+  font: 800 15.5px/1.2 var(--font-stack);
   letter-spacing: -0.2px;
   color: #ffffff;
   margin: 0;
@@ -707,8 +707,7 @@ function closeDrawer() {
 /* ================= 卡片与控件 ================= */
 .pc-content-body {
   position: relative;
-  height: 264px;
-  overflow: hidden;
+  min-height: 280px;
 }
 
 .pc-tab-panel {
