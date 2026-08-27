@@ -261,9 +261,9 @@ async function toggleRecording() {
   justify-content: center;
   gap: 48px;
   background:
-    radial-gradient(1200px 800px at 18% 12%, rgba(120, 119, 198, 0.28), transparent 60%),
-    radial-gradient(1000px 700px at 85% 80%, rgba(90, 200, 250, 0.22), transparent 55%),
-    linear-gradient(160deg, #e8e8ee 0%, #d9d9e3 50%, #cfcfd9 100%);
+    radial-gradient(1200px 800px at 15% 15%, rgba(99, 102, 241, 0.18), transparent 60%),
+    radial-gradient(1000px 700px at 85% 85%, rgba(59, 130, 246, 0.15), transparent 55%),
+    linear-gradient(145deg, #111218 0%, #0a0b0e 100%);
 }
 
 .stage.is-mobile {

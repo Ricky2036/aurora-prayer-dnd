@@ -603,15 +603,13 @@ function closeDrawer() {
   position: relative;
   width: 320px;
   flex: none;
-  background: rgba(26, 26, 30, 0.82);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  background: #18181c;
   border-radius: 24px;
   padding: 20px 18px 22px;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.45),
+    0 24px 64px rgba(0, 0, 0, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   overflow: hidden;
   align-self: center;
@@ -624,7 +622,7 @@ function closeDrawer() {
   right: -80px;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
   filter: blur(40px);
   pointer-events: none;
 }
@@ -642,8 +640,8 @@ function closeDrawer() {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.1));
-  border: 1px solid rgba(96, 165, 250, 0.3);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.15));
+  border: 1px solid rgba(96, 165, 250, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -658,27 +656,27 @@ function closeDrawer() {
 .pc-title {
   font: 700 15px/1.2 var(--font-stack);
   letter-spacing: -0.2px;
-  color: #fff;
+  color: #ffffff;
   margin: 0;
 }
 
 .pc-subtitle {
-  font: 400 10.5px/1.2 var(--font-stack);
-  color: rgba(255, 255, 255, 0.45);
+  font: 500 10.5px/1.2 var(--font-stack);
+  color: #94a3b8;
   margin-top: 2px;
   letter-spacing: 0.3px;
 }
 
-/* ================= 顶部 Tab 导航条 ================= */
+/* ================= 顶部 Tab 导航条 (Apple iOS 18 风格) ================= */
 .pc-tab-bar {
   position: relative;
   display: flex;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #09090b;
+  border: 1px solid #27272a;
   border-radius: 14px;
   padding: 3px;
   margin-bottom: 16px;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .pc-tab-indicator {
@@ -687,20 +685,19 @@ function closeDrawer() {
   bottom: 3px;
   left: 3px;
   width: calc(33.333% - 2px);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #ffffff;
   border-radius: 11px;
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
 
 .pc-tab-btn {
   position: relative;
   z-index: 1;
   flex: 1;
-  padding: 7px 0;
-  font: 600 12px/1 var(--font-stack);
-  color: rgba(255, 255, 255, 0.55);
+  padding: 8px 0;
+  font: 600 12.5px/1 var(--font-stack);
+  color: #a1a1aa;
   text-align: center;
   border-radius: 11px;
   cursor: pointer;
@@ -709,8 +706,13 @@ function closeDrawer() {
   transition: color 0.2s ease;
 }
 
+.pc-tab-btn:hover {
+  color: #e4e4e7;
+}
+
 .pc-tab-btn.active {
-  color: #fff;
+  color: #09090b;
+  font-weight: 700;
 }
 
 /* ================= 卡片与控件 ================= */
@@ -726,28 +728,29 @@ function closeDrawer() {
 }
 
 .pc-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #1f1f26;
+  border: 1px solid #2e2e38;
   border-radius: 16px;
-  padding: 12px 14px 14px;
+  padding: 13px 14px 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .pc-card:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.12);
+  background: #23232c;
+  border-color: #3f3f4c;
 }
 
 .pc-card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 11px;
 }
 
 .pc-card-title {
-  font: 600 12.5px/1.2 var(--font-stack);
-  color: rgba(255, 255, 255, 0.85);
+  font: 600 13px/1.2 var(--font-stack);
+  color: #f4f4f5;
   letter-spacing: 0.1px;
 }
 
@@ -755,32 +758,32 @@ function closeDrawer() {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font: 500 11px/1 var(--font-stack);
-  color: rgba(255, 255, 255, 0.4);
+  font: 600 11px/1 var(--font-stack);
+  color: #71717a;
 }
 
 .pc-state-tag.is-on {
-  color: #34c759;
+  color: #34d399;
 }
 
 .pc-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.25);
+  background: #52525b;
 }
 
 .pc-state-tag.is-on .pc-dot {
-  background: #34c759;
-  box-shadow: 0 0 8px #34c759;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
 }
 
 /* 分段选择器 */
 .pc-seg {
   position: relative;
   display: flex;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #101014;
+  border: 1px solid #27272a;
   border-radius: 12px;
   padding: 3px;
 }
@@ -791,11 +794,10 @@ function closeDrawer() {
   bottom: 3px;
   left: 3px;
   width: calc(50% - 3px);
-  background: #3a3a3c;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #2563eb;
   border-radius: 9px;
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
 }
 
 .pc-seg-thumb-3 {
@@ -804,11 +806,10 @@ function closeDrawer() {
   bottom: 3px;
   left: 3px;
   width: calc(33.333% - 2px);
-  background: #3a3a3c;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #2563eb;
   border-radius: 9px;
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
 }
 
 .pc-seg-btn {
@@ -818,16 +819,20 @@ function closeDrawer() {
   padding: 7px 0;
   font: 500 12px/1 var(--font-stack);
   border-radius: 9px;
-  color: rgba(255, 255, 255, 0.5);
+  color: #a1a1aa;
   cursor: pointer;
   background: transparent;
   border: none;
   transition: color 0.2s ease;
 }
 
+.pc-seg-btn:hover {
+  color: #f4f4f5;
+}
+
 .pc-seg-btn.on {
-  color: #fff;
-  font-weight: 600;
+  color: #ffffff;
+  font-weight: 700;
 }
 
 /* 操作按钮 */
@@ -835,10 +840,10 @@ function closeDrawer() {
   width: 100%;
   padding: 10px 0;
   border-radius: 12px;
-  font: 600 12.5px/1 var(--font-stack);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #fff;
+  font: 700 13px/1 var(--font-stack);
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -847,7 +852,7 @@ function closeDrawer() {
 }
 
 .pc-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.14);
+  background: #3f3f46;
 }
 
 .pc-btn:active:not(:disabled) {
@@ -860,25 +865,50 @@ function closeDrawer() {
 }
 
 .pc-btn-primary {
-  background: rgba(37, 99, 235, 0.22);
-  border-color: rgba(59, 130, 246, 0.35);
-  color: #93c5fd;
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
 }
 
 .pc-btn-primary:hover:not(:disabled) {
-  background: rgba(37, 99, 235, 0.38);
-  color: #fff;
+  background: #1d4ed8;
+  border-color: #60a5fa;
 }
 
 .pc-btn-danger {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.32);
-  color: #fca5a5;
+  background: #dc2626;
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
 }
 
 .pc-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.pc-btn-toggle.pc-btn-danger {
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  box-shadow: none;
+}
+
+.pc-btn-toggle.pc-btn-danger:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.28);
-  color: #fff;
+  color: #ffffff;
+}
+
+.pc-btn-toggle.pc-btn-primary {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+  box-shadow: none;
+}
+
+.pc-btn-toggle.pc-btn-primary:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.28);
+  color: #ffffff;
 }
 
 /* 礼拜按钮组 */
@@ -891,24 +921,25 @@ function closeDrawer() {
 .pc-prayer-btn {
   padding: 8px 0;
   border-radius: 9px;
-  font: 600 11.5px/1 var(--font-stack);
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.65);
+  font: 600 12px/1 var(--font-stack);
+  background: #101014;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .pc-prayer-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: #27272a;
+  color: #ffffff;
 }
 
 .pc-prayer-btn.on {
-  background: #34c759;
-  border-color: #34c759;
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(52, 199, 89, 0.35);
+  background: #10b981;
+  border-color: #34d399;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
 }
 
 /* 开关控件 */
@@ -917,8 +948,8 @@ function closeDrawer() {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  font: 400 11px/1 var(--font-stack);
-  color: rgba(255, 255, 255, 0.5);
+  font: 500 11.5px/1 var(--font-stack);
+  color: #a1a1aa;
   user-select: none;
 }
 
@@ -926,9 +957,9 @@ function closeDrawer() {
 
 .pc-switch {
   position: relative;
-  width: 26px;
-  height: 15px;
-  background: rgba(255, 255, 255, 0.2);
+  width: 28px;
+  height: 16px;
+  background: #3f3f46;
   border-radius: 10px;
   transition: background 0.2s;
 }
@@ -936,11 +967,11 @@ function closeDrawer() {
 .pc-switch::after {
   content: '';
   position: absolute;
-  top: 1.5px;
-  left: 1.5px;
+  top: 2px;
+  left: 2px;
   width: 12px;
   height: 12px;
-  background: #fff;
+  background: #ffffff;
   border-radius: 50%;
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -950,7 +981,7 @@ function closeDrawer() {
 }
 
 .pc-switch-wrap input:checked + .pc-switch::after {
-  transform: translateX(11px);
+  transform: translateX(12px);
 }
 
 /* 提示卡片 */
@@ -959,8 +990,8 @@ function closeDrawer() {
   align-items: flex-start;
   gap: 8px;
   padding: 12px 14px;
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 14px;
 }
 
@@ -971,8 +1002,8 @@ function closeDrawer() {
 }
 
 .pc-hint-text {
-  font: 400 11.5px/1.45 var(--font-stack);
-  color: rgba(255, 255, 255, 0.65);
+  font: 500 11.5px/1.45 var(--font-stack);
+  color: #bfdbfe;
   margin: 0;
 }
 
@@ -988,14 +1019,12 @@ function closeDrawer() {
   position: fixed;
   top: 0;
   left: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 24px;
-  background: rgba(24, 24, 28, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  background: #18181c;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1020,7 +1049,7 @@ function closeDrawer() {
 
 .fab-btn.is-open {
   border-color: #60a5fa;
-  box-shadow: 0 0 16px rgba(96, 165, 250, 0.4);
+  box-shadow: 0 0 16px rgba(96, 165, 250, 0.5);
 }
 
 .fab-inner {
@@ -1030,9 +1059,9 @@ function closeDrawer() {
 }
 
 .fab-tag {
-  font-size: 8px;
+  font-size: 8.5px;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.85);
+  color: #f4f4f5;
   letter-spacing: 0.2px;
 }
 
@@ -1040,9 +1069,9 @@ function closeDrawer() {
 .drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   pointer-events: auto;
   z-index: 100000;
 }
@@ -1054,11 +1083,11 @@ function closeDrawer() {
   right: 0;
   bottom: 0;
   max-height: 80dvh;
-  background: #1c1c1e;
+  background: #18181c;
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
   color: #fff;
@@ -1077,7 +1106,7 @@ function closeDrawer() {
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.25);
+  background: #3f3f46;
 }
 
 .drawer-header {
@@ -1090,19 +1119,25 @@ function closeDrawer() {
 .dh-title {
   font: 700 15px/1.2 var(--font-stack);
   letter-spacing: -0.1px;
+  color: #ffffff;
 }
 
 .dh-close-btn {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
+  background: #27272a;
+  border: 1px solid #3f3f46;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.7);
+  color: #a1a1aa;
   cursor: pointer;
+}
+
+.dh-close-btn:hover {
+  background: #3f3f46;
+  color: #ffffff;
 }
 
 .mobile-tab-bar {
