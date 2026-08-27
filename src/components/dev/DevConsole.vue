@@ -167,14 +167,8 @@ function closeDrawer() {
     <!-- 背景流光 -->
     <div class="pc-glow"></div>
 
-    <!-- 顶部标题 -->
+    <!-- 顶部标题 (居中加粗) -->
     <header class="pc-header">
-      <div class="pc-title-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
-          <line x1="12" y1="18" x2="12.01" y2="18"/>
-        </svg>
-      </div>
       <h2 class="pc-title">控制台</h2>
     </header>
 
@@ -406,13 +400,7 @@ function closeDrawer() {
         </div>
 
         <div class="drawer-header">
-          <div class="dh-title-wrap" style="display: flex; align-items: center; gap: 8px;">
-            <div class="pc-title-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
-                <line x1="12" y1="18" x2="12.01" y2="18"/>
-              </svg>
-            </div>
+          <div class="dh-title-wrap">
             <span class="dh-title">控制台</span>
           </div>
           <button class="dh-close-btn" @click="closeDrawer">
@@ -647,22 +635,17 @@ function closeDrawer() {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  width: 100%;
   margin-bottom: 0;
 }
 
-.pc-title-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #60a5fa;
-}
-
 .pc-title {
-  font: 700 15px/1.2 var(--font-stack);
+  font: 800 16px/1.2 var(--font-stack);
   letter-spacing: -0.2px;
   color: #ffffff;
   margin: 0;
+  text-align: center;
 }
 
 /* ================= 模块切换卡片 & Tab 导航条 ================= */
@@ -724,7 +707,7 @@ function closeDrawer() {
 /* ================= 卡片与控件 ================= */
 .pc-content-body {
   position: relative;
-  height: 284px;
+  height: 264px;
   overflow: hidden;
 }
 
