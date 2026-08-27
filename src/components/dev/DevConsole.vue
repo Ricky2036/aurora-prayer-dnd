@@ -178,28 +178,33 @@ function closeDrawer() {
       <h2 class="pc-title">控制台</h2>
     </header>
 
-    <!-- 顶部多 Tab 切换条 -->
-    <nav class="pc-tab-bar">
-      <div
-        class="pc-tab-indicator"
-        :style="{
-          transform: activeTab === 'system'
-            ? 'translateX(0)'
-            : activeTab === 'prayer'
-              ? 'translateX(100%)'
-              : 'translateX(200%)'
-        }"
-      ></div>
-      <button
-        v-for="t in tabs"
-        :key="t.id"
-        class="pc-tab-btn"
-        :class="{ active: activeTab === t.id }"
-        @click="activeTab = t.id"
-      >
-        {{ t.name }}
-      </button>
-    </nav>
+    <!-- 模块切换卡片 -->
+    <div class="pc-card pc-tab-card">
+      <div class="pc-card-header">
+        <span class="pc-card-title">模块切换</span>
+      </div>
+      <nav class="pc-tab-bar">
+        <div
+          class="pc-tab-indicator"
+          :style="{
+            transform: activeTab === 'system'
+              ? 'translateX(0)'
+              : activeTab === 'prayer'
+                ? 'translateX(100%)'
+                : 'translateX(200%)'
+          }"
+        ></div>
+        <button
+          v-for="t in tabs"
+          :key="t.id"
+          class="pc-tab-btn"
+          :class="{ active: activeTab === t.id }"
+          @click="activeTab = t.id"
+        >
+          {{ t.name }}
+        </button>
+      </nav>
+    </div>
 
     <!-- Tab 内容区 -->
     <main class="pc-content-body">
@@ -415,28 +420,33 @@ function closeDrawer() {
           </button>
         </div>
 
-        <!-- 移动端抽屉 Tab 条 -->
-        <nav class="pc-tab-bar mobile-tab-bar">
-          <div
-            class="pc-tab-indicator"
-            :style="{
-              transform: activeTab === 'system'
-                ? 'translateX(0)'
-                : activeTab === 'prayer'
-                  ? 'translateX(100%)'
-                  : 'translateX(200%)'
-            }"
-          ></div>
-          <button
-            v-for="t in tabs"
-            :key="t.id"
-            class="pc-tab-btn"
-            :class="{ active: activeTab === t.id }"
-            @click="activeTab = t.id"
-          >
-            {{ t.name }}
-          </button>
-        </nav>
+        <!-- 移动端抽屉 Tab 卡片 -->
+        <div class="pc-card pc-tab-card mobile-tab-card">
+          <div class="pc-card-header">
+            <span class="pc-card-title">模块切换</span>
+          </div>
+          <nav class="pc-tab-bar">
+            <div
+              class="pc-tab-indicator"
+              :style="{
+                transform: activeTab === 'system'
+                  ? 'translateX(0)'
+                  : activeTab === 'prayer'
+                    ? 'translateX(100%)'
+                    : 'translateX(200%)'
+              }"
+            ></div>
+            <button
+              v-for="t in tabs"
+              :key="t.id"
+              class="pc-tab-btn"
+              :class="{ active: activeTab === t.id }"
+              @click="activeTab = t.id"
+            >
+              {{ t.name }}
+            </button>
+          </nav>
+        </div>
 
         <div class="drawer-body scrollable">
           <Transition name="tab-fade" mode="out-in">
@@ -607,7 +617,7 @@ function closeDrawer() {
   flex: none;
   background: #18181c;
   border-radius: 24px;
-  padding: 20px 18px 22px;
+  padding: 16px;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
@@ -616,6 +626,9 @@ function closeDrawer() {
   overflow: hidden;
   align-self: center;
   transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .pc-glow {
@@ -635,7 +648,7 @@ function closeDrawer() {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .pc-title-icon {
@@ -650,11 +663,6 @@ function closeDrawer() {
   color: #60a5fa;
 }
 
-.pc-title-text {
-  display: flex;
-  flex-direction: column;
-}
-
 .pc-title {
   font: 700 15px/1.2 var(--font-stack);
   letter-spacing: -0.2px;
@@ -662,22 +670,23 @@ function closeDrawer() {
   margin: 0;
 }
 
-.pc-subtitle {
-  font: 500 10.5px/1.2 var(--font-stack);
-  color: #94a3b8;
-  margin-top: 2px;
-  letter-spacing: 0.3px;
+/* ================= 模块切换卡片 & Tab 导航条 ================= */
+.pc-tab-card {
+  padding: 11px 13px 12px;
 }
 
-/* ================= 顶部 Tab 导航条 (Apple iOS 18 风格) ================= */
+.mobile-tab-card {
+  margin: 0 16px 12px;
+}
+
 .pc-tab-bar {
   position: relative;
   display: flex;
-  background: #09090b;
+  background: #101014;
   border: 1px solid #27272a;
-  border-radius: 14px;
+  border-radius: 12px;
   padding: 3px;
-  margin-bottom: 16px;
+  margin-bottom: 0;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
@@ -688,7 +697,7 @@ function closeDrawer() {
   left: 3px;
   width: calc(33.333% - 2px);
   background: #2563eb;
-  border-radius: 11px;
+  border-radius: 9px;
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   box-shadow: 0 2px 10px rgba(37, 99, 235, 0.45);
 }
@@ -697,11 +706,11 @@ function closeDrawer() {
   position: relative;
   z-index: 1;
   flex: 1;
-  padding: 8px 0;
-  font: 600 12.5px/1 var(--font-stack);
+  padding: 7px 0;
+  font: 600 12px/1 var(--font-stack);
   color: #a1a1aa;
   text-align: center;
-  border-radius: 11px;
+  border-radius: 9px;
   cursor: pointer;
   background: transparent;
   border: none;
@@ -720,21 +729,21 @@ function closeDrawer() {
 /* ================= 卡片与控件 ================= */
 .pc-content-body {
   position: relative;
-  height: 318px;
+  height: 254px;
   overflow: hidden;
 }
 
 .pc-tab-panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pc-card {
   background: #1f1f26;
   border: 1px solid #2e2e38;
   border-radius: 16px;
-  padding: 13px 14px 15px;
+  padding: 11px 13px 13px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
@@ -748,11 +757,11 @@ function closeDrawer() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 11px;
+  margin-bottom: 9px;
 }
 
 .pc-card-title {
-  font: 600 13px/1.2 var(--font-stack);
+  font: 600 12.5px/1.2 var(--font-stack);
   color: #f4f4f5;
   letter-spacing: 0.1px;
 }
