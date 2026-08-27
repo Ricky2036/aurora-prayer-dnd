@@ -39,7 +39,7 @@ const tabs = [
   { id: 'control', name: '控制中心' }
 ]
 
-/* ================= 移动端悬浮球与抽屉状态 ================= */
+/* ================= 移动端悬浮球与弹窗状态 ================= */
 const isDrawerOpen = ref(false)
 const fabPos = ref({ x: 0, y: 0 })
 const isSnapping = ref(false)
@@ -49,13 +49,23 @@ let startPointer = { x: 0, y: 0 }
 let startFab = { x: 0, y: 0 }
 let startTime = 0
 let hasMoved = false
-let lastToggleTime = 0
+let modalOpenedTime = 0
 
-function toggleDrawer() {
-  const now = Date.now()
-  if (now - lastToggleTime < 300) return
-  lastToggleTime = now
-  isDrawerOpen.value = !isDrawerOpen.value
+function openModal() {
+  isDrawerOpen.value = true
+  modalOpenedTime = Date.now()
+}
+
+function closeModal() {
+  isDrawerOpen.value = false
+}
+
+function toggleModal() {
+  if (isDrawerOpen.value) {
+    closeModal()
+  } else {
+    openModal()
+  }
 }
 
 function initFabPosition() {
@@ -103,7 +113,7 @@ function onFabPointerMove(e) {
   const dy = e.clientY - startPointer.y
   const dist = Math.hypot(dx, dy)
 
-  if (!hasMoved && dist > 12) {
+  if (!hasMoved && dist > 8) {
     hasMoved = true
   }
 
@@ -128,16 +138,22 @@ function onFabPointerUp(e) {
     e.currentTarget?.releasePointerCapture?.(e.pointerId)
   } catch (err) {}
   
-  if (!hasMoved || dist < 12 || elapsed < 320) {
-    toggleDrawer()
-  } else {
+  if (hasMoved && (dist >= 8 || elapsed >= 300)) {
     snapToEdge()
   }
 }
 
-function onFabClick() {
+function onFabClick(e) {
+  e.stopPropagation()
   if (!hasMoved) {
-    toggleDrawer()
+    toggleModal()
+  }
+}
+
+function onBackdropClick(e) {
+  if (Date.now() - modalOpenedTime < 350) return
+  if (e.target === e.currentTarget) {
+    closeModal()
   }
 }
 
@@ -154,10 +170,6 @@ function snapToEdge() {
   setTimeout(() => {
     isSnapping.value = false
   }, 320)
-}
-
-function closeDrawer() {
-  isDrawerOpen.value = false
 }
 </script>
 
@@ -386,7 +398,7 @@ function closeDrawer() {
 
     <!-- 弹窗遮罩与居中弹窗 (Modal Popup) -->
     <Transition name="modal-fade">
-      <div v-if="isDrawerOpen" class="modal-backdrop" @click="closeDrawer">
+      <div v-if="isDrawerOpen" class="modal-backdrop" @click="onBackdropClick">
         <Transition name="modal-pop">
           <div v-if="isDrawerOpen" class="proto-console modal-console" @click.stop>
             <!-- 背景流光 -->
@@ -395,7 +407,7 @@ function closeDrawer() {
             <!-- 顶部标题 (居中加粗 + 关闭按钮) -->
             <header class="pc-header">
               <h2 class="pc-title">控制台</h2>
-              <button class="pc-close-btn" @click="closeDrawer" aria-label="关闭">
+              <button class="pc-close-btn" @click.stop="closeModal" aria-label="关闭">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useClock } from '../../composables/useClock'
 import { useSpring } from '../../composables/useSpring'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
@@ -28,22 +28,50 @@ const notifications = useNotificationsStore()
 const rootRef = ref(null)
 const UNLOCK_SPAN = 460
 
-/* ---------- notificationscreen.tsx 布局常量 ---------- */
-const BASE_Y = 590
+/* ---------- 响应式屏幕高度与自适应布局常量 ---------- */
+const screenHeight = ref(844)
+
+function updateScreenHeight() {
+  if (rootRef.value) {
+    const h = rootRef.value.clientHeight
+    if (h > 200) {
+      screenHeight.value = h
+    }
+  }
+}
+
+let resizeObserver = null
+onMounted(() => {
+  updateScreenHeight()
+  if (typeof ResizeObserver !== 'undefined' && rootRef.value) {
+    resizeObserver = new ResizeObserver(() => {
+      updateScreenHeight()
+    })
+    resizeObserver.observe(rootRef.value)
+  }
+  window.addEventListener('resize', updateScreenHeight)
+})
+
+onBeforeUnmount(() => {
+  if (resizeObserver) resizeObserver.disconnect()
+  window.removeEventListener('resize', updateScreenHeight)
+})
+
+const BASE_Y = computed(() => screenHeight.value - 254)
 const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
-const PLAYER_START_Y = BASE_Y - PLAYER_HEIGHT - PLAYER_NOTIF_GAP // 418
-const PLAYER_COLLAPSED_Y = 575
+const PLAYER_START_Y = computed(() => BASE_Y.value - PLAYER_HEIGHT - PLAYER_NOTIF_GAP)
+const PLAYER_COLLAPSED_Y = computed(() => screenHeight.value - PLAYER_HEIGHT - 105)
 const DATE_TOP = 55
 const DATE_HEIGHT = 28
 const CLOCK_TOP = DATE_TOP + DATE_HEIGHT - 6 // 77
 const TOP_GAP = 16
-const CLOCK_INITIAL_HEIGHT = PLAYER_START_Y - CLOCK_TOP - TOP_GAP // 325
+const CLOCK_INITIAL_HEIGHT = computed(() => Math.max(140, PLAYER_START_Y.value - CLOCK_TOP - TOP_GAP))
 const CLOCK_MIN_HEIGHT = 140
 const SAFE_GAP = TOP_GAP
-const HIT_DISTANCE = Math.max(0, PLAYER_START_Y - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT) - SAFE_GAP)
-const EXPAND_SCROLL_Y = CLOCK_INITIAL_HEIGHT - CLOCK_MIN_HEIGHT // 185
+const HIT_DISTANCE = computed(() => Math.max(0, PLAYER_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP))
+const EXPAND_SCROLL_Y = computed(() => CLOCK_INITIAL_HEIGHT.value - CLOCK_MIN_HEIGHT)
 const STRETCH_FACTOR = 0.15
 const COLLAPSE_THRESHOLD = -26
 
@@ -154,8 +182,8 @@ function handleExpand() {
   if (isCollapsed.value) {
     isCollapsed.value = false
     scrollY.value = 0
-  } else if (scrollY.value < EXPAND_SCROLL_Y) {
-    scrollY.value = EXPAND_SCROLL_Y
+  } else if (scrollY.value < EXPAND_SCROLL_Y.value) {
+    scrollY.value = EXPAND_SCROLL_Y.value
   }
 }
 
@@ -224,14 +252,14 @@ const overscroll = computed(() => {
   return 30 * Math.log1p(raw / 30)
 })
 const notifScrollY = computed(() => (scrollY.value < 0 ? 0 : effectiveScrollY.value))
-const squeeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE : 0))
-const clockHeight = computed(() => Math.max(CLOCK_MIN_HEIGHT, CLOCK_INITIAL_HEIGHT - squeeze.value))
+const squeeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE.value : 0))
+const clockHeight = computed(() => Math.max(CLOCK_MIN_HEIGHT, CLOCK_INITIAL_HEIGHT.value - squeeze.value))
 const clipTop = computed(() => CLOCK_TOP + clockHeight.value + SAFE_GAP)
 const expandClip = computed(() => scrollY.value <= 0 || isCollapsed.value)
 const playerStretch = computed(() => lockNotifs.value.length * overscroll.value * STRETCH_FACTOR)
 const scrollOffset = computed(() => (scrollY.value < 0 ? scrollY.value : effectiveScrollY.value))
 const currentPlayerY = computed(() =>
-  isCollapsed.value ? PLAYER_COLLAPSED_Y : PLAYER_START_Y - scrollOffset.value - playerStretch.value
+  isCollapsed.value ? PLAYER_COLLAPSED_Y.value : PLAYER_START_Y.value - scrollOffset.value - playerStretch.value
 )
 const animating = computed(() => (!isDragging.value && !isWheeling.value && !isSpringing.value) || isCollapsed.value)
 const transitionStyle = computed(() =>
@@ -266,18 +294,18 @@ function notifStyle(i) {
   const stretchAmount = distanceFromBottom * overscroll.value * STRETCH_FACTOR
   let yPos, scale, opacity
   if (isCollapsed.value) {
-    yPos = BASE_Y + 140
+    yPos = BASE_Y.value + 140
     scale = 0.7
     opacity = 0
   } else if (isStacked) {
-    yPos = BASE_Y + clampedDepth * 9
+    yPos = BASE_Y.value + clampedDepth * 9
     scale = Math.max(1 - clampedDepth * 0.05, 0.85)
     if (depth <= 1) opacity = 1 - depth * 0.15
     else if (depth <= 2) opacity = 0.85 - (depth - 1) * 0.35
     else if (depth <= 3) opacity = 0.5 - (depth - 2) * 0.5
     else opacity = 0
   } else {
-    yPos = BASE_Y + currentY - stretchAmount
+    yPos = BASE_Y.value + currentY - stretchAmount
     scale = 1
     opacity = 1
   }
