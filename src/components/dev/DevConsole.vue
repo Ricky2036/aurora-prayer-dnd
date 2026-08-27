@@ -171,15 +171,11 @@ function closeDrawer() {
     <header class="pc-header">
       <div class="pc-title-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-          <line x1="8" y1="21" x2="16" y2="21"/>
-          <line x1="12" y1="17" x2="12" y2="21"/>
+          <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
+          <line x1="12" y1="18" x2="12.01" y2="18"/>
         </svg>
       </div>
-      <div class="pc-title-text">
-        <h2 class="pc-title">原型配置控制台</h2>
-        <span class="pc-subtitle">Aurora Prototype Studio</span>
-      </div>
+      <h2 class="pc-title">原型配置控制台</h2>
     </header>
 
     <!-- 顶部多 Tab 切换条 -->
@@ -405,7 +401,13 @@ function closeDrawer() {
         </div>
 
         <div class="drawer-header">
-          <div class="dh-title-wrap">
+          <div class="dh-title-wrap" style="display: flex; align-items: center; gap: 8px;">
+            <div class="pc-title-icon" style="width: 26px; height: 26px; border-radius: 8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
+                <line x1="12" y1="18" x2="12.01" y2="18"/>
+              </svg>
+            </div>
             <span class="dh-title">原型配置控制台</span>
           </div>
           <button class="dh-close-btn" @click="closeDrawer">
@@ -718,7 +720,8 @@ function closeDrawer() {
 /* ================= 卡片与控件 ================= */
 .pc-content-body {
   position: relative;
-  min-height: 240px;
+  height: 295px;
+  overflow: hidden;
 }
 
 .pc-tab-panel {
