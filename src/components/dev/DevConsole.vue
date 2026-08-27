@@ -35,7 +35,7 @@ const i18n = useI18nStore()
 const activeTab = ref('system') // 'system' | 'prayer' | 'control'
 const tabs = [
   { id: 'system', name: '系统控制' },
-  { id: 'prayer', name: '礼拜勿扰' },
+  { id: 'prayer', name: '礼拜模式' },
   { id: 'control', name: '控制中心' }
 ]
 
@@ -262,12 +262,12 @@ function closeDrawer() {
           </div>
         </section>
 
-        <!-- 2. 礼拜与勿扰 Tab -->
+        <!-- 2. 礼拜模式 Tab -->
         <section v-else-if="activeTab === 'prayer'" key="prayer" class="pc-tab-panel">
           <!-- 智慧建议模式 -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <span class="pc-card-title">智慧建议堆叠</span>
+              <span class="pc-card-title">智慧建议</span>
             </div>
             <div class="pc-seg">
               <div
@@ -291,10 +291,10 @@ function closeDrawer() {
             </div>
           </div>
 
-          <!-- 礼拜勿扰灵动岛模拟 -->
+          <!-- 灵动岛模拟 -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <span class="pc-card-title">礼拜勿扰灵动岛</span>
+              <span class="pc-card-title">灵动岛</span>
               <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                 {{ prayerStore.currentIslandPrayer.cnName }}中
               </span>
@@ -488,12 +488,12 @@ function closeDrawer() {
               </div>
             </div>
 
-            <!-- 2. 礼拜与勿扰 Tab -->
+            <!-- 2. 礼拜模式 Tab -->
             <div v-else-if="activeTab === 'prayer'" key="mob-prayer" class="pc-tab-panel">
               <!-- 智慧建议模式 -->
               <div class="pc-card">
                 <div class="pc-card-header">
-                  <span class="pc-card-title">智慧建议堆叠</span>
+                  <span class="pc-card-title">智慧建议</span>
                 </div>
                 <div class="pc-seg">
                   <div
@@ -517,10 +517,10 @@ function closeDrawer() {
                 </div>
               </div>
 
-              <!-- 礼拜勿扰灵动岛模拟 -->
+              <!-- 灵动岛模拟 -->
               <div class="pc-card">
                 <div class="pc-card-header">
-                  <span class="pc-card-title">礼拜勿扰灵动岛</span>
+                  <span class="pc-card-title">灵动岛</span>
                   <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                     {{ prayerStore.currentIslandPrayer.cnName }}中
                   </span>
