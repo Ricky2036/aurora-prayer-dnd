@@ -109,11 +109,11 @@ export const MESSAGES = {
 
     // 5个礼拜
     prayers: {
-      fajr: { name: '晨礼', full: '晨礼 Fajr' },
-      dhuhr: { name: '晌礼', full: '晌礼 Dhuhr' },
-      asr: { name: '晡礼', full: '晡礼 Asr' },
-      maghrib: { name: '昏礼', full: '昏礼 Maghrib' },
-      isha: { name: '宵礼', full: '宵礼 Isha' }
+      fajr: { name: '晨礼', full: '晨礼' },
+      dhuhr: { name: '晌礼', full: '晌礼' },
+      asr: { name: '晡礼', full: '晡礼' },
+      maghrib: { name: '昏礼', full: '昏礼' },
+      isha: { name: '宵礼', full: '宵礼' }
     },
 
     // 星期与重复
@@ -206,11 +206,11 @@ export const MESSAGES = {
 
     // Prayers
     prayers: {
-      fajr: { name: 'Fajr', full: 'Fajr 晨礼' },
-      dhuhr: { name: 'Dhuhr', full: 'Dhuhr 晌礼' },
-      asr: { name: 'Asr', full: 'Asr 晡礼' },
-      maghrib: { name: 'Maghrib', full: 'Maghrib 昏礼' },
-      isha: { name: 'Isha', full: 'Isha 宵礼' }
+      fajr: { name: 'Fajr', full: 'Fajr' },
+      dhuhr: { name: 'Dhuhr', full: 'Dhuhr' },
+      asr: { name: 'Asr', full: 'Asr' },
+      maghrib: { name: 'Maghrib', full: 'Maghrib' },
+      isha: { name: 'Isha', full: 'Isha' }
     },
 
     // Weekdays & Repeat
@@ -304,11 +304,11 @@ export const MESSAGES = {
 
     // Prayers
     prayers: {
-      fajr: { name: 'ফজর', full: 'ফজর Fajr' },
-      dhuhr: { name: 'যোহর', full: 'যোহর Dhuhr' },
-      asr: { name: 'আসর', full: 'আসর Asr' },
-      maghrib: { name: 'মাগরিব', full: 'মাগরিব Maghrib' },
-      isha: { name: 'ইশা', full: 'ইশা Isha' }
+      fajr: { name: 'ফজর', full: 'ফজর' },
+      dhuhr: { name: 'যোহর', full: 'যোহর' },
+      asr: { name: 'আসর', full: 'আসর' },
+      maghrib: { name: 'মাগরিব', full: 'মাগরিব' },
+      isha: { name: 'ইশা', full: 'ইশা' }
     },
 
     // Weekdays & Repeat

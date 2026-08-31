@@ -382,7 +382,7 @@ function snapToEdge() {
             <div class="pc-card-header">
               <span class="pc-card-title">灵动岛</span>
               <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
-                {{ prayerStore.currentIslandPrayer.cnName }}中
+                {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
               </span>
             </div>
             <div class="prayer-buttons-grid">
@@ -393,7 +393,7 @@ function snapToEdge() {
                 :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                 @click="prayerStore.toggleSimulatedPrayer(p.id)"
               >
-                {{ p.cnName }}
+                {{ i18n.prayerName(p.id) }}
               </button>
             </div>
           </div>
@@ -635,7 +635,7 @@ function snapToEdge() {
                     <div class="pc-card-header">
                       <span class="pc-card-title">灵动岛</span>
                       <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
-                        {{ prayerStore.currentIslandPrayer.cnName }}中
+                        {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
                       </span>
                     </div>
                     <div class="prayer-buttons-grid">
@@ -646,7 +646,7 @@ function snapToEdge() {
                         :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                         @click="prayerStore.toggleSimulatedPrayer(p.id)"
                       >
-                        {{ p.cnName }}
+                        {{ i18n.prayerName(p.id) }}
                       </button>
                     </div>
                   </div>
