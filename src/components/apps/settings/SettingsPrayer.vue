@@ -277,28 +277,7 @@ function saveEdit() {
             </div>
           </div>
 
-          <!-- 功能 1：智能识别 (基于位置自动启用) -->
-          <div class="group-header">{{ i18n.t('autoEnableHeader') }}</div>
-          <div class="cell-group">
-            <div class="list-cell">
-              <div class="lc-icon" style="background: #007AFF;">
-                <svg width="17" height="17" viewBox="0 0 24 24">
-                  <path :d="GLYPHS.location" fill="#fff" />
-                </svg>
-              </div>
-              <div class="lc-main no-sep">
-                <div class="lc-title-col">
-                  <span class="lc-title">{{ i18n.t('autoGeofenceTitle') }}</span>
-                  <span class="lc-sub-desc">{{ i18n.t('autoGeofenceDesc') }}</span>
-                </div>
-                <div class="lc-right">
-                  <ToggleSwitch v-model="prayerStore.geoAutoEnable" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 功能 2：AI 自动接听 -->
+          <!-- 功能：AI 自动接听 -->
           <div class="group-header">{{ i18n.t('aiAnswerHeader') }}</div>
           <div class="cell-group">
             <div class="list-cell">
