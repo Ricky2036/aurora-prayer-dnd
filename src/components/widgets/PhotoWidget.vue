@@ -118,28 +118,28 @@ function handleAction(e) {
 
 .pw-title {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Noto Sans Bengali", sans-serif;
-  font-size: clamp(14px, 4.3vw, 17px);
+  font-size: clamp(16px, 4.8vw, 19px);
   font-weight: 800;
-  line-height: 1.18;
+  line-height: 1.16;
   color: #1a1a1a;
   letter-spacing: -0.2px;
   display: flex;
   flex-direction: column;
-  max-width: 105px;
+  max-width: 125px;
   white-space: nowrap;
 }
 
 .pw-subtitle {
-  margin-top: 6px;
+  margin-top: 5px;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Noto Sans Bengali", sans-serif;
-  font-size: clamp(8px, 2.3vw, 9.5px);
+  font-size: clamp(9.5px, 2.7vw, 11px);
   font-weight: 500;
-  line-height: 1.32;
+  line-height: 1.3;
   color: #5c626e;
   letter-spacing: -0.1px;
   display: flex;
   flex-direction: column;
-  max-width: 105px;
+  max-width: 125px;
   white-space: nowrap;
 }
 
@@ -147,12 +147,12 @@ function handleAction(e) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 12px;
+  padding: 4.5px 13px;
   background: rgba(255, 255, 255, 0.96);
   border-radius: 999px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0.5px 1.5px rgba(0, 0, 0, 0.04);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: clamp(9px, 2.6vw, 10.5px);
+  font-size: clamp(10.5px, 2.9vw, 12px);
   font-weight: 700;
   color: #0b5e48;
   border: none;
