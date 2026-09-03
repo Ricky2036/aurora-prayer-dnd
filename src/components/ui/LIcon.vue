@@ -16,9 +16,9 @@ const props = defineProps({
 const html = computed(() => {
   let svg = LUCIDE[props.name] || ''
   svg = svg
-    .replace(/width="24"/, `width="${props.size}"`)
-    .replace(/height="24"/, `height="${props.size}"`)
-    .replace(/stroke-width="2"/, `stroke-width="${props.strokeWidth}"`)
+    .replace(/width="[^"]*"/, `width="${props.size}"`)
+    .replace(/height="[^"]*"/, `height="${props.size}"`)
+    .replace(/stroke-width="[^"]*"/, `stroke-width="${props.strokeWidth}"`)
   if (props.filled) {
     svg = svg.replace(/fill="none"/, 'fill="currentColor"')
   }
