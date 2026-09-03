@@ -20,7 +20,6 @@ const emit = defineEmits(['activate', 'resize-start', 'remove'])
 const control = useControlStore()
 
 const isSound = computed(() => props.item.id === 'sound')
-const isBattery = computed(() => props.item.id === 'batterySaver')
 const isLocation = computed(() => props.item.id === 'location')
 
 /** 激活状态绑定 controlStore */
@@ -91,15 +90,7 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
     >
       <!-- 常规内容：图标 + 展开 label -->
       <div class="gb-row" :style="{ opacity: (isSound && expanded && !resizing) ? 0 : 1, pointerEvents: (isSound && expanded && !resizing) ? 'none' : 'auto' }">
-        <template v-if="isBattery">
-          <!-- 电池专用：电量条 -->
-          <span class="gb-battery">
-            <span class="gb-battery-fill" :style="{ width: (isActive ? 20 : 76) + '%', background: isActive ? '#facc15' : '#fff' }"></span>
-          </span>
-        </template>
-        <template v-else>
-          <LIcon :name="iconName" :size="22" :filled="!!(item.fillOnActive && containerActive)" :stroke-width="isLocation && isActive ? 2.5 : 2" />
-        </template>
+        <LIcon :name="iconName" :size="22" :filled="!!(item.fillOnActive && containerActive)" :stroke-width="isLocation && isActive ? 2.5 : 2" />
         <span class="gb-label" :style="{ opacity: labelOpacity, transition: resizing ? 'none' : 'opacity 0.25s ease-out 0.15s' }">{{ item.label }}</span>
       </div>
 
@@ -169,21 +160,6 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   font: 500 13px/1 var(--font-stack);
   letter-spacing: 0.3px;
   white-space: nowrap;
-}
-.gb-battery {
-  width: 24px;
-  height: 12px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
-  position: relative;
-  overflow: hidden;
-  display: block;
-}
-.gb-battery-fill {
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  transition: width 0.5s ease;
 }
 
 /* 响铃三段 */
