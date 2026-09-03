@@ -46,17 +46,17 @@ const containerActive = computed(() => (isSound.value && props.expanded) ? false
 
 const stateStyle = computed(() => {
   if (containerActive.value) return { background: props.item.activeBg, color: props.item.activeColor }
-  return { background: 'transparent', color: '#fff' }
+  return { background: 'rgba(255, 255, 255, 0.16)', color: '#fff' }
 })
 
 const blurStyle = computed(() => ({
-  backdropFilter: containerActive.value && !props.editing ? 'none' : 'blur(30px) saturate(200%)',
-  WebkitBackdropFilter: containerActive.value && !props.editing ? 'none' : 'blur(30px) saturate(200%)'
+  backdropFilter: containerActive.value && !props.editing ? 'none' : 'blur(25px) saturate(180%)',
+  WebkitBackdropFilter: containerActive.value && !props.editing ? 'none' : 'blur(25px) saturate(180%)'
 }))
 
 /** 三段滑块位置 */
 const soundKnobX = computed(() => {
-  const seg = (props.computedWidth - 12) / 3
+  const seg = 76 / 3
   const i = { ring: 0, vibrate: 1, mute: 2 }[control.soundMode]
   return seg * i
 })
@@ -91,20 +91,14 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
       :class="{ 'gb-editing': editing, 'gb-active': containerActive }"
       :style="[stateStyle, blurStyle]"
     >
-      <!-- 1*1 矢量质感玻璃背景 (未激活时) -->
+      <!-- 1*1 矢量质感玻璃高光背景 (未激活时) -->
       <svg v-if="!containerActive && !expanded" class="gb-bg-svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
-        <circle cx="31" cy="31" r="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-        <circle cx="31" cy="31" r="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-        <circle cx="31" cy="31" r="30.5" fill="white" fill-opacity="0.08"/>
-        <circle cx="31" cy="31" r="30.5" stroke="url(#paint0_linear_2860_1301)" style="mix-blend-mode:plus-lighter"/>
+        <circle cx="31" cy="31" r="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2860_1301)" />
       </svg>
 
-      <!-- 2*1 矢量质感玻璃胶囊背景 (未激活时) -->
+      <!-- 2*1 矢量质感玻璃胶囊高光背景 (未激活时) -->
       <svg v-if="!containerActive && expanded" class="gb-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
       </svg>
 
       <!-- 常规内容：图标 + 展开 label -->

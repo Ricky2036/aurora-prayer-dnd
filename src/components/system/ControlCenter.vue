@@ -34,6 +34,15 @@ const contentStyle = computed(() => ({
   opacity: clamp(overlay.value.progress * 1.5, 0, 1)
 }))
 
+const scrollRef = ref(null)
+watch(() => overlay.value.status, (status) => {
+  if (status === 'opening' || status === 'opened') {
+    nextTick(() => {
+      if (scrollRef.value) scrollRef.value.scrollTop = 0
+    })
+  }
+})
+
 /* 打开后面板上滑关闭 */
 const rootRef = ref(null)
 const driver = getDriver('controlCenter')
@@ -359,7 +368,7 @@ const glassRing = computed(() =>
       </defs>
     </svg>
 
-    <div class="cc-scroll" :style="contentStyle">
+    <div ref="scrollRef" class="cc-scroll" :style="contentStyle">
       <!-- 头部：编辑 (左) / 设置 (右) -->
       <div class="cc-header">
         <template v-if="!editing">
@@ -398,10 +407,7 @@ const glassRing = computed(() =>
           <!-- Wi-Fi 胶囊 -->
           <div v-if="item.id === 'wifi'" class="cc-pill" @click="!editing && control.toggle('wifi')">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon" :style="{ background: control.wifi ? '#258FFF' : 'rgba(255,255,255,0.2)' }">
               <LIcon name="wifi" :size="22" />
@@ -415,10 +421,7 @@ const glassRing = computed(() =>
           <!-- 数据胶囊 -->
           <div v-else-if="item.id === 'data'" class="cc-pill" @click="!editing && control.toggle('cellular')">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon" :style="{ background: control.cellular ? '#22c55e' : 'rgba(255,255,255,0.2)' }">
               <LIcon name="arrowDownUp" :size="20" />
@@ -461,10 +464,7 @@ const glassRing = computed(() =>
           <!-- Joy Connect -->
           <div v-else-if="item.id === 'joyConnect'" class="cc-pill">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
               <LIcon name="link2" :size="50" />
@@ -475,10 +475,7 @@ const glassRing = computed(() =>
           <!-- Joy Heart -->
           <div v-else-if="item.id === 'joyHeart'" class="cc-pill">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
               <LIcon name="heart" :size="50" />
@@ -539,9 +536,10 @@ const glassRing = computed(() =>
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 22px;
-  margin-bottom: 8px;
-  height: 36px;
+  width: 332px;
+  margin: 0 auto 10px;
+  padding: 0;
+  height: 30px;
 }
 .cc-header-btn {
   width: 30px;
@@ -593,9 +591,10 @@ const glassRing = computed(() =>
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 22px;
+  width: 332px;
+  margin: 0 auto 14px;
+  padding: 0;
   height: 20px;
-  margin-bottom: 14px;
   font: 500 12px/1 var(--font-stack);
   color: rgba(255, 255, 255, 0.95);
   transition: opacity 0.3s ease;
@@ -637,12 +636,14 @@ const glassRing = computed(() =>
   display: flex;
   align-items: center;
   gap: 10px;
-  background: transparent;
-  backdrop-filter: blur(30px) saturate(200%);
-  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
   cursor: pointer;
   overflow: hidden;
+  transition: background 0.3s ease;
 }
+.cc-pill:hover { background: rgba(255, 255, 255, 0.22); }
 .cc-pill-bg-svg {
   position: absolute;
   inset: 0;
