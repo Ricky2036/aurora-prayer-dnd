@@ -35,6 +35,9 @@ const iconName = computed(() => {
     if (control.soundMode === 'vibrate') return 'vibrate'
     return 'bell'
   }
+  if (props.item.id === 'flashlight' && isActive.value) {
+    return 'flashlightOn'
+  }
   return props.item.icon
 })
 

@@ -57,7 +57,7 @@ function onCcClick(e) {
 /* ================= 网格配置 ================= */
 
 const TOGGLES = [
-  { id: 'flashlight', icon: 'flashlight', label: '手电筒', activeBg: '#22c55e', activeColor: '#fff' },
+  { id: 'flashlight', icon: 'flashlight', label: '手电筒', activeBg: '#fff', activeColor: '#FBB500' },
   { id: 'sound', icon: 'bell', label: '响铃', fillOnActive: true, activeBg: '#fff', activeColor: '#3b82f6' },
   { id: 'bluetooth', icon: 'bluetooth', label: '蓝牙', activeBg: '#fff', activeColor: '#3b82f6' },
   { id: 'hotspot', icon: 'radio', label: '热点', activeBg: '#fff', activeColor: '#3b82f6' },
