@@ -432,24 +432,22 @@ const glassRing = computed(() =>
 
           <!-- Joy Connect -->
           <div v-else-if="item.id === 'joyConnect'" class="cc-pill" :style="{ boxShadow: glassRing }">
-            <div class="cc-pill-icon" style="background: rgba(255,255,255,0.2)">
-              <LIcon name="link2" :size="18" style="transform: rotate(-45deg)" />
+            <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
+              <LIcon name="link2" :size="50" />
             </div>
             <div class="cc-pill-text"><span class="cc-pill-title">Joy Connect</span></div>
-
-                      </div>
+          </div>
 
           <!-- Joy Heart -->
           <div v-else-if="item.id === 'joyHeart'" class="cc-pill" :style="{ boxShadow: glassRing }">
-            <div class="cc-pill-icon" style="background: rgba(255,255,255,0.2)">
-              <LIcon name="heart" :size="18" />
+            <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
+              <LIcon name="heart" :size="50" />
             </div>
             <div class="cc-pill-text cc-heart-text">
               <span>67bpm · 94%</span>
               <span>71ms · 25</span>
             </div>
-
-                      </div>
+          </div>
 
           <!-- 圆形开关 -->
           <GridButton
