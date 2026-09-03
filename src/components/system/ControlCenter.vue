@@ -379,15 +379,14 @@ const glassRing = computed(() =>
         >
           <!-- Wi-Fi 胶囊 -->
           <div v-if="item.id === 'wifi'" class="cc-pill" :style="{ boxShadow: glassRing }" @click="!editing && control.toggle('wifi')">
-            <div class="cc-pill-icon" :style="{ background: control.wifi ? '#2563eb' : 'rgba(255,255,255,0.2)' }">
-              <LIcon name="wifi" :size="20" />
+            <div class="cc-pill-icon" :style="{ background: control.wifi ? '#258FFF' : 'rgba(255,255,255,0.2)' }">
+              <LIcon name="wifi" :size="22" />
             </div>
             <div class="cc-pill-text">
               <span class="cc-pill-title">Aurora_5G</span>
               <span class="cc-pill-sub">{{ control.wifi ? '已连接' : '已断开' }}</span>
             </div>
-
-                      </div>
+          </div>
 
           <!-- 数据胶囊 -->
           <div v-else-if="item.id === 'data'" class="cc-pill" :style="{ boxShadow: glassRing }" @click="!editing && control.toggle('cellular')">
