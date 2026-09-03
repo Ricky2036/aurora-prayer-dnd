@@ -419,17 +419,16 @@ const glassRing = computed(() =>
             <div class="cc-vslider" :style="{ boxShadow: glassRing }" @pointerdown="sliderPointer($event, 'brightness')">
               <div class="cc-vslider-fill" :style="{ height: brightnessPct + '%' }"></div>
               <div class="cc-vslider-icon" :class="{ warm: control.brightness > 0.15 }">
-                <LIcon name="sun" :size="20" />
+                <LIcon name="sun" :size="22" />
               </div>
             </div>
             <div class="cc-vslider" :style="{ boxShadow: glassRing }" @pointerdown="sliderPointer($event, 'volume')">
               <div class="cc-vslider-fill" :style="{ height: volumePct + '%' }"></div>
               <div class="cc-vslider-icon" :class="{ cool: control.volume > 0.15 }">
-                <LIcon name="volume2" :size="20" />
+                <LIcon name="volume2" :size="22" />
               </div>
             </div>
-
-                      </div>
+          </div>
 
           <!-- Joy Connect -->
           <div v-else-if="item.id === 'joyConnect'" class="cc-pill" :style="{ boxShadow: glassRing }">
@@ -714,8 +713,8 @@ const glassRing = computed(() =>
   pointer-events: none;
   transition: color 0.3s ease;
 }
-.cc-vslider-icon.warm { color: #eab308; }
-.cc-vslider-icon.cool { color: #3b82f6; }
+.cc-vslider-icon.warm { color: #FAB500; }
+.cc-vslider-icon.cool { color: #258FFF; }
 
 /* 删除徽标（widget 通用） */
 .cc-remove {
