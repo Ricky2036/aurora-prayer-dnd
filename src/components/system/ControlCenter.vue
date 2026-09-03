@@ -341,12 +341,30 @@ const glassRing = computed(() =>
     <!-- 动态高斯模糊与材质混色底 -->
     <MaterialBlur />
 
+    <!-- 全局控制中心渐变滤镜定义 -->
+    <svg width="0" height="0" style="position: absolute; pointer-events: none">
+      <defs>
+        <linearGradient id="paint0_linear_2860_1301" x1="17.5" y1="0" x2="16.9972" y2="61.7832" gradientUnits="userSpaceOnUse">
+          <stop stop-color="white" stop-opacity="0.3"/>
+          <stop offset="0.3" stop-color="white" stop-opacity="0.02"/>
+          <stop offset="0.7" stop-color="white" stop-opacity="0.02"/>
+          <stop offset="1" stop-color="white" stop-opacity="0.2"/>
+        </linearGradient>
+        <linearGradient id="paint0_linear_331_95718" x1="38.9516" y1="0" x2="38.7257" y2="61.7864" gradientUnits="userSpaceOnUse">
+          <stop stop-color="white" stop-opacity="0.3"/>
+          <stop offset="0.3" stop-color="white" stop-opacity="0.02"/>
+          <stop offset="0.7" stop-color="white" stop-opacity="0.02"/>
+          <stop offset="1" stop-color="white" stop-opacity="0.2"/>
+        </linearGradient>
+      </defs>
+    </svg>
+
     <div class="cc-scroll" :style="contentStyle">
-      <!-- 头部：设置 / 编辑 -->
+      <!-- 头部：编辑 (左) / 设置 (右) -->
       <div class="cc-header">
         <template v-if="!editing">
-          <button class="cc-icon-btn" @click="openSettings"><LIcon name="settings" :size="20" /></button>
-          <button class="cc-icon-btn" @click="control.setEditing(true)"><LIcon name="pencil" :size="18" /></button>
+          <button class="cc-header-btn" @click="control.setEditing(true)" title="编辑"><LIcon name="headerEdit" :size="30" /></button>
+          <button class="cc-header-btn" @click="openSettings" title="设置"><LIcon name="headerSettings" :size="30" /></button>
         </template>
         <template v-else>
           <button class="cc-icon-btn cc-glass" @click="resetLayout"><LIcon name="plus" :size="20" :stroke-width="1.5" /></button>
@@ -359,7 +377,7 @@ const glassRing = computed(() =>
 
       <!-- 状态行 -->
       <div class="cc-status" :class="{ hidden: editing }">
-        <span class="cc-carrier">中国电信</span>
+        <span class="cc-carrier">Orange</span>
         <div class="cc-status-icons">
           <StatusIcons color="#fff" :show-wifi="true" :show-battery="true" />
         </div>
@@ -378,27 +396,38 @@ const glassRing = computed(() =>
           @dragend="onDragEnd"
         >
           <!-- Wi-Fi 胶囊 -->
-          <div v-if="item.id === 'wifi'" class="cc-pill" :style="{ boxShadow: glassRing }" @click="!editing && control.toggle('wifi')">
+          <div v-if="item.id === 'wifi'" class="cc-pill" @click="!editing && control.toggle('wifi')">
+            <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+            </svg>
             <div class="cc-pill-icon" :style="{ background: control.wifi ? '#258FFF' : 'rgba(255,255,255,0.2)' }">
               <LIcon name="wifi" :size="22" />
             </div>
             <div class="cc-pill-text">
-              <span class="cc-pill-title">Aurora_5G</span>
+              <span class="cc-pill-title">Transsion Mobile</span>
               <span class="cc-pill-sub">{{ control.wifi ? '已连接' : '已断开' }}</span>
             </div>
           </div>
 
           <!-- 数据胶囊 -->
-          <div v-else-if="item.id === 'data'" class="cc-pill" :style="{ boxShadow: glassRing }" @click="!editing && control.toggle('cellular')">
+          <div v-else-if="item.id === 'data'" class="cc-pill" @click="!editing && control.toggle('cellular')">
+            <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+            </svg>
             <div class="cc-pill-icon" :style="{ background: control.cellular ? '#22c55e' : 'rgba(255,255,255,0.2)' }">
               <LIcon name="arrowDownUp" :size="20" />
             </div>
             <div class="cc-pill-text">
-              <span class="cc-pill-title">中国电信</span>
-              <span class="cc-pill-sub">{{ control.cellular ? '3.38 MB' : '已关闭' }}</span>
+              <span class="cc-pill-title">Orange</span>
+              <span class="cc-pill-sub">{{ control.cellular ? '102 MB' : '已关闭' }}</span>
             </div>
-
-                      </div>
+          </div>
 
           <!-- 媒体播放器 -->
           <div v-else-if="item.id === 'mediaPlayer'" class="cc-media" :style="{ boxShadow: glassRing }">
@@ -411,8 +440,7 @@ const glassRing = computed(() =>
               </button>
               <button class="cc-mc"><LIcon name="skipForward" :size="16" :filled="true" /></button>
             </div>
-
-                      </div>
+          </div>
 
           <!-- 亮度 / 音量竖滑块 -->
           <div v-else-if="item.id === 'mediaControls'" class="cc-sliders">
@@ -431,7 +459,13 @@ const glassRing = computed(() =>
           </div>
 
           <!-- Joy Connect -->
-          <div v-else-if="item.id === 'joyConnect'" class="cc-pill" :style="{ boxShadow: glassRing }">
+          <div v-else-if="item.id === 'joyConnect'" class="cc-pill">
+            <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+            </svg>
             <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
               <LIcon name="link2" :size="50" />
             </div>
@@ -439,7 +473,13 @@ const glassRing = computed(() =>
           </div>
 
           <!-- Joy Heart -->
-          <div v-else-if="item.id === 'joyHeart'" class="cc-pill" :style="{ boxShadow: glassRing }">
+          <div v-else-if="item.id === 'joyHeart'" class="cc-pill">
+            <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+            </svg>
             <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
               <LIcon name="heart" :size="50" />
             </div>
@@ -499,9 +539,26 @@ const glassRing = computed(() =>
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 22px;
   margin-bottom: 8px;
   height: 36px;
+}
+.cc-header-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.cc-header-btn:active {
+  transform: scale(0.92);
+  opacity: 0.8;
 }
 .cc-icon-btn {
   width: 36px;
@@ -580,14 +637,24 @@ const glassRing = computed(() =>
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.15);
+  background: transparent;
   backdrop-filter: blur(30px) saturate(200%);
   -webkit-backdrop-filter: blur(30px) saturate(200%);
   cursor: pointer;
-  transition: background 0.3s ease;
   overflow: hidden;
 }
-.cc-pill:hover { background: rgba(255, 255, 255, 0.22); }
+.cc-pill-bg-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+.cc-pill > *:not(.cc-pill-bg-svg) {
+  position: relative;
+  z-index: 1;
+}
 .cc-pill-icon {
   flex: none;
   width: 50px;

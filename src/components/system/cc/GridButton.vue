@@ -46,7 +46,7 @@ const containerActive = computed(() => (isSound.value && props.expanded) ? false
 
 const stateStyle = computed(() => {
   if (containerActive.value) return { background: props.item.activeBg, color: props.item.activeColor }
-  return { background: 'rgba(255,255,255,0.15)', color: '#fff' }
+  return { background: 'transparent', color: '#fff' }
 })
 
 const blurStyle = computed(() => ({
@@ -58,7 +58,7 @@ const blurStyle = computed(() => ({
 const soundKnobX = computed(() => {
   const seg = (props.computedWidth - 12) / 3
   const i = { ring: 0, vibrate: 1, mute: 2 }[control.soundMode]
-  return i * seg
+  return seg * i
 })
 
 function onClick() {
@@ -88,9 +88,25 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   >
     <div
       class="gb-body"
-      :class="{ 'gb-editing': editing }"
+      :class="{ 'gb-editing': editing, 'gb-active': containerActive }"
       :style="[stateStyle, blurStyle]"
     >
+      <!-- 1*1 矢量质感玻璃背景 (未激活时) -->
+      <svg v-if="!containerActive && !expanded" class="gb-bg-svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
+        <circle cx="31" cy="31" r="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+        <circle cx="31" cy="31" r="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+        <circle cx="31" cy="31" r="30.5" fill="white" fill-opacity="0.08"/>
+        <circle cx="31" cy="31" r="30.5" stroke="url(#paint0_linear_2860_1301)" style="mix-blend-mode:plus-lighter"/>
+      </svg>
+
+      <!-- 2*1 矢量质感玻璃胶囊背景 (未激活时) -->
+      <svg v-if="!containerActive && expanded" class="gb-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" style="mix-blend-mode:plus-lighter"/>
+      </svg>
+
       <!-- 常规内容：图标 + 展开 label -->
       <div class="gb-row" :style="{ opacity: (isSound && expanded && !resizing) ? 0 : 1, pointerEvents: (isSound && expanded && !resizing) ? 'none' : 'auto' }">
         <LIcon :name="iconName" :size="22" :filled="!!(item.fillOnActive && containerActive)" :stroke-width="isLocation && isActive ? 2.5 : 2" />
@@ -145,9 +161,21 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   border-radius: 999px;
   overflow: hidden;
   transition: background 0.3s ease;
+  box-shadow: none;
+}
+.gb-body.gb-active {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
-.gb-editing { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4); }
+.gb-editing { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4) !important; }
+
+.gb-bg-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
 
 .gb-row {
   position: absolute;
@@ -158,6 +186,7 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   padding-left: 19px;
   gap: 12px;
   transition: opacity 0.3s ease;
+  z-index: 1;
 }
 .gb-label {
   font: 500 13px/1 var(--font-stack);
@@ -174,6 +203,7 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   justify-content: space-between;
   padding: 0 6px;
   transition: opacity 0.3s ease;
+  z-index: 1;
 }
 .gb-sound-knob {
   position: absolute;
