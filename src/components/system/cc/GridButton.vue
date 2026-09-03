@@ -45,13 +45,29 @@ const iconName = computed(() => {
 const containerActive = computed(() => (isSound.value && props.expanded) ? false : isActive.value)
 
 const stateStyle = computed(() => {
-  if (containerActive.value) return { background: props.item.activeBg, color: props.item.activeColor }
+  if (containerActive.value && !props.expanded) {
+    return { background: props.item.activeBg || '#258FFF', color: props.item.activeColor || '#fff' }
+  }
   return { background: 'rgba(255, 255, 255, 0.16)', color: '#fff' }
 })
 
+const badgeStyle = computed(() => {
+  if (!props.expanded) return {}
+  if (isActive.value) {
+    return {
+      background: props.item.activeBg || '#258FFF',
+      color: props.item.activeColor || '#fff'
+    }
+  }
+  return {
+    background: 'rgba(255, 255, 255, 0.2)',
+    color: '#fff'
+  }
+})
+
 const blurStyle = computed(() => ({
-  backdropFilter: containerActive.value && !props.editing ? 'none' : 'blur(25px) saturate(180%)',
-  WebkitBackdropFilter: containerActive.value && !props.editing ? 'none' : 'blur(25px) saturate(180%)'
+  backdropFilter: (containerActive.value && !props.expanded && !props.editing) ? 'none' : 'blur(25px) saturate(180%)',
+  WebkitBackdropFilter: (containerActive.value && !props.expanded && !props.editing) ? 'none' : 'blur(25px) saturate(180%)'
 }))
 
 /** 三段滑块位置 */
@@ -88,7 +104,7 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   >
     <div
       class="gb-body"
-      :class="{ 'gb-editing': editing, 'gb-active': containerActive }"
+      :class="{ 'gb-editing': editing, 'gb-active': containerActive, 'gb-expanded': expanded }"
       :style="[stateStyle, blurStyle]"
     >
       <!-- 1*1 矢量质感玻璃高光背景 (未激活时) -->
@@ -102,8 +118,19 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
       </svg>
 
       <!-- 常规内容：图标 + 展开 label -->
-      <div class="gb-row" :style="{ opacity: (isSound && expanded && !resizing) ? 0 : 1, pointerEvents: (isSound && expanded && !resizing) ? 'none' : 'auto' }">
-        <LIcon :name="iconName" :size="22" :filled="!!(item.fillOnActive && containerActive)" :stroke-width="isLocation && isActive ? 2.5 : 2" />
+      <div
+        class="gb-row"
+        :class="{ 'gb-row-expanded': expanded }"
+        :style="{ opacity: (isSound && expanded && !resizing) ? 0 : 1, pointerEvents: (isSound && expanded && !resizing) ? 'none' : 'auto' }"
+      >
+        <div class="gb-icon-badge" :style="badgeStyle">
+          <LIcon
+            :name="iconName"
+            :size="expanded ? 22 : 28"
+            :filled="!!(item.fillOnActive && containerActive)"
+            :stroke-width="isLocation && isActive ? 2.5 : 2"
+          />
+        </div>
         <span class="gb-label" :style="{ opacity: labelOpacity, transition: resizing ? 'none' : 'opacity 0.25s ease-out 0.15s' }">{{ item.label }}</span>
       </div>
 
@@ -176,16 +203,33 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   inset: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  padding-left: 19px;
-  gap: 12px;
+  justify-content: center;
   transition: opacity 0.3s ease;
   z-index: 1;
+}
+.gb-row-expanded {
+  justify-content: flex-start;
+  padding-left: 9px;
+  gap: 10px;
+}
+.gb-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+.gb-body.gb-expanded .gb-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 .gb-label {
   font: 500 13px/1 var(--font-stack);
   letter-spacing: 0.3px;
   white-space: nowrap;
+  color: #fff;
 }
 
 /* 响铃三段 */

@@ -12,4 +12,11 @@ app.use(pinia)
 app.mount('#app')
 
 // 调试钩子（原型验收用）
-window.__system = useSystemStore(pinia)
+const system = useSystemStore(pinia)
+window.__system = system
+
+const urlParams = new URLSearchParams(window.location.search)
+if (urlParams.get('overlay') === 'controlCenter') {
+  system.unlock()
+  system.settleOverlay('controlCenter', true)
+}

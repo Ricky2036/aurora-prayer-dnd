@@ -10,6 +10,7 @@ import LIcon from '../ui/LIcon.vue'
 import StatusIcons from '../ui/StatusIcons.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
 import { clamp } from '../../utils/math'
+import albumCover from '../../assets/icons/album_cover.png'
 
 /**
  * 控制中心（安卓液态玻璃风，移植自 android_control_center.tsx）。
@@ -66,25 +67,24 @@ function onCcClick(e) {
 /* ================= 网格配置 ================= */
 
 const TOGGLES = [
-  { id: 'flashlight', icon: 'flashlight', label: '手电筒', activeBg: '#fff', activeColor: '#FBB500' },
-  { id: 'sound', icon: 'bell', label: '响铃', fillOnActive: true, activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'bluetooth', icon: 'bluetooth', label: '蓝牙', activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'hotspot', icon: 'radio', label: '热点', activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'airplane', icon: 'plane', label: '飞行模式', activeBg: '#fff', activeColor: '#f97316' },
-  { id: 'location', icon: 'mapPin', label: '定位', fillOnActive: true, activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'screenRecord', icon: 'video', label: '录屏', fillOnActive: true, activeBg: '#fff', activeColor: '#ef4444' },
-  { id: 'darkMode', icon: 'moon', label: '深色模式', activeBg: '#fff', activeColor: '#111' },
-  { id: 'screenshot', icon: 'scissors', label: '截屏', activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'rotationLock', icon: 'lock', label: '锁定', activeBg: '#fff', activeColor: '#ef4444' },
-  { id: 'camera', icon: 'camera', label: '相机', activeBg: '#fff', activeColor: '#3b82f6' },
+  { id: 'bluetooth', icon: 'bluetooth', label: 'Bluetooth', activeBg: '#258FFF', activeColor: '#fff', defaultSize: '2x1' },
+  { id: 'hotspot', icon: 'radio', label: '热点', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'airplane', icon: 'plane', label: '飞行模式', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'location', icon: 'mapPin', label: '定位', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'screenshot', icon: 'scissors', label: '截屏', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'darkMode', icon: 'darkTheme', label: 'Dark Theme', activeBg: '#258FFF', activeColor: '#fff', defaultSize: '2x1' },
+  { id: 'dnd', icon: 'moon', label: '勿扰', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'sound', icon: 'bell', label: '响铃', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'rotationLock', icon: 'lock', label: '锁定', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'screenRecord', icon: 'video', label: '录屏', fillOnActive: true, activeBg: '#ef4444', activeColor: '#fff' },
   { id: 'batterySaver', icon: 'battery', label: '省电', activeBg: '#eab308', activeColor: '#fff' },
-  { id: 'share', icon: 'share2', label: '分享', activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'sync', icon: 'refreshCw', label: '同步', activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'calculator', icon: 'calculator', label: '计算器', activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'scan', icon: 'scan', label: '扫一扫', activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'nfc', icon: 'nfc', label: 'NFC', activeBg: '#22c55e', activeColor: '#fff' },
-  { id: 'boost', icon: 'zap', label: '加速', fillOnActive: true, activeBg: '#fff', activeColor: '#3b82f6' },
-  { id: 'more', icon: 'layoutGrid', label: '更多', activeBg: '#fff', activeColor: '#3b82f6' }
+  { id: 'autoRotate', icon: 'autoRotate', label: '旋转', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'share', icon: 'quickShare', label: '分享', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'cast', icon: 'cast', label: '投屏', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'flashlight', icon: 'flashlightOn', label: '手电筒', activeBg: '#fff', activeColor: '#FBB500' },
+  { id: 'calculator', icon: 'calculator', label: '计算器', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'scan', icon: 'scan', label: '扫一扫', activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'boost', icon: 'zap', label: '加速', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' }
 ]
 
 const baseItems = [
@@ -94,7 +94,7 @@ const baseItems = [
   { id: 'mediaControls', type: 'widget', size: '2x2' },
   { id: 'joyConnect', type: 'widget', size: '2x1' },
   { id: 'joyHeart', type: 'widget', size: '2x1' },
-  ...TOGGLES.map((t) => ({ id: t.id, type: 'toggle', size: '1x1' }))
+  ...TOGGLES.map((t) => ({ id: t.id, type: 'toggle', size: t.defaultSize || '1x1' }))
 ].map((i) => {
   const [w, h] = i.size.split('x').map(Number)
   return { ...i, w, h }
@@ -432,16 +432,27 @@ const glassRing = computed(() =>
             </div>
           </div>
 
-          <!-- 媒体播放器 -->
-          <div v-else-if="item.id === 'mediaPlayer'" class="cc-media" :style="{ boxShadow: glassRing }">
-            <button class="cc-cast"><LIcon name="cast" :size="12" /></button>
-            <div class="cc-media-state">{{ control.mediaPlaying ? '正在播放' : '暂无播放' }}</div>
-            <div class="cc-media-btns">
-              <button class="cc-mc"><LIcon name="skipBack" :size="16" :filled="true" /></button>
-              <button class="cc-mc" @click.stop="!editing && control.toggle('mediaPlaying')">
-                <LIcon :name="control.mediaPlaying ? 'pause' : 'play'" :size="24" :filled="true" />
+          <!-- 媒体播放器 (2x2 138x138) -->
+          <div v-else-if="item.id === 'mediaPlayer'" class="cc-media">
+            <svg class="cc-media-bg-svg" width="100%" height="100%" viewBox="0 0 138 138" fill="none">
+              <rect x="0.5" y="0.5" width="137" height="137" rx="31.5" stroke="url(#paint0_linear_2860_1301)" vector-effect="non-scaling-stroke" />
+            </svg>
+            <div class="cc-media-top">
+              <img :src="albumCover" alt="Album Cover" class="cc-media-cover" />
+              <button class="cc-media-cast" @click.stop="!editing && control.toggle('cast')">
+                <LIcon name="cast" :size="14" />
               </button>
-              <button class="cc-mc"><LIcon name="skipForward" :size="16" :filled="true" /></button>
+            </div>
+            <div class="cc-media-info">
+              <div class="cc-media-title">Big Big World</div>
+              <div class="cc-media-artist">Emilia</div>
+            </div>
+            <div class="cc-media-btns">
+              <button class="cc-mc" @click.stop><LIcon name="skipBack" :size="16" :filled="true" /></button>
+              <button class="cc-mc cc-mc-play" @click.stop="!editing && control.toggle('mediaPlaying')">
+                <LIcon :name="control.mediaPlaying ? 'pause' : 'play'" :size="20" :filled="true" />
+              </button>
+              <button class="cc-mc" @click.stop><LIcon name="skipForward" :size="16" :filled="true" /></button>
             </div>
           </div>
 
@@ -461,29 +472,26 @@ const glassRing = computed(() =>
             </div>
           </div>
 
-          <!-- Joy Connect -->
-          <div v-else-if="item.id === 'joyConnect'" class="cc-pill">
+          <!-- OneLeap (2x1) -->
+          <div v-else-if="item.id === 'joyConnect'" class="cc-pill" @click="!editing && control.toggle('share')">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
               <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
-            <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
-              <LIcon name="link2" :size="50" />
+            <div class="cc-pill-icon" style="background: rgba(255, 255, 255, 0.2)">
+              <LIcon name="link2" :size="22" />
             </div>
-            <div class="cc-pill-text"><span class="cc-pill-title">Joy Connect</span></div>
+            <div class="cc-pill-text"><span class="cc-pill-title">OneLeap</span></div>
           </div>
 
-          <!-- Joy Heart -->
+          <!-- Health&SPO (2x1) -->
           <div v-else-if="item.id === 'joyHeart'" class="cc-pill">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
               <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
-            <div class="cc-pill-icon" style="background: transparent; box-shadow: none">
-              <LIcon name="heart" :size="50" />
+            <div class="cc-pill-icon" style="background: rgba(255, 255, 255, 0.2)">
+              <LIcon name="heart" :size="22" />
             </div>
-            <div class="cc-pill-text cc-heart-text">
-              <span>67bpm · 94%</span>
-              <span>71ms · 25</span>
-            </div>
+            <div class="cc-pill-text"><span class="cc-pill-title">Health&SPO</span></div>
           </div>
 
           <!-- 圆形开关 -->
@@ -658,15 +666,16 @@ const glassRing = computed(() =>
 }
 .cc-pill-icon {
   flex: none;
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
+  margin-left: 3px;
   transition: background 0.3s ease;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 .cc-pill-text {
   display: flex;
@@ -676,7 +685,7 @@ const glassRing = computed(() =>
   pointer-events: none;
 }
 .cc-pill-title {
-  font: 500 12px/1.2 var(--font-stack);
+  font: 500 13px/1.2 var(--font-stack);
   color: rgba(255, 255, 255, 0.95);
   white-space: nowrap;
   overflow: hidden;
@@ -693,56 +702,94 @@ const glassRing = computed(() =>
   gap: 2px;
 }
 
-/* 媒体播放器 */
+/* 媒体播放器 (2x2 138x138) */
 .cc-media {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 24px;
+  border-radius: 32px;
   padding: 12px;
   display: flex;
   flex-direction: column;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(30px) saturate(200%);
-  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  justify-content: space-between;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255, 113, 30, 0.45) 0%, rgba(255, 113, 30, 0.2) 35%, rgba(255, 113, 30, 0) 75%), rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
   overflow: hidden;
 }
-.cc-cast {
+.cc-media-bg-svg {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 6px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.9);
-  cursor: pointer;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
 }
-.cc-media-state {
-  flex: 1;
+.cc-media > *:not(.cc-media-bg-svg) {
+  position: relative;
+  z-index: 1;
+}
+.cc-media-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.cc-media-cover {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+.cc-media-cast {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 0.5px solid rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font: 500 13px/1 var(--font-stack);
-  color: rgba(255, 255, 255, 0.6);
-  letter-spacing: 1px;
-  pointer-events: none;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cc-media-cast:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+.cc-media-info {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.cc-media-title {
+  font: 600 13px/1.2 var(--font-stack);
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+.cc-media-artist {
+  font: 400 11px/1.2 var(--font-stack);
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 2px;
 }
 .cc-media-btns {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 14px;
-  padding-bottom: 4px;
+  justify-content: space-between;
+  padding: 0 8px;
+  margin-top: 4px;
 }
 .cc-mc {
-  padding: 6px;
-  border-radius: 50%;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
+  color: #fff;
   display: flex;
-  transition: color 0.2s ease;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease;
 }
-.cc-mc:hover { color: rgba(255, 255, 255, 0.95); }
+.cc-mc:active {
+  transform: scale(0.9);
+}
 
 /* 竖滑块 */
 .cc-sliders {
