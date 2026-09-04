@@ -61,7 +61,7 @@ const iconSize = computed(() => {
 
 const stateStyle = computed(() => {
   if (props.editing) {
-    return { background: 'transparent', color: '#fff' }
+    return { background: 'rgba(255, 255, 255, 0.16)', color: '#fff' }
   }
   if (containerActive.value && !props.expanded) {
     return { background: props.item.activeBg || '#258FFF', color: props.item.activeColor || '#fff' }
@@ -69,7 +69,7 @@ const stateStyle = computed(() => {
   if (containerActive.value && props.expanded && !hasBadge.value) {
     return { background: props.item.activeBg || '#258FFF', color: props.item.activeColor || '#fff' }
   }
-  return { background: 'transparent', color: '#fff' }
+  return { background: 'rgba(255, 255, 255, 0.16)', color: '#fff' }
 })
 
 const badgeStyle = computed(() => {
@@ -146,20 +146,30 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
       :class="{ 'gb-editing': editing, 'gb-active': containerActive, 'gb-expanded': expanded }"
       :style="[stateStyle, blurStyle]"
     >
-      <!-- 1*1 矢量质感玻璃高光背景 (未展开，且未激活或编辑模式下渲染) -->
-      <svg v-if="!expanded && (!containerActive || editing)" class="gb-bg-svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
-        <circle cx="31" cy="31" r="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-        <circle cx="31" cy="31" r="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-        <circle cx="31" cy="31" r="30.5" fill="white" fill-opacity="0.08"/>
-        <circle cx="31" cy="31" r="30.5" stroke="url(#paint0_linear_2860_1301)" style="mix-blend-mode:plus-lighter"/>
+      <!-- 1*1 矢量质感玻璃高光背景 (未展开态始终渲染高光轮廓) -->
+      <svg v-if="!expanded" class="gb-bg-svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
+        <circle cx="31" cy="31" r="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2860_1301)" stroke-width="1" />
+        <defs>
+          <linearGradient id="paint0_linear_2860_1301" x1="17.5" y1="0" x2="16.9972" y2="61.7832" gradientUnits="userSpaceOnUse">
+            <stop stop-color="white" stop-opacity="0.8"/>
+            <stop offset="0.3" stop-color="white" stop-opacity="0.2"/>
+            <stop offset="0.7" stop-color="white" stop-opacity="0.2"/>
+            <stop offset="1" stop-color="white" stop-opacity="0.5"/>
+          </linearGradient>
+        </defs>
       </svg>
 
-      <!-- 2*1 矢量质感玻璃胶囊高光背景 (展开态，且未激活或编辑模式下渲染) -->
-      <svg v-if="expanded && (!containerActive || editing)" class="gb-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" style="mix-blend-mode:plus-lighter" vector-effect="non-scaling-stroke"/>
+      <!-- 2*1 矢量质感玻璃胶囊高光背景 (展开态始终渲染高光轮廓) -->
+      <svg v-if="expanded" class="gb-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" stroke-width="1" vector-effect="non-scaling-stroke" />
+        <defs>
+          <linearGradient id="paint0_linear_331_95718" x1="38.9516" y1="0" x2="38.7257" y2="61.7864" gradientUnits="userSpaceOnUse">
+            <stop stop-color="white" stop-opacity="0.8"/>
+            <stop offset="0.3" stop-color="white" stop-opacity="0.2"/>
+            <stop offset="0.7" stop-color="white" stop-opacity="0.2"/>
+            <stop offset="1" stop-color="white" stop-opacity="0.5"/>
+          </linearGradient>
+        </defs>
       </svg>
 
       <!-- 常规内容：图标 + 展开 label -->
@@ -231,6 +241,9 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
 }
 .gb-body.gb-active {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+.gb-editing {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35) !important;
 }
 
 .gb-bg-svg {

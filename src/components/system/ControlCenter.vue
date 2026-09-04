@@ -382,22 +382,22 @@ const glassRing = computed(() =>
     <svg width="0" height="0" style="position: absolute; pointer-events: none">
       <defs>
         <linearGradient id="paint0_linear_2860_1301" x1="17.5" y1="0" x2="16.9972" y2="61.7832" gradientUnits="userSpaceOnUse">
-          <stop stop-color="white" stop-opacity="0.3"/>
-          <stop offset="0.3" stop-color="white" stop-opacity="0.02"/>
-          <stop offset="0.7" stop-color="white" stop-opacity="0.02"/>
-          <stop offset="1" stop-color="white" stop-opacity="0.2"/>
+          <stop stop-color="white" stop-opacity="0.8"/>
+          <stop offset="0.3" stop-color="white" stop-opacity="0.2"/>
+          <stop offset="0.7" stop-color="white" stop-opacity="0.2"/>
+          <stop offset="1" stop-color="white" stop-opacity="0.5"/>
         </linearGradient>
         <linearGradient id="paint0_linear_331_95718" x1="38.9516" y1="0" x2="38.7257" y2="61.7864" gradientUnits="userSpaceOnUse">
-          <stop stop-color="white" stop-opacity="0.3"/>
-          <stop offset="0.3" stop-color="white" stop-opacity="0.02"/>
-          <stop offset="0.7" stop-color="white" stop-opacity="0.02"/>
-          <stop offset="1" stop-color="white" stop-opacity="0.2"/>
+          <stop stop-color="white" stop-opacity="0.8"/>
+          <stop offset="0.3" stop-color="white" stop-opacity="0.2"/>
+          <stop offset="0.7" stop-color="white" stop-opacity="0.2"/>
+          <stop offset="1" stop-color="white" stop-opacity="0.5"/>
         </linearGradient>
         <linearGradient id="paint0_linear_2865_138" x1="17.5" y1="0" x2="16.9972" y2="137.783" gradientUnits="userSpaceOnUse">
-          <stop stop-color="white" stop-opacity="0.3"/>
-          <stop offset="0.3" stop-color="white" stop-opacity="0.02"/>
-          <stop offset="0.7" stop-color="white" stop-opacity="0.02"/>
-          <stop offset="1" stop-color="white" stop-opacity="0.2"/>
+          <stop stop-color="white" stop-opacity="0.8"/>
+          <stop offset="0.3" stop-color="white" stop-opacity="0.2"/>
+          <stop offset="0.7" stop-color="white" stop-opacity="0.2"/>
+          <stop offset="1" stop-color="white" stop-opacity="0.5"/>
         </linearGradient>
       </defs>
     </svg>
