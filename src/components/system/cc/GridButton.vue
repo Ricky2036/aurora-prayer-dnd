@@ -50,13 +50,36 @@ const containerActive = computed(() => {
   return isActive.value
 })
 
-/** 统一图标尺寸：所有 SVG 均已按照长边设为 1:1 正方形 viewBox，1x1 模式统一为 28px，规避忽大忽小偏差 */
+/** 视错觉光学校准（Optical Balance）：严格对齐效果图视觉面积，消除画板留白与形状差异导致的忽大忽小 */
 const iconSize = computed(() => {
+  const id = props.item.id
   if (props.expanded) {
     if (hasBadge.value) return 20 // 处于 38px 底板内，如 Bluetooth
-    return 24                      // 无底板胶囊，如 Dark Theme
+    if (id === 'darkMode') return 26 // 无底板胶囊，如 Dark Theme
+    return 24                      // 其他无底板胶囊
   }
-  return 28                        // 1x1 模式统一 28px
+  // 1x1 模式（根据图形特征与画板留白进行光学补偿）：
+  // 1. 留白较大或第三方库图标，适度补偿放大，防止显得太小：
+  if (id === 'calculator') return 28   // 计算器
+  if (id === 'boost') return 28        // 闪充/加速闪电
+  if (id === 'dnd') return 27          // 月亮
+  if (id === 'location') return 27     // 定位图钉
+  if (id === 'scan') return 26         // 扫一扫
+  if (id === 'hotspot') return 26      // 热点波纹
+  if (id === 'airplane') return 26     // 飞行模式
+  if (id === 'rotationLock') return 25 // 方向锁定
+
+  // 2. 贴紧边缘或长边占满画板的图标，适度收敛，防止视觉膨胀爆框：
+  if (id === 'flashlight') return 24   // 手电筒
+  if (id === 'sound') return 24        // 响铃
+  if (id === 'screenRecord') return 24 // 录屏摄像机
+  if (id === 'autoRotate') return 24   // 自动旋转准心
+  if (id === 'batterySaver') return 25 // 省电模式电池
+  if (id === 'screenshot') return 25   // 剪刀截屏
+  if (id === 'share') return 26        // 快传
+  if (id === 'cast') return 26         // 投屏
+
+  return 25
 })
 
 const stateStyle = computed(() => {

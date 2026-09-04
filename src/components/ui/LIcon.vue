@@ -17,7 +17,7 @@ const html = computed(() => {
   let svg = LUCIDE[props.name] || ''
   if (!svg) return ''
   // 仅替换根 <svg> 标签的 width 和 height，避免误伤内部 <rect width="...">
-  svg = svg.replace(/^\s*<svg\b[^>]*>/i, (match) => {
+  svg = svg.replace(/<svg\b[^>]*>/i, (match) => {
     let m = match
     if (/width="[^"]*"/.test(m)) m = m.replace(/width="[^"]*"/, `width="${props.size}"`)
     else m = m.replace('<svg', `<svg width="${props.size}"`)
