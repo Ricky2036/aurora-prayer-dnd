@@ -74,14 +74,14 @@ const TOGGLES = [
   { id: 'screenshot', icon: 'scissors', label: '截屏', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'darkMode', icon: 'darkTheme', label: 'Dark Theme', activeBg: '#258FFF', activeColor: '#fff', defaultSize: '2x1' },
   { id: 'dnd', icon: 'moon', label: '勿扰', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' },
-  { id: 'sound', icon: 'bell', label: '响铃', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' },
+  { id: 'sound', icon: 'bell', label: '铃声', fillOnActive: false, activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'rotationLock', icon: 'rotationLock', label: '锁定', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'screenRecord', icon: 'video', label: '录屏', fillOnActive: true, activeBg: '#ef4444', activeColor: '#fff' },
   { id: 'batterySaver', icon: 'battery', label: '省电', activeBg: '#eab308', activeColor: '#fff' },
   { id: 'autoRotate', icon: 'autoRotate', label: '旋转', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'share', icon: 'quickShare', label: '分享', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'cast', icon: 'cast', label: '投屏', activeBg: '#258FFF', activeColor: '#fff' },
-  { id: 'flashlight', icon: 'flashlightOn', label: '手电筒', activeBg: '#fff', activeColor: '#FBB500' },
+  { id: 'flashlight', icon: 'flashlight', label: '手电筒', activeBg: '#fff', activeColor: '#FBB500' },
   { id: 'calculator', icon: 'calculator', label: '计算器', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'scan', icon: 'scan', label: '扫一扫', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'boost', icon: 'zap', label: '加速', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' }
@@ -91,7 +91,8 @@ const DEFAULT_TOGGLE_IDS = [
   'bluetooth', 'hotspot', 'airplane',
   'location', 'screenshot', 'darkMode',
   'dnd', 'sound', 'rotationLock', 'screenRecord',
-  'batterySaver', 'autoRotate', 'share', 'cast'
+  'batterySaver', 'autoRotate', 'share', 'cast',
+  'flashlight', 'calculator', 'scan', 'boost'
 ]
 
 const baseItems = [
@@ -375,6 +376,12 @@ const glassRing = computed(() =>
           <stop offset="0.7" stop-color="white" stop-opacity="0.02"/>
           <stop offset="1" stop-color="white" stop-opacity="0.2"/>
         </linearGradient>
+        <linearGradient id="paint0_linear_2865_138" x1="17.5" y1="0" x2="16.9972" y2="137.783" gradientUnits="userSpaceOnUse">
+          <stop stop-color="white" stop-opacity="0.3"/>
+          <stop offset="0.3" stop-color="white" stop-opacity="0.02"/>
+          <stop offset="0.7" stop-color="white" stop-opacity="0.02"/>
+          <stop offset="1" stop-color="white" stop-opacity="0.2"/>
+        </linearGradient>
       </defs>
     </svg>
 
@@ -387,16 +394,18 @@ const glassRing = computed(() =>
           <button class="cc-header-btn" @click.stop="openSettings" title="设置"><LIcon name="headerSettings" :size="30" /></button>
         </template>
         <template v-else>
-          <button class="cc-icon-btn cc-glass" @click.stop="resetLayout"><LIcon name="plus" :size="20" :stroke-width="1.5" /></button>
+          <button class="cc-header-btn" @click.stop="resetLayout" title="重置"><LIcon name="headerPlus" :size="30" /></button>
+          <div class="cc-header-camera-spacer"></div>
           <div class="cc-edit-group">
-            <button class="cc-icon-btn cc-glass cc-group-left" @click.stop="resetLayout"><LIcon name="slidersHorizontal" :size="16" /></button>
-            <button class="cc-icon-btn cc-glass" @click.stop="control.setEditing(false)"><LIcon name="check" :size="18" :stroke-width="2.5" /></button>
+            <button class="cc-group-btn" @click.stop="resetLayout" title="排序算法"><LIcon name="slidersHorizontal" :size="14" /></button>
+            <div class="cc-group-divider"></div>
+            <button class="cc-group-btn" @click.stop="control.setEditing(false)" title="完成"><LIcon name="check" :size="15" :stroke-width="2.5" /></button>
           </div>
         </template>
       </div>
 
-      <!-- 隐私指示器胶囊 (Camera Recording Map >) -->
-      <div class="cc-privacy-pill" :class="{ hidden: editing }">
+      <!-- 隐私指示器胶囊 (仅显示隐私图标，去除文案；由控制台开关控制，默认不显示) -->
+      <div v-if="control.showPrivacyIndicators" class="cc-privacy-pill" :class="{ hidden: editing }">
         <div class="cc-priv-dots">
           <span class="cc-priv-dot cc-priv-cam">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
@@ -408,10 +417,6 @@ const glassRing = computed(() =>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           </span>
         </div>
-        <span class="cc-priv-text">Camera Recording Map</span>
-        <svg class="cc-priv-chevron" width="6" height="10" viewBox="0 0 6 10" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M1 1l4 4-4 4"/>
-        </svg>
       </div>
 
       <!-- 状态行 -->
@@ -442,10 +447,7 @@ const glassRing = computed(() =>
           <!-- Wi-Fi 胶囊 -->
           <div v-if="item.id === 'wifi'" class="cc-pill" @click="!editing && control.toggle('wifi')">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" style="mix-blend-mode:plus-lighter" vector-effect="non-scaling-stroke"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon" :style="{ opacity: control.wifi ? 1 : 0.4 }">
               <LIcon name="wifi" :size="38" />
@@ -459,10 +461,7 @@ const glassRing = computed(() =>
           <!-- 数据胶囊 -->
           <div v-else-if="item.id === 'data'" class="cc-pill" @click="!editing && control.toggle('cellular')">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" style="mix-blend-mode:plus-lighter" vector-effect="non-scaling-stroke"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon" :style="{ background: control.cellular ? '#31C65A' : 'rgba(255,255,255,0.2)' }">
               <LIcon name="arrowDownUp" :size="20" />
@@ -476,12 +475,12 @@ const glassRing = computed(() =>
           <!-- 媒体播放器 (2x2 138x138) -->
           <div v-else-if="item.id === 'mediaPlayer'" class="cc-media">
             <svg class="cc-media-bg-svg" width="100%" height="100%" viewBox="0 0 138 138" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="137" rx="30.5" stroke="url(#paint0_linear_2860_1301)" vector-effect="non-scaling-stroke" />
+              <rect x="0.5" y="0.5" width="137" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2865_138)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-media-top">
               <img :src="albumCover" alt="Album Cover" class="cc-media-cover" />
               <button class="cc-media-cast" @click.stop="!editing && control.toggle('cast')">
-                <LIcon name="radio" :size="15" />
+                <LIcon name="radio" :size="14" />
               </button>
             </div>
             <div class="cc-media-info">
@@ -499,16 +498,22 @@ const glassRing = computed(() =>
 
           <!-- 亮度 / 音量竖滑块 (2x2 138x138) -->
           <div v-else-if="item.id === 'mediaControls'" class="cc-sliders">
-            <div class="cc-vslider" :style="{ boxShadow: glassRing }" @pointerdown="sliderPointer($event, 'brightness')">
+            <div class="cc-vslider" @pointerdown="sliderPointer($event, 'brightness')">
+              <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
+                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2865_138)" vector-effect="non-scaling-stroke" />
+              </svg>
               <div class="cc-vslider-fill" :style="{ height: brightnessPct + '%' }"></div>
               <div class="cc-vslider-icon">
-                <LIcon name="sun" :size="28" />
+                <LIcon name="sun" :size="26" />
               </div>
             </div>
-            <div class="cc-vslider" :style="{ boxShadow: glassRing }" @pointerdown="sliderPointer($event, 'volume')">
+            <div class="cc-vslider" @pointerdown="sliderPointer($event, 'volume')">
+              <svg class="cc-vslider-bg-svg" width="100%" height="100%" viewBox="0 0 62 138" preserveAspectRatio="none" fill="none">
+                <rect x="0.5" y="0.5" width="61" height="137" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2865_138)" vector-effect="non-scaling-stroke" />
+              </svg>
               <div class="cc-vslider-fill" :style="{ height: volumePct + '%' }"></div>
               <div class="cc-vslider-icon">
-                <LIcon name="volume2" :size="28" />
+                <LIcon name="volume2" :size="26" />
               </div>
             </div>
           </div>
@@ -516,10 +521,7 @@ const glassRing = computed(() =>
           <!-- OneLeap (2x1) -->
           <div v-else-if="item.id === 'joyConnect'" class="cc-pill" @click="!editing && control.toggle('share')">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" style="mix-blend-mode:plus-lighter" vector-effect="non-scaling-stroke"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon">
               <LIcon name="link2" :size="38" />
@@ -530,10 +532,7 @@ const glassRing = computed(() =>
           <!-- Health&SPO (2x1) -->
           <div v-else-if="item.id === 'joyHeart'" class="cc-pill">
             <svg class="cc-pill-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
-              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" style="mix-blend-mode:plus-lighter" vector-effect="non-scaling-stroke"/>
+              <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
             </svg>
             <div class="cc-pill-icon">
               <LIcon name="heart" :size="38" />
@@ -626,44 +625,49 @@ const glassRing = computed(() =>
   transform: scale(0.92);
   opacity: 0.8;
 }
-.cc-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+.cc-edit-group {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  position: relative;
+  z-index: 20;
+}
+.cc-group-btn {
+  width: 32px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
+  border: none;
   color: #fff;
   cursor: pointer;
-  transition: background 0.2s ease;
+  padding: 0;
+  transition: background 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
-.cc-icon-btn:hover { background: rgba(255, 255, 255, 0.15); }
-.cc-glass {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+.cc-group-btn:hover { background: rgba(255, 255, 255, 0.15); }
+.cc-group-btn:active { transform: scale(0.92); opacity: 0.8; }
+.cc-group-divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.2);
 }
-.cc-edit-group {
-  display: flex;
-  border-radius: 999px;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-}
-.cc-edit-group .cc-icon-btn { border-radius: 0; box-shadow: none; background: transparent; }
-.cc-group-left { border-right: 1px solid rgba(255, 255, 255, 0.2); }
 
 /* 隐私指示器胶囊 */
 .cc-privacy-pill {
   display: flex;
   align-items: center;
-  gap: 7px;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-radius: 999px;
-  padding: 3px 10px 3px 4px;
+  padding: 3px 4px;
   margin: 0 auto 10px;
   width: fit-content;
   color: #fff;
@@ -687,15 +691,6 @@ const glassRing = computed(() =>
 .cc-priv-dot.cc-priv-cam { background: #FAB500; }
 .cc-priv-dot.cc-priv-mic { background: #FF4D4F; }
 .cc-priv-dot.cc-priv-loc { background: #258FFF; }
-.cc-priv-text {
-  font: 500 11px/1.2 var(--font-stack);
-  letter-spacing: -0.1px;
-  color: rgba(255, 255, 255, 0.95);
-  margin: 0 1px;
-}
-.cc-priv-chevron {
-  display: block;
-}
 
 /* 状态行 */
 .cc-status {
@@ -940,11 +935,20 @@ const glassRing = computed(() =>
   cursor: pointer;
   touch-action: none;
 }
+.cc-vslider-bg-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
 .cc-vslider-fill {
   position: absolute;
   left: 0; right: 0; bottom: 0;
   background: #fff;
   transition: height 0.1s ease-out;
+  z-index: 1;
 }
 .cc-vslider-icon {
   position: absolute;
@@ -953,6 +957,7 @@ const glassRing = computed(() =>
   display: flex;
   justify-content: center;
   pointer-events: none;
+  z-index: 3;
 }
 
 /* 删除徽标（widget 通用） */

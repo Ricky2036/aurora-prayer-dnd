@@ -401,6 +401,22 @@ function snapToEdge() {
 
         <!-- 3. 控制中心 Tab -->
         <section v-else-if="activeTab === 'control'" key="control" class="pc-tab-panel">
+          <!-- 隐私指示器 -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">隐私指示器</span>
+              <label class="pc-switch-wrap">
+                <span>显示隐私图标</span>
+                <input
+                  type="checkbox"
+                  :checked="control.showPrivacyIndicators"
+                  @change="control.setShowPrivacyIndicators($event.target.checked)"
+                />
+                <div class="pc-switch"></div>
+              </label>
+            </div>
+          </div>
+
           <!-- 排列算法 -->
           <div class="pc-card">
             <div class="pc-card-header">
@@ -654,6 +670,22 @@ function snapToEdge() {
 
                 <!-- 3. 控制中心 Tab -->
                 <section v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
+                  <!-- 隐私指示器 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">隐私指示器</span>
+                      <label class="pc-switch-wrap">
+                        <span>显示隐私图标</span>
+                        <input
+                          type="checkbox"
+                          :checked="control.showPrivacyIndicators"
+                          @change="control.setShowPrivacyIndicators($event.target.checked)"
+                        />
+                        <div class="pc-switch"></div>
+                      </label>
+                    </div>
+                  </div>
+
                   <!-- 排列算法 -->
                   <div class="pc-card">
                     <div class="pc-card-header">

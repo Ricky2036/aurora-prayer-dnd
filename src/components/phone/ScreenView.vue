@@ -31,8 +31,8 @@ onMounted(() => {
   screenRef.el = rootEl.value
 })
 
-/** 亮度滤镜：控制中心亮度滑块真实压暗屏幕 */
-const dimOpacity = computed(() => (1 - control.brightness) * 0.72)
+/** 亮度滤镜：控制中心亮度滑块真实压暗屏幕（打开叠层时不遮罩控制中心/通知中心自身） */
+const dimOpacity = computed(() => system.anyOverlayOpen() ? 0 : (1 - control.brightness) * 0.72)
 
 const heroBackdropStrength = computed(() => Math.min(
   1,
