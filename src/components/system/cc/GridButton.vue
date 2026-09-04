@@ -21,6 +21,7 @@ const control = useControlStore()
 
 const isSound = computed(() => props.item.id === 'sound')
 const isLocation = computed(() => props.item.id === 'location')
+const hasBadge = computed(() => !!props.item?.hasBadge)
 
 /** 激活状态绑定 controlStore */
 const isActive = computed(() => {
@@ -41,70 +42,64 @@ const iconName = computed(() => {
   return props.item.icon
 })
 
-/** 展开态响铃容器不激活底色（内部三段有自己的激活态）；编辑模式统一不激活底色 */
+/** 展开态响铃容器不激活底色；有底板胶囊（如蓝牙）容器不激活；无底板胶囊（如 Dark Theme）激活时整体着色 */
 const containerActive = computed(() => {
   if (props.editing) return false
   if (isSound.value && props.expanded) return false
+  if (props.expanded && hasBadge.value) return false
   return isActive.value
 })
 
-/** 精细光学校准图标尺寸（严格对齐效果图视觉比例） */
+/** 统一图标尺寸：所有 SVG 均已按照长边设为 1:1 正方形 viewBox，1x1 模式统一为 28px，规避忽大忽小偏差 */
 const iconSize = computed(() => {
   if (props.expanded) {
-    if (props.item.id === 'bluetooth') return 18
-    if (props.item.id === 'darkMode') return 20
-    if (props.item.id === 'batterySaver') return 20
-    if (props.item.id === 'flashlight') return 18
-    return 19
+    if (hasBadge.value) return 20 // 处于 38px 底板内，如 Bluetooth
+    return 24                      // 无底板胶囊，如 Dark Theme
   }
-  // 1x1 宫格尺寸微调（消除忽大忽小，视觉质感均衡）
-  if (props.item.id === 'flashlight') return 24
-  if (props.item.id === 'bluetooth') return 22
-  if (props.item.id === 'sound') return 23
-  if (props.item.id === 'batterySaver') return 26
-  if (props.item.id === 'darkMode') return 23
-  if (props.item.id === 'video') return 24
-  if (props.item.id === 'calculator') return 23
-  if (props.item.id === 'scan') return 22
-  if (props.item.id === 'boost') return 23
-  if (props.item.id === 'scissors') return 22
-  if (props.item.id === 'moon') return 22
-  if (props.item.id === 'quickShare') return 22
-  if (props.item.id === 'autoRotate') return 23
-  if (props.item.id === 'cast') return 24
-  if (props.item.id === 'location') return 24
-  if (props.item.id === 'hotspot') return 24
-  if (props.item.id === 'airplane') return 24
-  if (props.item.id === 'rotationLock') return 23
-  return 23
+  return 28                        // 1x1 模式统一 28px
 })
 
 const stateStyle = computed(() => {
   if (props.editing) {
-    return { background: 'rgba(255, 255, 255, 0.16)', color: '#fff' }
+    return { background: 'transparent', color: '#fff' }
   }
   if (containerActive.value && !props.expanded) {
     return { background: props.item.activeBg || '#258FFF', color: props.item.activeColor || '#fff' }
   }
-  return { background: 'rgba(255, 255, 255, 0.16)', color: '#fff' }
+  if (containerActive.value && props.expanded && !hasBadge.value) {
+    return { background: props.item.activeBg || '#258FFF', color: props.item.activeColor || '#fff' }
+  }
+  return { background: 'transparent', color: '#fff' }
 })
 
 const badgeStyle = computed(() => {
   if (!props.expanded) return {}
+  // 默认不加圆形底板（如 Dark Theme 等），保持纯净图标直接置于胶囊上
+  if (!hasBadge.value) {
+    return {
+      background: 'transparent',
+      boxShadow: 'none',
+      color: '#fff'
+    }
+  }
+  // 显式配置 hasBadge 的 2x1 图标（如 Bluetooth）
   if (props.editing) {
     return {
       background: 'rgba(255, 255, 255, 0.2)',
+      boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
       color: '#fff'
     }
   }
   if (isActive.value) {
     return {
       background: props.item.activeBg || '#258FFF',
+      boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
       color: props.item.activeColor || '#fff'
     }
   }
   return {
     background: 'rgba(255, 255, 255, 0.2)',
+    boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.1)',
     color: '#fff'
   }
 })
@@ -151,14 +146,20 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
       :class="{ 'gb-editing': editing, 'gb-active': containerActive, 'gb-expanded': expanded }"
       :style="[stateStyle, blurStyle]"
     >
-      <!-- 1*1 矢量质感玻璃高光背景 (未展开时渲染) -->
-      <svg v-if="!expanded" class="gb-bg-svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
-        <circle cx="31" cy="31" r="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2860_1301)" />
+      <!-- 1*1 矢量质感玻璃高光背景 (未展开，且未激活或编辑模式下渲染) -->
+      <svg v-if="!expanded && (!containerActive || editing)" class="gb-bg-svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
+        <circle cx="31" cy="31" r="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+        <circle cx="31" cy="31" r="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+        <circle cx="31" cy="31" r="30.5" fill="white" fill-opacity="0.08"/>
+        <circle cx="31" cy="31" r="30.5" stroke="url(#paint0_linear_2860_1301)" style="mix-blend-mode:plus-lighter"/>
       </svg>
 
-      <!-- 2*1 矢量质感玻璃胶囊高光背景 (展开时渲染) -->
-      <svg v-if="expanded" class="gb-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
+      <!-- 2*1 矢量质感玻璃胶囊高光背景 (展开态，且未激活或编辑模式下渲染) -->
+      <svg v-if="expanded && (!containerActive || editing)" class="gb-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" style="mix-blend-mode:plus-lighter" vector-effect="non-scaling-stroke"/>
       </svg>
 
       <!-- 常规内容：图标 + 展开 label -->
@@ -231,7 +232,6 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
 .gb-body.gb-active {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
-.gb-editing { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4) !important; }
 
 .gb-bg-svg {
   position: absolute;
@@ -267,7 +267,6 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   height: 38px;
   border-radius: 50%;
   flex: none;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 .gb-label {
   font: 500 12.5px/1 var(--font-stack);

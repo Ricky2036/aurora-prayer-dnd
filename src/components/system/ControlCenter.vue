@@ -49,12 +49,24 @@ const rootRef = ref(null)
 const driver = getDriver('controlCenter')
 if (driver) useSwipeGesture(rootRef, driver.closeGesture)
 
+let isInteracting = false
+let interactTimer = null
+function markInteracting() {
+  isInteracting = true
+  if (interactTimer) clearTimeout(interactTimer)
+  interactTimer = setTimeout(() => {
+    isInteracting = false
+  }, 350)
+}
+
 function onCcClick(e) {
-  // 编辑模式下点空白区退出编辑模式
+  // 编辑模式下点空白区退出编辑模式（防误触：拖拽/伸缩期间及网格内部点击均不退出）
   if (editing.value) {
-    if (!e.target.closest('.cc-header-btn, .cc-icon-btn, .cc-edit-group, .gb-wrap, .cc-cell')) {
-      control.setEditing(false)
+    if (isInteracting || resizingId.value || dragState.value) return
+    if (e.target.closest('.cc-grid, .cc-cell, .gb-wrap, .cc-header, .cc-header-btn, .cc-edit-group, .cc-pill, .cc-media, .cc-sliders')) {
+      return
     }
+    control.setEditing(false)
     return
   }
   // 点击卡片、胶囊、按钮、滑块等交互元素时不退出
@@ -67,7 +79,7 @@ function onCcClick(e) {
 /* ================= 网格配置 ================= */
 
 const TOGGLES = [
-  { id: 'bluetooth', icon: 'bluetooth', label: 'Bluetooth', activeBg: '#258FFF', activeColor: '#fff', defaultSize: '2x1' },
+  { id: 'bluetooth', icon: 'bluetooth', label: 'Bluetooth', activeBg: '#258FFF', activeColor: '#fff', defaultSize: '2x1', hasBadge: true },
   { id: 'hotspot', icon: 'radio', label: '热点', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'airplane', icon: 'plane', label: '飞行模式', activeBg: '#258FFF', activeColor: '#fff' },
   { id: 'location', icon: 'mapPin', label: '定位', fillOnActive: true, activeBg: '#258FFF', activeColor: '#fff' },
@@ -143,6 +155,7 @@ watch(
 
 function onDragStart(e, id) {
   if (!editing.value) { e.preventDefault(); return }
+  markInteracting()
   const item = layout.value.find((i) => i.id === id)
   if (!item) return
   const rect = e.currentTarget.getBoundingClientRect()
@@ -202,6 +215,7 @@ function onDragOver(e) {
 
 function onDrop(e) {
   e.preventDefault()
+  markInteracting()
   if (dragState.value) {
     recordPositions(gridRef.value, flipStore)
     layout.value = displayLayout.value
@@ -213,6 +227,7 @@ function onDrop(e) {
 }
 
 function onDragEnd() {
+  markInteracting()
   if (dragState.value) {
     recordPositions(gridRef.value, flipStore)
     dragState.value = null
@@ -239,6 +254,7 @@ function resetLayout() {
 let resizeState = null
 
 function onResizeStart(e, id) {
+  markInteracting()
   const item = layout.value.find((i) => i.id === id)
   if (!item || item.type !== 'toggle') return
   resizeState = {
@@ -283,6 +299,7 @@ function onResizeMove(e) {
 }
 
 function onResizeEnd() {
+  markInteracting()
   window.removeEventListener('pointermove', onResizeMove)
   resizingId.value = null
   resizeState = null
@@ -422,13 +439,10 @@ const glassRing = computed(() =>
       <!-- 状态行 -->
       <div class="cc-status" :class="{ hidden: editing }">
         <div class="cc-status-left">
-          <StatusIcons color="#fff" :show-wifi="false" :show-battery="false" :show-signal="true" />
-          <span class="cc-vonr">VoNR</span>
           <span class="cc-carrier">Orange</span>
         </div>
         <div class="cc-status-right">
-          <span class="cc-battery-pct">86%</span>
-          <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
+          <StatusIcons color="#fff" :show-wifi="true" :show-signal="true" :show-battery="true" />
         </div>
       </div>
 

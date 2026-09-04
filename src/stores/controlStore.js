@@ -5,7 +5,7 @@ export const useControlStore = defineStore('control', {
   state: () => ({
     brightness: 1.0,     // 0.25..1，驱动屏幕滤镜（默认全亮纯白）
     volume: 0.65,        // 默认与设计图 65% 一致
-    airplane: true,
+    airplane: false,
     wifi: true,
     bluetooth: true,
     cellular: true,
