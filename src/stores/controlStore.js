@@ -3,16 +3,16 @@ import { defineStore } from 'pinia'
 /** 控制中心 / 状态栏 / 亮度滤镜共享的真实开关状态 */
 export const useControlStore = defineStore('control', {
   state: () => ({
-    brightness: 1.0,     // 0.25..1，驱动屏幕滤镜（默认 1.0 全亮纯白）
-    volume: 0.55,
-    airplane: false,
+    brightness: 0.45,     // 0.25..1，驱动屏幕滤镜（默认与设计图 45% 一致）
+    volume: 0.65,        // 默认与设计图 65% 一致
+    airplane: true,
     wifi: true,
     bluetooth: true,
     cellular: true,
     doNotDisturb: false,
     rotationLock: false,
     flashlight: false,
-    battery: 0.76,
+    battery: 0.86,
 
     /* ---- 安卓控制中心扩展 ---- */
     soundMode: 'ring',    // 'ring' | 'vibrate' | 'mute'

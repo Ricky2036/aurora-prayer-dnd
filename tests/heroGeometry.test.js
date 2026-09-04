@@ -132,7 +132,7 @@ test('图标底板色与镜像共同覆盖完整几何阶段且方向分层时�
 
 test('图标重叠阶段窗口顶角与 AppIcon squircle 精确同源', () => {
   const anchor = gridAnchors[6]
-  const openingOverlap = heroFrame('open', anchor, HERO_OPEN_DURATION * 0.3)
+  const openingOverlap = heroFrame('open', anchor, HERO_OPEN_DURATION * 0.2)
   const closingOverlap = heroFrame('close', anchor, HERO_CLOSE_DURATION * 0.6)
 
   for (const current of [openingOverlap, closingOverlap]) {

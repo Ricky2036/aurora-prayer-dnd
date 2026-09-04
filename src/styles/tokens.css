@@ -73,11 +73,11 @@
   --z-app-window: 30;
   --z-app-library: 60;
   --z-lock-screen: 70;
-  --z-notification-center: 72;   /* NC/CC 高于锁屏：锁屏上也可下拉 */
-  --z-control-center: 74;
+  --z-notification-center: 92;   /* NC/CC 高于锁屏与状态栏边缘热区 */
+  --z-control-center: 94;
   --z-side-edge: 80;             /* 左右侧边缘手势热区（高于应用窗口，低于叠层） */
   --z-edge-zone: 85;             /* 顶部边缘手势热区 */
   --z-status-bar: 90;
-  --z-home-indicator: 95;
+  --z-home-indicator: 96;
   --z-brightness-filter: 100;
 }

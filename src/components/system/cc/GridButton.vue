@@ -25,7 +25,7 @@ const isLocation = computed(() => props.item.id === 'location')
 /** 激活状态绑定 controlStore */
 const isActive = computed(() => {
   const id = props.item.id
-  if (id === 'sound') return control.soundMode !== 'mute'
+  if (id === 'sound') return control.soundMode === 'ring'
   return !!control[id]
 })
 
@@ -70,9 +70,9 @@ const blurStyle = computed(() => ({
   WebkitBackdropFilter: (containerActive.value && !props.expanded && !props.editing) ? 'none' : 'blur(25px) saturate(180%)'
 }))
 
-/** 三段滑块位置 */
+/** 三段滑块位置 (138px - 12px padding = 126px / 3 = 42px) */
 const soundKnobX = computed(() => {
-  const seg = 76 / 3
+  const seg = (props.computedWidth - 12) / 3
   const i = { ring: 0, vibrate: 1, mute: 2 }[control.soundMode]
   return seg * i
 })
@@ -109,12 +109,18 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
     >
       <!-- 1*1 矢量质感玻璃高光背景 (未激活时) -->
       <svg v-if="!containerActive && !expanded" class="gb-bg-svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
-        <circle cx="31" cy="31" r="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_2860_1301)" />
+        <circle cx="31" cy="31" r="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+        <circle cx="31" cy="31" r="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+        <circle cx="31" cy="31" r="30.5" fill="white" fill-opacity="0.08"/>
+        <circle cx="31" cy="31" r="30.5" stroke="url(#paint0_linear_2860_1301)" style="mix-blend-mode:plus-lighter"/>
       </svg>
 
       <!-- 2*1 矢量质感玻璃胶囊高光背景 (未激活时) -->
       <svg v-if="!containerActive && expanded" class="gb-bg-svg" width="100%" height="100%" viewBox="0 0 138 62" preserveAspectRatio="none" fill="none">
-        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="rgba(255, 255, 255, 0.04)" stroke="url(#paint0_linear_331_95718)" vector-effect="non-scaling-stroke" />
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#A6A6A6" fill-opacity="0.1" style="mix-blend-mode:overlay"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="#494949" fill-opacity="0.5" style="mix-blend-mode:color-dodge"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" fill="white" fill-opacity="0.08"/>
+        <rect x="0.5" y="0.5" width="137" height="61" rx="30.5" stroke="url(#paint0_linear_331_95718)" style="mix-blend-mode:plus-lighter" vector-effect="non-scaling-stroke"/>
       </svg>
 
       <!-- 常规内容：图标 + 展开 label -->
@@ -126,12 +132,12 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
         <div class="gb-icon-badge" :style="badgeStyle">
           <LIcon
             :name="iconName"
-            :size="expanded ? 22 : 28"
+            :size="expanded ? (props.item.id === 'darkMode' ? 38 : 20) : 32"
             :filled="!!(item.fillOnActive && containerActive)"
             :stroke-width="isLocation && isActive ? 2.5 : 2"
           />
         </div>
-        <span class="gb-label" :style="{ opacity: labelOpacity, transition: resizing ? 'none' : 'opacity 0.25s ease-out 0.15s' }">{{ item.label }}</span>
+        <span v-if="expanded" class="gb-label" :style="{ opacity: labelOpacity, transition: resizing ? 'none' : 'opacity 0.25s ease-out 0.15s' }">{{ item.label }}</span>
       </div>
 
       <!-- 响铃展开：三段切换 -->
@@ -209,8 +215,8 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
 }
 .gb-row-expanded {
   justify-content: flex-start;
-  padding-left: 9px;
-  gap: 10px;
+  padding-left: 12px;
+  gap: 8px;
 }
 .gb-icon-badge {
   display: flex;
@@ -219,15 +225,15 @@ const labelOpacity = computed(() => (props.expanded && !props.resizing && !isSou
   transition: all 0.3s ease;
 }
 .gb-body.gb-expanded .gb-icon-badge {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   flex: none;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 .gb-label {
-  font: 500 13px/1 var(--font-stack);
-  letter-spacing: 0.3px;
+  font: 500 12.5px/1 var(--font-stack);
+  letter-spacing: -0.1px;
   white-space: nowrap;
   color: #fff;
 }

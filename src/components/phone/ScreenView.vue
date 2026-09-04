@@ -272,9 +272,19 @@ useSwipeGesture(sideEdgeRef, {
     <ControlCenter />
     <AppLibrary />
 
-    <!-- 顶部边缘手势热区：左/中 = 通知中心，右 1/4 = 控制中心 -->
-    <div ref="ncStripRef" class="edge-zone edge-nc" @click="ncDriver.toggle"></div>
-    <div ref="ccStripRef" class="edge-zone edge-cc" @click="ccDriver.toggle"></div>
+    <!-- 顶部边缘手势热区：左/中 = 通知中心，右 1/4 = 控制中心 (当叠层打开时禁用热区避免遮挡头部按钮) -->
+    <div
+      ref="ncStripRef"
+      class="edge-zone edge-nc"
+      :style="{ pointerEvents: system.anyOverlayOpen() ? 'none' : 'auto' }"
+      @click="ncDriver.toggle"
+    ></div>
+    <div
+      ref="ccStripRef"
+      class="edge-zone edge-cc"
+      :style="{ pointerEvents: system.anyOverlayOpen() ? 'none' : 'auto' }"
+      @click="ccDriver.toggle"
+    ></div>
 
     <!-- 左侧边缘手势热区：应用内右滑返回（上级页或桌面） -->
     <div ref="sideEdgeRef" class="side-edge"></div>
