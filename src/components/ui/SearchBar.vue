@@ -1,12 +1,14 @@
 <script setup>
 import { GLYPHS } from '../../assets/icons/glyphs'
+import { useI18nStore } from '../../stores/i18nStore'
 
 /** iOS 搜索框：圆角胶囊 + 放大镜 + 清除按钮 + 取消 */
 const props = defineProps({
   modelValue: { type: String, default: '' },
-  placeholder: { type: String, default: '搜索' }
+  placeholder: { type: String, default: '' }
 })
 const emit = defineEmits(['update:modelValue', 'cancel'])
+const i18n = useI18nStore()
 
 function clear() {
   emit('update:modelValue', '')
@@ -21,7 +23,7 @@ function clear() {
       </svg>
       <input
         :value="modelValue"
-        :placeholder="placeholder"
+        :placeholder="placeholder || i18n.t('search')"
         @input="emit('update:modelValue', $event.target.value)"
       />
       <button v-if="modelValue" class="sb-clear" @click="clear">
@@ -31,7 +33,7 @@ function clear() {
         </svg>
       </button>
     </div>
-    <button class="sb-cancel" @click="emit('cancel')">取消</button>
+    <button class="sb-cancel" @click="emit('cancel')">{{ i18n.t('cancel') }}</button>
   </div>
 </template>
 

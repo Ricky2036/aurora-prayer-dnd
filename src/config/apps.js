@@ -81,7 +81,7 @@ export const APPS = [
   },
   {
     id: 'calculator',
-    name: '计算器',
+    name: '钱包', // 显示为钱包；桌面图片图标暂沿用 calculator.png（待补钱包图）
     depth: 'placeholder',
     heroBackground: '#ECECEF',
     image: '/icons/calculator.png',

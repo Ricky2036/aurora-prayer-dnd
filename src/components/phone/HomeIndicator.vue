@@ -96,7 +96,7 @@ function onTap() {
   left: 0;
   right: 0;
   /* 热区高于视觉条：向上透明延伸，提升可触发性 */
-  height: calc(var(--safe-bottom) + 18px);
+  height: var(--home-indicator-zone);
   display: flex;
   align-items: flex-end;
   justify-content: center;

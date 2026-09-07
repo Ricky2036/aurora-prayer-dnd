@@ -1,14 +1,16 @@
 <script setup>
-import { ref } from 'vue'
+import { onBeforeUnmount, ref } from 'vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
+import { useI18nStore } from '../../../stores/i18nStore'
 
 /**
  * 相机：取景器（渐变场景 + 网格线 + 点按对焦）、模式滑条、快门（闪光动效）、相册缩略图。
  */
 const props = defineProps({ app: Object })
+const i18n = useI18nStore()
 
-const MODES = ['延时摄影', '视频', '照片', '人像', '全景']
-const mode = ref('照片')
+const MODES = ['camTimelapse', 'camVideo', 'camPhoto', 'camPortrait', 'camPano']
+const mode = ref('camPhoto')
 
 /** 点按对焦：显示对焦框 1.2s */
 const focusPoint = ref(null)
@@ -26,11 +28,22 @@ function onViewfinderTap(e) {
 /** 快门：白闪 + 缩略图更新 */
 const flashing = ref(false)
 const shotCount = ref(0)
+let flashTimer = null
 function shutter() {
   flashing.value = true
-  setTimeout(() => (flashing.value = false), 180)
+  clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => (flashing.value = false), 180)
   shotCount.value++
 }
+
+/* 相机在闪光灯亮着 / 对焦框显示时被滑走关闭的话，两个 setTimeout 仍会
+   在回调里给已卸载组件的 ref 赋值，定时器句柄也一直挂着，故卸载时统一清掉 */
+onBeforeUnmount(() => {
+  clearTimeout(focusTimer)
+  clearTimeout(flashTimer)
+  focusTimer = null
+  flashTimer = null
+})
 </script>
 
 <template>
@@ -69,7 +82,7 @@ function shutter() {
         class="mode-item"
         :class="{ active: m === mode }"
         @click="mode = m"
-      >{{ m }}</button>
+      >{{ i18n.t(m) }}</button>
     </div>
 
     <!-- 底部控制区 -->

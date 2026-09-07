@@ -11,7 +11,10 @@ const props = defineProps({
 
 const i18n = useI18nStore()
 const { today, hourDeg, minuteDeg, secondDeg } = useClock()
-const weekday = computed(() => i18n.calWeekDays[new Date().getDay()] || '周日')
+const weekday = computed(() => {
+  const t = today.value
+  return i18n.calWeekDays[new Date(t.year, t.month, t.date).getDay()] || i18n.calWeekDays[0]
+})
 const displayName = computed(() => i18n.appName(props.app.id) || props.app.name)
 
 const resolvedImage = computed(() => {
@@ -54,7 +57,7 @@ const resolvedImage = computed(() => {
       <span v-else class="pa-icon-text">{{ displayName.slice(0, 1) }}</span>
     </div>
     <div class="pa-name">{{ displayName }}</div>
-    <div class="pa-note">{{ i18n.locale === 'zh' ? '该应用为演示占位页' : i18n.locale === 'en' ? 'Demo Placeholder App' : 'ডেমো প্লেসহোল্ডার অ্যাপ' }}<br />{{ i18n.locale === 'zh' ? '底部上滑或点击横条返回桌面' : i18n.locale === 'en' ? 'Swipe up from bottom to return home' : 'ফিরে যেতে নিচে থেকে সোয়াইপ করুন' }}</div>
+    <div class="pa-note">{{ i18n.t('placeholderNote') }}<br />{{ i18n.t('goHomeHint') }}</div>
   </div>
 </template>
 

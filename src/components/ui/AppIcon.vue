@@ -31,7 +31,12 @@ const anchorRef = ref(null)
 const { today, hourDeg, minuteDeg, secondDeg } = useClock()
 
 const appDisplayName = computed(() => i18n.appName(props.app.id) || props.app.name)
-const weekday = computed(() => i18n.calWeekDays[new Date().getDay()] || '周日')
+/* 用 today 的星期而非 new Date()：后者在 setup 时求值一次，跨零点不会更新。
+   today 是日期粒度的 shallowRef，只在跨天时变化，不会每秒重算。 */
+const weekday = computed(() => {
+  const t = today.value
+  return i18n.calWeekDays[new Date(t.year, t.month, t.date).getDay()] || i18n.calWeekDays[0]
+})
 
 const badge = computed(() => notifications.countByApp[props.app.id] || 0)
 

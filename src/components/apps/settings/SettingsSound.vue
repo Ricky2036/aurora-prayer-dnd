@@ -103,7 +103,7 @@ function setSoundMode(mode) {
           <span class="der-title">{{ i18n.t('prayerDnd') }}</span>
           <div class="der-right">
             <span class="der-sub" :class="{ 'is-active': prayerStore.masterEnabled }">
-              {{ prayerStore.masterEnabled ? (prayerStore.activePrayer ? (i18n.locale === 'zh' ? '生效中' : i18n.locale === 'en' ? 'Active' : 'সক্রিয়') : i18n.t('dndEnabled')) : (i18n.locale === 'zh' ? '关闭' : i18n.locale === 'en' ? 'Off' : 'বন্ধ') }}
+              {{ prayerStore.masterEnabled ? (prayerStore.activePrayer ? i18n.t('prayerActive') : i18n.t('dndEnabled')) : i18n.t('off') }}
             </span>
             <svg width="8" height="13" viewBox="0 0 8 13">
               <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" />

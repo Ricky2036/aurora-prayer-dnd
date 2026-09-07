@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useSystemStore } from '../../stores/systemStore'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { getDriver } from '../../composables/driverRegistry'
@@ -32,15 +32,23 @@ const justUnlocked = ref(false)
 const compositorPrepared = computed(() =>
   system.baseLayer === 'lock' || system.unlockProgress > 0
 )
+/* 入场动画结束后复位。连续解锁/上锁会让上一次的 1.1s 定时器把新一次的
+   入场动画提前掐掉，所以每次都先 clear，卸载时也要清 */
+let unlockTimer = null
 watch(
   () => system.baseLayer,
   (layer, prev) => {
     if (layer === 'home' && prev === 'lock') {
       justUnlocked.value = true
-      setTimeout(() => { justUnlocked.value = false }, 1100)
+      clearTimeout(unlockTimer)
+      unlockTimer = setTimeout(() => { justUnlocked.value = false; unlockTimer = null }, 1100)
     }
   }
 )
+onBeforeUnmount(() => {
+  clearTimeout(unlockTimer)
+  unlockTimer = null
+})
 </script>
 
 <template>

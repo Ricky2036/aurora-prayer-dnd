@@ -38,7 +38,11 @@ import SmartSuggestionWidget from '../widgets/SmartSuggestionWidget.vue'
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   column-gap: var(--grid-gap-x, 24px);
-  margin-bottom: 26px;
+  /* 纵向间距总预算：4 行图标 + 搜索胶囊（屏底 136px 处，顶边 626）必须互不重叠。
+     原来是 26(下边距) + 26(行距)，最后一行底边落在 638，压住胶囊 12px。
+     收 4 + 6 后最后一行底边 616，与胶囊留 10px 空隙。
+     只改布局间距，不动 AppIcon / Hero 的 transform 动画，入场与开合动效不受影响。 */
+  margin-bottom: 22px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -46,7 +50,7 @@ import SmartSuggestionWidget from '../widgets/SmartSuggestionWidget.vue'
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: var(--grid-gap-x, 24px);
-  row-gap: 26px;
+  row-gap: 20px;
   justify-items: center;
   width: 100%;
   box-sizing: border-box;

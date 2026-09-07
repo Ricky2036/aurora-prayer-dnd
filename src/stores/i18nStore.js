@@ -11,7 +11,7 @@ export const APP_NAMES = {
     files: '文件',
     voicememos: '语音备忘录',
     fitness: '健身',
-    calculator: '计算器',
+    calculator: '钱包',
     theme: '主题',
     settings: '设置',
     calendar: '日历',
@@ -20,7 +20,20 @@ export const APP_NAMES = {
     keynote: '演示',
     games: '游戏',
     tips: '提示',
-    compass: '指南针'
+    compass: '指南针',
+    // 通知设置列表里的第三方应用（桌面没有对应图标，沿用 TSX 原名单）
+    transsioner: 'Transsioner',
+    google: 'Google',
+    sms: '短信',
+    bilibili: '哔哩哔哩',
+    map: '地图',
+    dingdong: '叮咚买菜',
+    douyin1: '抖音',
+    douyin2: '抖音精选',
+    amap: '高德地图',
+    switcher: '换机助手',
+    notepad: '记事本',
+    search: '搜索'
   },
   en: {
     phone: 'Phone',
@@ -32,7 +45,7 @@ export const APP_NAMES = {
     files: 'Files',
     voicememos: 'Voice Memos',
     fitness: 'Fitness',
-    calculator: 'Calculator',
+    calculator: 'Wallet',
     theme: 'Themes',
     settings: 'Settings',
     calendar: 'Calendar',
@@ -41,7 +54,19 @@ export const APP_NAMES = {
     keynote: 'Keynote',
     games: 'Games',
     tips: 'Tips',
-    compass: 'Compass'
+    compass: 'Compass',
+    transsioner: 'Transsioner',
+    google: 'Google',
+    sms: 'Messages',
+    bilibili: 'Bilibili',
+    map: 'Maps',
+    dingdong: 'Dingdong',
+    douyin1: 'Douyin',
+    douyin2: 'Douyin Select',
+    amap: 'Amap',
+    switcher: 'Phone Clone',
+    notepad: 'Notepad',
+    search: 'Search'
   },
   bn: {
     phone: 'ফোন',
@@ -53,7 +78,7 @@ export const APP_NAMES = {
     files: 'ফাইল',
     voicememos: 'ভয়েস মেমো',
     fitness: 'ফিটনেস',
-    calculator: 'ক্যালকুলেটর',
+    calculator: 'ওয়ালেট',
     theme: 'থিম',
     settings: 'সেটিংস',
     calendar: 'ক্যালেন্ডার',
@@ -62,7 +87,60 @@ export const APP_NAMES = {
     keynote: 'কিনোট',
     games: 'গেমস',
     tips: 'পরামর্শ',
-    compass: 'কম্পাস'
+    compass: 'কম্পাস',
+    transsioner: 'Transsioner',
+    google: 'Google',
+    sms: 'বার্তা',
+    bilibili: 'Bilibili',
+    map: 'মানচিত্র',
+    dingdong: 'Dingdong',
+    douyin1: 'Douyin',
+    douyin2: 'Douyin Select',
+    amap: 'Amap',
+    switcher: 'ফোন ক্লোন',
+    notepad: 'নোটবুক',
+    search: 'অনুসন্ধান'
+  }
+}
+
+/**
+ * 控制中心磁贴标签：key 是 ControlCenter.vue TOGGLES 里的 id。
+ * 和 ITEM_LABELS 的区别 —— ITEM_LABELS 是微调面板用的中文名（开发工具），
+ * 这张表是磁贴实际显示给用户看的文字，必须三语。
+ */
+export const CC_LABELS = {
+  zh: {
+    bluetooth: '蓝牙', hotspot: '热点', airplane: '飞行模式', location: '定位',
+    screenshot: '截屏', darkMode: '深色主题', dnd: '勿扰', sound: '铃声',
+    rotationLock: '锁定', screenRecord: '录屏', batterySaver: '省电',
+    autoRotate: '旋转', share: '极速互传', cast: '快速分享', flashlight: '手电筒',
+    calculator: '钱包', scan: '扫一扫', boost: '加速', motionComfort: '晕动舒缓', liquidCooling: '液冷散热',
+    shoulderKey: '肩键', jbl: 'JBL',
+    wifi: '无线网络', data: '蜂窝网络', oneLeap: '设备中心', health: '心率血氧',
+    mediaCast: '播放器投播', mediaPlayer: '播放器', mediaControls: '播放控制',
+    joyConnect: 'Joy 连接', joyHeart: 'Joy 心率'
+  },
+  en: {
+    bluetooth: 'Bluetooth', hotspot: 'Hotspot', airplane: 'Airplane Mode', location: 'Location',
+    screenshot: 'Screenshot', darkMode: 'Dark Theme', dnd: 'Do Not Disturb', sound: 'Ring',
+    rotationLock: 'Lock', screenRecord: 'Screen Record', batterySaver: 'Power Saving',
+    autoRotate: 'Auto-rotate', share: 'Fast Transfer', cast: 'Quick Share', flashlight: 'Flashlight',
+    calculator: 'Wallet', scan: 'Scan', boost: 'Boost', motionComfort: 'Motion Comfort', liquidCooling: 'Liquid Cooling',
+    shoulderKey: 'Shoulder Key', jbl: 'JBL',
+    wifi: 'Wi-Fi', data: 'Cellular', oneLeap: 'Device Hub', health: 'Heart & SpO₂',
+    mediaCast: 'Player Cast', mediaPlayer: 'Player', mediaControls: 'Playback',
+    joyConnect: 'Joy Connect', joyHeart: 'Joy Heart Rate'
+  },
+  bn: {
+    bluetooth: 'ব্লুটুথ', hotspot: 'হটস্পট', airplane: 'বিমান মোড', location: 'অবস্থান',
+    screenshot: 'স্ক্রিনশট', darkMode: 'ডার্ক থিম', dnd: 'বিরক্ত করবেন না', sound: 'রিং',
+    rotationLock: 'লক', screenRecord: 'স্ক্রিন রেকর্ড', batterySaver: 'পাওয়ার সেভিং',
+    autoRotate: 'স্বয়ংক্রিয় ঘূর্ণন', share: 'দ্রুত স্থানান্তর', cast: 'দ্রুত শেয়ার', flashlight: 'টর্চ',
+    calculator: 'ওয়ালেট', scan: 'স্ক্যান', boost: 'বুস্ট', motionComfort: 'মোশন কমফোর্ট', liquidCooling: 'লিকুইড কুলিং',
+    shoulderKey: 'শোল্ডার কি', jbl: 'JBL',
+    wifi: 'ওয়াই-ফাই', data: 'সেলুলার', oneLeap: 'ডিভাইস হাব', health: 'হার্ট ও SpO₂',
+    mediaCast: 'প্লেয়ার কাস্ট', mediaPlayer: 'প্লেয়ার', mediaControls: 'প্লেব্যাক',
+    joyConnect: 'Joy সংযোগ', joyHeart: 'Joy হার্ট রেট'
   }
 }
 
@@ -119,10 +197,157 @@ export const MESSAGES = {
     // 星期与重复
     weekDays: ['日', '一', '二', '三', '四', '五', '六'],
     calWeekDays: ['周日', '周一', '周二', '周三', '周四', '周五', '周六'],
+    longWeekDays: ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'],
     repeatEveryday: '每天',
     repeatWeekday: '工作日',
     repeatWeekend: '周末',
     repeatCustom: '自定义',
+    repeatWeekdayOn: '工作日启用 · 周末关闭',
+    // 电话 / 信息 / 相机 / 日历（非设置类应用）
+    monthNames: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+    callCalling: '正在呼叫…',
+    phoneRecents: '最近通话',
+    phoneContacts: '通讯录',
+    phoneKeypad: '拨号键盘',
+    messages: '信息',
+    edit: '编辑',
+    today: '今天',
+    imessagePlaceholder: 'iMessage',
+    calYear: (y) => `${y}年`,
+    calMonthDay: (m, d) => `${m}${d}日`,
+    calNoEvents: '没有日程',
+    camTimelapse: '延时摄影',
+    camVideo: '视频',
+    camPhoto: '照片',
+    camPortrait: '人像',
+    camPano: '全景',
+
+    // 控制中心与系统层
+    turnOff: '关闭',
+    done: '完成',
+    reset: '重置',
+    fineTuneTitle: '图标像素微调',
+    notifCount: (n) => `${n} 条通知`,
+    justNow: '刚刚',
+    minutesAgo: (n) => `${n}分钟前`,
+    hoursAgo: (n) => `${n}小时前`,
+    yesterday: '昨天',
+    daysAgo: (n) => `${n}天前`,
+    monthDay: (m, d) => `${m}月${d}日`,
+    clear: '清除',
+    clearAllNotifs: '清除所有通知',
+    noOlderNotifs: '没有更早的通知',
+    search: '搜索',
+    cancel: '取消',
+    appLibrary: 'App 资源库',
+    searchApp: '搜索 App',
+    noMatch: '无匹配结果',
+    tempRange: '最高 33° 最低 26°',
+    prayerTimeSettings: '时间设置',
+    repeatWeekdaySunThu: '工作日 (周日至周四)',
+    repeatWeekendFriSat: '周末 (周五至周六)',
+    prayerActive: '生效中',
+    placeholderNote: '该应用为演示占位页',
+    goHomeHint: '底部上滑或点击横条返回桌面',
+    allDay: '全天',
+    demoNotifTitles: {
+      whatsapp: 'WhatsApp', facebook: 'Facebook', tiktok: 'TikTok', spotify: 'Spotify',
+      gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
+      pinterest: 'Pinterest', wechat: '微信', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
+      telegram: 'Telegram', youtube: 'YouTube', weather: '天气预警', system: '系统更新',
+      linkedin: 'LinkedIn', alipay: '支付宝'
+    },
+    demoNotifBodies: {
+      whatsapp: '周末有空聚聚吗？想带你去那家新餐厅。',
+      facebook: '你关注的"周末车友会"将于明天下午举行。',
+      tiktok: '@李四 刚刚发布了新视频，快来看看吧。',
+      spotify: '您每周的新发现播放列表已更新。',
+      gmail: '团队例会纪要：会议记录及后续排期已整理完毕。',
+      amazon: '您的包裹已发货，预计明天送达。',
+      snapchat: '小明 给你发送了一个 Snap！快来查看他在做什么。',
+      uber: '您的司机正在路上。预计3分钟后到达。',
+      google: '今日当地热搜：2026年交互设计趋势报告发布。',
+      pinterest: '探索属于你的生活美学与极简家居灵感。',
+      wechat: 'John: 最新的交互原型我发群里了，大家看看有没有问题。',
+      instagram: 'john_doe 刚刚赞了你的帖子：风景真不错。',
+      x: '游戏已迎来重磅更新！更多设备支持，快来体验。',
+      netflix: '为您推荐《三体》：这部备受瞩目的科幻巨制已经上线。',
+      telegram: '群聊设置了新的隐私规则，请管理员及时更新配置。',
+      youtube: '你关注的极客影视刚刚发布了长达一小时的硬核评测。',
+      weather: '当前城市发布大风蓝色预警，请注意出行安全，避免在高处逗留。',
+      system: '系统更新已准备就绪。版本 15.4.1 修复了已知的安全漏洞并提升了响应速度。',
+      linkedin: '恭喜王五晋升为高级产品经理。',
+      alipay: '您的蚂蚁森林有能量可收集，已有好友帮你浇水。'
+    },
+
+    // 日历预置事件标题
+    evtStandup: '晨会',
+    evtQuarterlyReview: '季度产品评审',
+    evtGym: '健身房',
+    evtDesignReview: '设计走查',
+    evtRelease: '版本发布',
+    evtMonthlyRetro: '月度复盘',
+    evtTeamBuilding: '团建 · 大鹏所城',
+    evtReqReview: '需求评审',
+
+    // 演示数据：信息会话
+    demoChat: {
+      chenjing: {
+        name: '陈静',
+        messages: [
+          { from: 'them', text: 'Ricky，明天下午评审会的议程定了', time: '23:40' },
+          { from: 'them', text: '先发你过目一下？', time: '23:41' },
+          { from: 'me', text: '好，发我吧，我路上看', time: '23:42' },
+          { from: 'them', text: '明天评审会的资料我发你邮箱了，记得看一下 📮', time: '23:44' }
+        ],
+        replies: ['收到 👌', '没问题，我明天提前到', '好，那就这么定']
+      },
+      team: {
+        name: '产品一群',
+        messages: [
+          { from: 'them', text: '各位，这版交互走查啥时候开始？', time: '23:25' },
+          { from: 'them', text: 'Leo：新版原型出了吗？下午想过一遍', time: '23:29' }
+        ],
+        replies: ['Leo：👍', 'Leo：那我拉个会']
+      },
+      wanggong: {
+        name: '王工',
+        messages: [
+          { from: 'them', text: '接口文档我更新到 iWiki 了', time: '22:10' },
+          { from: 'me', text: '收到，我下午看', time: '22:15' }
+        ],
+        replies: ['好的']
+      },
+      mom: {
+        name: '妈妈',
+        messages: [
+          { from: 'them', text: '周末回家吃饭吗？', time: '20:03' },
+          { from: 'me', text: '回的，周六中午到', time: '20:20' }
+        ],
+        replies: ['好，给你做糖醋排骨']
+      }
+    },
+
+    // 演示数据：电话
+    demoRecents: [
+      { name: '王工（深圳）', type: 'missed', time: '22:28', tag: '手机' },
+      { name: '陈静', type: 'outgoing', time: '21:47', tag: '手机' },
+      { name: '顺丰快递', type: 'incoming', time: '19:02', tag: '快递' },
+      { name: '妈妈', type: 'incoming', time: '昨天', tag: '手机' },
+      { name: 'Leo', type: 'missed', time: '昨天', tag: '手机' },
+      { name: '美团外卖', type: 'incoming', time: '周六', tag: '外卖' }
+    ],
+    demoContacts: [
+      { name: '陈静', initial: '陈' },
+      { name: 'Leo', initial: 'L' },
+      { name: '妈妈', initial: '妈' },
+      { name: '王工', initial: '王' },
+      { name: '张伟', initial: '张' },
+      { name: '赵敏', initial: '赵' }
+    ],
+    repeatWeekendOnly: '仅周末启用',
+    repeatWeekly: (d) => `每周 ${d}`,
+    repeatDaySep: '、',
 
     // 设置主页
     settings: '设置',
@@ -133,6 +358,81 @@ export const MESSAGES = {
     displayAndBrightness: '显示与亮度',
     general: '通用',
     notifications: '通知',
+    airplaneMode: '飞行模式',
+    bluetooth: '蓝牙',
+    cellular: '蜂窝网络',
+    wallpaper: '墙纸',
+    battery: '电池',
+    on: '打开',
+    off: '关闭',
+
+    // 设置二级页
+    currentNetwork: '当前网络',
+    otherNetworks: '其他网络',
+    wifiOffNote: '无线局域网已关闭',
+    appearance: '外观',
+    light: '浅色',
+    dark: '深色',
+    brightnessLabel: '亮度',
+    trueTone: '原彩显示',
+    nightShift: '夜览',
+    sunsetToSunrise: '日落到日出',
+    about: '关于本机',
+    softwareUpdate: '软件更新',
+    upToDate: '已是最新',
+    deviceInfo: '设备信息',
+    deviceName: '名称',
+    model: '型号',
+    systemVersion: '系统版本',
+    storage: '储存空间',
+    notImplemented: '该页面在本原型中尚未实现',
+
+    // 通知设置页
+    nsStatusBar: '状态栏',
+    nsControlCenter: '控制中心',
+    nsDynamicBar: 'Dynamic Bar',
+    nsType: '通知类型',
+    nsLockScreenNotif: '锁屏通知',
+    nsFloatingNotif: '悬浮通知',
+    nsHomeBadge: '桌面角标',
+    nsHideLockContent: '锁屏隐藏通知内容',
+    nsHideLockContentSub: '未解锁时收到通知，隐藏通知内容。',
+    nsSmartReminder: '智能提醒',
+    nsSmartReminderSub: '开启后，将自动把不重要通知设为静音。',
+    nsAdaptiveNotif: '通知轻打扰',
+    nsAdaptiveNotifSub: '全屏或短时间收到多条通知时自动降低音量。',
+    nsSortByTime: '按发送时间排序',
+    nsBack: '返回',
+    nsLockStyle: '锁屏通知样式',
+    nsStacked: '堆叠',
+    nsCount: '数量',
+    nsCountBadge: (n) => `${n} 条通知`,
+    nsWakeOnNotif: '通知亮屏提醒',
+    nsWakeOnNotifSub: '息屏状态下，收到允许在锁屏显示的新通知时自动亮屏。',
+    nsEnabled: '已开启',
+    nsOnlyNewOnLock: '锁屏仅显示新通知',
+    nsOnlyNewOnLockSub: '看过的通知将不在锁屏显示。',
+    nsLockEnabledApps: '已开启锁屏通知',
+    nsFloatingStyle: '悬浮通知样式',
+    nsDetailed: '详细',
+    nsConciseFullscreen: '全屏时使用简洁样式',
+    nsAntiPeep: '悬浮通知防偷窥',
+    nsAntiPeepSub: '检测到有人偷窥屏幕时自动隐藏通知内容。',
+    nsFloatingEnabledApps: '已开启悬浮通知权限',
+    nsAllowNotif: '允许通知',
+    nsRemindLevel: '提醒强度',
+    nsGrouping: '通知分组',
+    nsAuto: '自动',
+    nsRemindWays: '提醒方式',
+    nsAllowRing: '允许响铃',
+    nsVibrate: '振动',
+    nsMessageNotif: '消息通知',
+    nsImportant: '重要',
+    nsMinutesAgo: (n) => `${n}分钟前`,
+    nsHoursAgo: (n) => `${n}小时前`,
+    nsYesterday: '昨天',
+    nsMonday: '星期一',
+    nsTuesday: '星期二',
 
     // 声音与振动
     soundRing: '铃声',
@@ -216,10 +516,157 @@ export const MESSAGES = {
     // Weekdays & Repeat
     weekDays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
     calWeekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    longWeekDays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
     repeatEveryday: 'Everyday',
     repeatWeekday: 'Weekdays',
     repeatWeekend: 'Weekends',
     repeatCustom: 'Custom',
+    repeatWeekdayOn: 'On weekdays · off on weekends',
+    // Phone / Messages / Camera / Calendar
+    monthNames: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+    callCalling: 'Calling…',
+    phoneRecents: 'Recents',
+    phoneContacts: 'Contacts',
+    phoneKeypad: 'Keypad',
+    messages: 'Messages',
+    edit: 'Edit',
+    today: 'Today',
+    imessagePlaceholder: 'iMessage',
+    calYear: (y) => `${y}`,
+    calMonthDay: (m, d) => `${m} ${d}`,
+    calNoEvents: 'No Events',
+    camTimelapse: 'Time-lapse',
+    camVideo: 'Video',
+    camPhoto: 'Photo',
+    camPortrait: 'Portrait',
+    camPano: 'Pano',
+
+    // Control center & system
+    turnOff: 'Off',
+    done: 'Done',
+    reset: 'Reset',
+    fineTuneTitle: 'Icon Pixel Tuning',
+    notifCount: (n) => `${n} notifications`,
+    justNow: 'Just now',
+    minutesAgo: (n) => `${n}m ago`,
+    hoursAgo: (n) => `${n}h ago`,
+    yesterday: 'Yesterday',
+    daysAgo: (n) => `${n}d ago`,
+    monthDay: (m, d) => `${m} ${d}`,
+    clear: 'Clear',
+    clearAllNotifs: 'Clear All Notifications',
+    noOlderNotifs: 'No Older Notifications',
+    search: 'Search',
+    cancel: 'Cancel',
+    appLibrary: 'App Library',
+    searchApp: 'Search Apps',
+    noMatch: 'No Results',
+    tempRange: 'H:33° L:26°',
+    prayerTimeSettings: 'TIME SETTINGS',
+    repeatWeekdaySunThu: 'Weekdays (Sun-Thu)',
+    repeatWeekendFriSat: 'Weekend (Fri-Sat)',
+    prayerActive: 'Active',
+    placeholderNote: 'Demo Placeholder App',
+    goHomeHint: 'Swipe up from bottom to return home',
+    allDay: 'All day',
+    demoNotifTitles: {
+      whatsapp: 'WhatsApp', facebook: 'Facebook', tiktok: 'TikTok', spotify: 'Spotify',
+      gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
+      pinterest: 'Pinterest', wechat: 'WeChat', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
+      telegram: 'Telegram', youtube: 'YouTube', weather: 'Weather Alert', system: 'System Update',
+      linkedin: 'LinkedIn', alipay: 'Alipay'
+    },
+    demoNotifBodies: {
+      whatsapp: 'Free this weekend? Want to take you to that new restaurant.',
+      facebook: 'The "Weekend Car Club" you follow starts tomorrow afternoon.',
+      tiktok: '@Li Si just posted a new video, come and check it out.',
+      spotify: 'Your weekly Discover playlist has been updated.',
+      gmail: 'Team meeting notes: minutes and follow-up schedule are ready.',
+      amazon: 'Your package has shipped, expected to arrive tomorrow.',
+      snapchat: 'Xiao Ming sent you a Snap! See what he is up to.',
+      uber: 'Your driver is on the way. Arriving in about 3 minutes.',
+      google: 'Local trending: the 2026 Interaction Design Trends report is out.',
+      pinterest: 'Discover lifestyle inspiration and minimalist home ideas.',
+      wechat: 'John: I shared the latest interaction prototype in the group, please review.',
+      instagram: 'john_doe liked your post: great view!',
+      x: 'The game just got a major update! More device support, try it now.',
+      netflix: 'Recommended for you: The Three-Body Problem, now streaming.',
+      telegram: 'New privacy rules were set for the group chat, admins please update.',
+      youtube: 'Geek Cinema you follow just posted a one-hour in-depth review.',
+      weather: 'A blue wind alert is in effect for your city. Stay safe and avoid high places.',
+      system: 'System update is ready. Version 15.4.1 fixes known security issues and improves responsiveness.',
+      linkedin: 'Congratulations to Wang Wu on the promotion to Senior Product Manager.',
+      alipay: 'Your Ant Forest has energy to collect, and a friend has watered it for you.'
+    },
+
+    // Calendar preset events
+    evtStandup: 'Standup',
+    evtQuarterlyReview: 'Quarterly Review',
+    evtGym: 'Gym',
+    evtDesignReview: 'Design Review',
+    evtRelease: 'Release',
+    evtMonthlyRetro: 'Monthly Retro',
+    evtTeamBuilding: 'Team Building · Dapeng',
+    evtReqReview: 'Requirement Review',
+
+    // Demo data: messages
+    demoChat: {
+      chenjing: {
+        name: 'Chen Jing',
+        messages: [
+          { from: 'them', text: 'Ricky, the agenda for tomorrow afternoon review is set', time: '23:40' },
+          { from: 'them', text: 'Want to take a look first?', time: '23:41' },
+          { from: 'me', text: 'Sure, send it over, I will read on the way', time: '23:42' },
+          { from: 'them', text: 'Sent the review deck to your inbox, please check 📮', time: '23:44' }
+        ],
+        replies: ['Got it 👌', 'No problem, I will arrive early tomorrow', 'OK, settled then']
+      },
+      team: {
+        name: 'Product Group',
+        messages: [
+          { from: 'them', text: 'Team, when does this round of interaction review start?', time: '23:25' },
+          { from: 'them', text: 'Leo: is the new prototype out? Want to walk through it this afternoon', time: '23:29' }
+        ],
+        replies: ['Leo：👍', 'Leo: let me set up a meeting']
+      },
+      wanggong: {
+        name: 'Engineer Wang',
+        messages: [
+          { from: 'them', text: 'I updated the API doc on iWiki', time: '22:10' },
+          { from: 'me', text: 'Got it, I will read this afternoon', time: '22:15' }
+        ],
+        replies: ['OK']
+      },
+      mom: {
+        name: 'Mom',
+        messages: [
+          { from: 'them', text: 'Coming home for dinner this weekend?', time: '20:03' },
+          { from: 'me', text: 'Yes, arriving Saturday noon', time: '20:20' }
+        ],
+        replies: ['OK, I will make sweet and sour ribs for you']
+      }
+    },
+
+    // Demo data: phone
+    demoRecents: [
+      { name: 'Engineer Wang (SZ)', type: 'missed', time: '22:28', tag: 'Mobile' },
+      { name: 'Chen Jing', type: 'outgoing', time: '21:47', tag: 'Mobile' },
+      { name: 'SF Express', type: 'incoming', time: '19:02', tag: 'Delivery' },
+      { name: 'Mom', type: 'incoming', time: 'Yesterday', tag: 'Mobile' },
+      { name: 'Leo', type: 'missed', time: 'Yesterday', tag: 'Mobile' },
+      { name: 'Meituan', type: 'incoming', time: 'Saturday', tag: 'Food' }
+    ],
+    demoContacts: [
+      { name: 'Chen Jing', initial: 'C' },
+      { name: 'Leo', initial: 'L' },
+      { name: 'Mom', initial: 'M' },
+      { name: 'Wang', initial: 'W' },
+      { name: 'Zhang Wei', initial: 'Z' },
+      { name: 'Zhao Min', initial: 'Z' }
+    ],
+    repeatWeekendOnly: 'Weekends only',
+    repeatWeekly: (d) => `Weekly on ${d}`,
+    repeatDaySep: ', ',
 
     // Settings Main
     settings: 'Settings',
@@ -230,6 +677,81 @@ export const MESSAGES = {
     displayAndBrightness: 'Display & Brightness',
     general: 'General',
     notifications: 'Notifications',
+    airplaneMode: 'Airplane Mode',
+    bluetooth: 'Bluetooth',
+    cellular: 'Cellular',
+    wallpaper: 'Wallpaper',
+    battery: 'Battery',
+    on: 'On',
+    off: 'Off',
+
+    // Settings sub-pages
+    currentNetwork: 'Current Network',
+    otherNetworks: 'Other Networks',
+    wifiOffNote: 'Wi-Fi is turned off',
+    appearance: 'Appearance',
+    light: 'Light',
+    dark: 'Dark',
+    brightnessLabel: 'Brightness',
+    trueTone: 'True Tone',
+    nightShift: 'Night Shift',
+    sunsetToSunrise: 'Sunset to Sunrise',
+    about: 'About',
+    softwareUpdate: 'Software Update',
+    upToDate: 'Up to Date',
+    deviceInfo: 'Device Info',
+    deviceName: 'Name',
+    model: 'Model',
+    systemVersion: 'System Version',
+    storage: 'Storage',
+    notImplemented: 'This page is not yet implemented in the prototype',
+
+    // Notification settings
+    nsStatusBar: 'Status Bar',
+    nsControlCenter: 'Control Center',
+    nsDynamicBar: 'Dynamic Bar',
+    nsType: 'Notification Type',
+    nsLockScreenNotif: 'Lock Screen',
+    nsFloatingNotif: 'Floating',
+    nsHomeBadge: 'Home Badge',
+    nsHideLockContent: 'Hide Content on Lock Screen',
+    nsHideLockContentSub: 'Hide notification content when the phone is locked.',
+    nsSmartReminder: 'Smart Reminder',
+    nsSmartReminderSub: 'Automatically silence unimportant notifications.',
+    nsAdaptiveNotif: 'Adaptive Notifications',
+    nsAdaptiveNotifSub: 'Lower the volume when several notifications arrive in a short time or in full screen.',
+    nsSortByTime: 'Sort by Time Sent',
+    nsBack: 'Back',
+    nsLockStyle: 'Lock Screen Style',
+    nsStacked: 'Stacked',
+    nsCount: 'Count',
+    nsCountBadge: (n) => `${n} notifications`,
+    nsWakeOnNotif: 'Wake Screen for Notifications',
+    nsWakeOnNotifSub: 'Wake the screen when a new lock-screen notification arrives.',
+    nsEnabled: 'On',
+    nsOnlyNewOnLock: 'Show New on Lock Screen Only',
+    nsOnlyNewOnLockSub: 'Notifications you have already seen are hidden on the lock screen.',
+    nsLockEnabledApps: 'Lock Screen Notifications On',
+    nsFloatingStyle: 'Floating Style',
+    nsDetailed: 'Detailed',
+    nsConciseFullscreen: 'Use concise style in full screen',
+    nsAntiPeep: 'Anti-peep for Floating',
+    nsAntiPeepSub: 'Hide content automatically when someone else is looking at the screen.',
+    nsFloatingEnabledApps: 'Floating Notifications Allowed',
+    nsAllowNotif: 'Allow Notifications',
+    nsRemindLevel: 'Alert Intensity',
+    nsGrouping: 'Notification Grouping',
+    nsAuto: 'Automatic',
+    nsRemindWays: 'Alert Style',
+    nsAllowRing: 'Allow Ringing',
+    nsVibrate: 'Vibrate',
+    nsMessageNotif: 'Message Notifications',
+    nsImportant: 'Important',
+    nsMinutesAgo: (n) => `${n}m ago`,
+    nsHoursAgo: (n) => `${n}h ago`,
+    nsYesterday: 'Yesterday',
+    nsMonday: 'Monday',
+    nsTuesday: 'Tuesday',
 
     // Sound & Vibration
     soundRing: 'Ring',
@@ -314,10 +836,157 @@ export const MESSAGES = {
     // Weekdays & Repeat
     weekDays: ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'],
     calWeekDays: ['রবি', 'সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি'],
+    longWeekDays: ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'],
     repeatEveryday: 'প্রতিদিন',
     repeatWeekday: 'কার্যদিবস',
     repeatWeekend: 'ছুটির দিন',
     repeatCustom: 'কাস্টম',
+    repeatWeekdayOn: 'কর্মদিবসে চালু · সপ্তাহান্তে বন্ধ',
+    // Phone / Messages / Camera / Calendar
+    monthNames: ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'],
+    callCalling: 'কল করা হচ্ছে…',
+    phoneRecents: 'সাম্প্রতিক',
+    phoneContacts: 'পরিচিতি',
+    phoneKeypad: 'কিপ্যাড',
+    messages: 'বার্তা',
+    edit: 'সম্পাদনা',
+    today: 'আজ',
+    imessagePlaceholder: 'iMessage',
+    calYear: (y) => `${y}`,
+    calMonthDay: (m, d) => `${d} ${m}`,
+    calNoEvents: 'কোনো ইভেন্ট নেই',
+    camTimelapse: 'টাইম-ল্যাপস',
+    camVideo: 'ভিডিও',
+    camPhoto: 'ছবি',
+    camPortrait: 'পোর্ট্রেট',
+    camPano: 'প্যানো',
+
+    // Control center & system
+    turnOff: 'বন্ধ',
+    done: 'সম্পন্ন',
+    reset: 'রিসেট',
+    fineTuneTitle: 'আইকন পিক্সেল টিউনিং',
+    notifCount: (n) => `${n}টি বিজ্ঞপ্তি`,
+    justNow: 'এইমাত্র',
+    minutesAgo: (n) => `${n} মিনিট আগে`,
+    hoursAgo: (n) => `${n} ঘণ্টা আগে`,
+    yesterday: 'গতকাল',
+    daysAgo: (n) => `${n} দিন আগে`,
+    monthDay: (m, d) => `${d} ${m}`,
+    clear: 'সাফ',
+    clearAllNotifs: 'সব বিজ্ঞপ্তি সাফ করুন',
+    noOlderNotifs: 'আর কোনো পুরনো বিজ্ঞপ্তি নেই',
+    search: 'অনুসন্ধান',
+    cancel: 'বাতিল',
+    appLibrary: 'অ্যাপ লাইব্রেরি',
+    searchApp: 'অ্যাপ অনুসন্ধান',
+    noMatch: 'কোনো ফলাফল নেই',
+    tempRange: 'সর্বোচ্চ ৩৩° সর্বনিম্ন ২৬°',
+    prayerTimeSettings: 'সময় নির্ধারণ',
+    repeatWeekdaySunThu: 'কার্যদিবস (রবি-বৃহঃ)',
+    repeatWeekendFriSat: 'ছুটির দিন (শুক্র-শনি)',
+    prayerActive: 'সক্রিয়',
+    placeholderNote: 'ডেমো প্লেসহোল্ডার অ্যাপ',
+    goHomeHint: 'হোমে ফিরতে নিচে থেকে সোয়াইপ করুন',
+    allDay: 'সারাদিন',
+    demoNotifTitles: {
+      whatsapp: 'WhatsApp', facebook: 'Facebook', tiktok: 'TikTok', spotify: 'Spotify',
+      gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
+      pinterest: 'Pinterest', wechat: 'WeChat', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
+      telegram: 'Telegram', youtube: 'YouTube', weather: 'আবহাওয়া সতর্কতা', system: 'সিস্টেম আপডেট',
+      linkedin: 'LinkedIn', alipay: 'Alipay'
+    },
+    demoNotifBodies: {
+      whatsapp: 'সপ্তাহান্তে ফ্রি আছো? সেই নতুন রেস্তোরাঁয় নিয়ে যাব।',
+      facebook: 'তুমি ফলো করা "উইকেন্ড কার ক্লাব" আগামীকাল বিকেলে অনুষ্ঠিত হবে।',
+      tiktok: '@লি সি এইমাত্র নতুন ভিডিও পোস্ট করেছে, দেখে নাও।',
+      spotify: 'তোমার সাপ্তাহিক Discover প্লেলিস্ট আপডেট হয়েছে।',
+      gmail: 'টিম মিটিংয়ের নোট: কার্যবিবরণী ও পরবর্তী সময়সূচি প্রস্তুত।',
+      amazon: 'তোমার পার্সেল পাঠানো হয়েছে, আগামীকাল পৌঁছাবে।',
+      snapchat: 'শিয়াও মিং তোমাকে একটি Snap পাঠিয়েছে! সে কী করছে দেখো।',
+      uber: 'তোমার ড্রাইভার পথে আছে। প্রায় ৩ মিনিটে পৌঁছাবে।',
+      google: 'স্থানীয় ট্রেন্ডিং: ২০২৬ ইন্টারঅ্যাকশন ডিজাইন ট্রেন্ড রিপোর্ট প্রকাশিত।',
+      pinterest: 'তোমার জীবনযাপনের অনুপ্রেরণা ও মিনিমালিস্ট হোম আইডিয়া খোঁজো।',
+      wechat: 'John: সর্বশেষ ইন্টারঅ্যাকশন প্রোটোটাইপ গ্রুপে পাঠিয়েছি, সবাই দেখো।',
+      instagram: 'john_doe তোমার পোস্টে লাইক দিয়েছে: দৃশ্য সত্যিই সুন্দর!',
+      x: 'গেমে বড় আপডেট এসেছে! আরও ডিভাইস সাপোর্ট, এখনই চেষ্টা করো।',
+      netflix: 'তোমার জন্য সুপারিশ: The Three-Body Problem, এখন স্ট্রিমিংয়ে।',
+      telegram: 'গ্রুপ চ্যাটে নতুন গোপনীয়তা নীতি সেট করা হয়েছে, অ্যাডমিনরা আপডেট করুন।',
+      youtube: 'তুমি ফলো করা Geek Cinema এক ঘণ্টার বিস্তারিত রিভিউ পোস্ট করেছে।',
+      weather: 'তোমার শহরে নীল বাতাসের সতর্কতা জারি। নিরাপদে থাকো, উঁচু স্থানে যেও না।',
+      system: 'সিস্টেম আপডেট প্রস্তুত। সংস্করণ 15.4.1 নিরাপত্তা ত্রুটি ঠিক করেছে এবং গতি উন্নত করেছে।',
+      linkedin: 'অভিনন্দন ওয়াং উ-কে সিনিয়র প্রোডাক্ট ম্যানেজার পদে পদোন্নতির জন্য।',
+      alipay: 'তোমার Ant Forest-এ শক্তি সংগ্রহ করা যাবে, এক বন্ধু তোমাকে পানি দিয়েছে।'
+    },
+
+    // Calendar preset events
+    evtStandup: 'স্ট্যান্ডআপ',
+    evtQuarterlyReview: 'ত্রৈমাসিক পর্যালোচনা',
+    evtGym: 'জিম',
+    evtDesignReview: 'ডিজাইন পর্যালোচনা',
+    evtRelease: 'রিলিজ',
+    evtMonthlyRetro: 'মাসিক রেট্রো',
+    evtTeamBuilding: 'টিম বিল্ডিং · দাপেং',
+    evtReqReview: 'রিকোয়ারমেন্ট পর্যালোচনা',
+
+    // Demo data: messages
+    demoChat: {
+      chenjing: {
+        name: 'চেন জিং',
+        messages: [
+          { from: 'them', text: 'Ricky, আগামীকাল বিকেলের রিভিউয়ের এজেন্ডা ঠিক হয়েছে', time: '23:40' },
+          { from: 'them', text: 'আগে একবার দেখে নেবে?', time: '23:41' },
+          { from: 'me', text: 'ঠিক আছে, পাঠাও, পথে দেখব', time: '23:42' },
+          { from: 'them', text: 'রিভিউয়ের ডকুমেন্ট তোমার ইনবক্সে পাঠিয়েছি, দেখো 📮', time: '23:44' }
+        ],
+        replies: ['বুঝেছি 👌', 'ঠিক আছে, কাল সকালে আসব', 'ঠিক আছে, তাই হবে']
+      },
+      team: {
+        name: 'প্রোডাক্ট গ্রুপ',
+        messages: [
+          { from: 'them', text: 'সবাই, এই রাউন্ডের ইন্টারঅ্যাকশন রিভিউ কবে শুরু?', time: '23:25' },
+          { from: 'them', text: 'Leo: নতুন প্রোটোটাইপ বেরিয়েছে? বিকেলে একবার দেখব', time: '23:29' }
+        ],
+        replies: ['Leo：👍', 'Leo: আমি একটা মিটিং সেট করি']
+      },
+      wanggong: {
+        name: 'ইঞ্জিনিয়ার ওয়াং',
+        messages: [
+          { from: 'them', text: 'API ডকুমেন্ট iWiki-তে আপডেট করেছি', time: '22:10' },
+          { from: 'me', text: 'বুঝেছি, বিকেলে দেখব', time: '22:15' }
+        ],
+        replies: ['ঠিক আছে']
+      },
+      mom: {
+        name: 'মা',
+        messages: [
+          { from: 'them', text: 'সপ্তাহান্তে বাড়ি খেতে আসছিস?', time: '20:03' },
+          { from: 'me', text: 'আসছি, শনিবার দুপুরে পৌঁছাব', time: '20:20' }
+        ],
+        replies: ['ঠিক আছে, তোর জন্য টক-মিষ্টি মাংস রান্না করব']
+      }
+    },
+
+    // Demo data: phone
+    demoRecents: [
+      { name: 'ইঞ্জিনিয়ার ওয়াং (SZ)', type: 'missed', time: '22:28', tag: 'মোবাইল' },
+      { name: 'চেন জিং', type: 'outgoing', time: '21:47', tag: 'মোবাইল' },
+      { name: 'SF Express', type: 'incoming', time: '19:02', tag: 'ডেলিভারি' },
+      { name: 'মা', type: 'incoming', time: 'গতকাল', tag: 'মোবাইল' },
+      { name: 'Leo', type: 'missed', time: 'গতকাল', tag: 'মোবাইল' },
+      { name: 'Meituan', type: 'incoming', time: 'শনিবার', tag: 'খাবার' }
+    ],
+    demoContacts: [
+      { name: 'চেন জিং', initial: 'চে' },
+      { name: 'Leo', initial: 'L' },
+      { name: 'মা', initial: 'মা' },
+      { name: 'ওয়াং', initial: 'ও' },
+      { name: 'চাং ওয়েই', initial: 'চা' },
+      { name: 'চাও মিন', initial: 'চাও' }
+    ],
+    repeatWeekendOnly: 'শুধু সপ্তাহান্তে',
+    repeatWeekly: (d) => `সাপ্তাহিক ${d}`,
+    repeatDaySep: '、',
 
     // Settings Main
     settings: 'সেটিংস',
@@ -328,6 +997,81 @@ export const MESSAGES = {
     displayAndBrightness: 'ডিসপ্লে ও উজ্জ্বলতা',
     general: 'সাধারণ',
     notifications: 'বিজ্ঞপ্তি',
+    airplaneMode: 'বিমান মোড',
+    bluetooth: 'ব্লুটুথ',
+    cellular: 'সেলুলার',
+    wallpaper: 'ওয়ালপেপার',
+    battery: 'ব্যাটারি',
+    on: 'চালু',
+    off: 'বন্ধ',
+
+    // Settings sub-pages
+    currentNetwork: 'বর্তমান নেটওয়ার্ক',
+    otherNetworks: 'অন্যান্য নেটওয়ার্ক',
+    wifiOffNote: 'ওয়াই-ফাই বন্ধ আছে',
+    appearance: 'চেহারা',
+    light: 'হালকা',
+    dark: 'গাঢ়',
+    brightnessLabel: 'উজ্জ্বলতা',
+    trueTone: 'ট্রু টোন',
+    nightShift: 'নাইট শিফট',
+    sunsetToSunrise: 'সূর্যাস্ত থেকে সূর্যোদয়',
+    about: 'এই ডিভাইস সম্পর্কে',
+    softwareUpdate: 'সফটওয়্যার আপডেট',
+    upToDate: 'সর্বশেষ',
+    deviceInfo: 'ডিভাইস তথ্য',
+    deviceName: 'নাম',
+    model: 'মডেল',
+    systemVersion: 'সিস্টেম সংস্করণ',
+    storage: 'স্টোরেজ',
+    notImplemented: 'এই পৃষ্ঠাটি প্রোটোটাইপে এখনো বাস্তবায়িত হয়নি',
+
+    // Notification settings
+    nsStatusBar: 'স্ট্যাটাস বার',
+    nsControlCenter: 'কন্ট্রোল সেন্টার',
+    nsDynamicBar: 'Dynamic Bar',
+    nsType: 'বিজ্ঞপ্তির ধরন',
+    nsLockScreenNotif: 'লক স্ক্রিন',
+    nsFloatingNotif: 'ফ্লোটিং',
+    nsHomeBadge: 'হোম ব্যাজ',
+    nsHideLockContent: 'লক স্ক্রিনে বিষয়বস্তু লুকান',
+    nsHideLockContentSub: 'ফোন লক থাকলে বিজ্ঞপ্তির বিষয়বস্তু লুকান।',
+    nsSmartReminder: 'স্মার্ট রিমাইন্ডার',
+    nsSmartReminderSub: 'অগুরুত্বপূর্ণ বিজ্ঞপ্তি স্বয়ংক্রিয়ভাবে নীরব করুন।',
+    nsAdaptiveNotif: 'অ্যাডাপটিভ বিজ্ঞপ্তি',
+    nsAdaptiveNotifSub: 'পূর্ণ স্ক্রিনে বা অল্প সময়ে একাধিক বিজ্ঞপ্তি এলে ভলিউম কমিয়ে দিন।',
+    nsSortByTime: 'পাঠানোর সময় অনুযায়ী',
+    nsBack: 'পিছনে',
+    nsLockStyle: 'লক স্ক্রিন স্টাইল',
+    nsStacked: 'স্ট্যাক',
+    nsCount: 'সংখ্যা',
+    nsCountBadge: (n) => `${n}টি বিজ্ঞপ্তি`,
+    nsWakeOnNotif: 'বিজ্ঞপ্তিতে স্ক্রিন জ্বালান',
+    nsWakeOnNotifSub: 'লক স্ক্রিনের নতুন বিজ্ঞপ্তি এলে স্ক্রিন জ্বালান।',
+    nsEnabled: 'চালু',
+    nsOnlyNewOnLock: 'শুধু নতুন বিজ্ঞপ্তি দেখান',
+    nsOnlyNewOnLockSub: 'দেখা হয়ে গেছে এমন বিজ্ঞপ্তি লক স্ক্রিনে দেখানো হবে না।',
+    nsLockEnabledApps: 'লক স্ক্রিন বিজ্ঞপ্তি চালু',
+    nsFloatingStyle: 'ফ্লোটিং স্টাইল',
+    nsDetailed: 'বিস্তারিত',
+    nsConciseFullscreen: 'পূর্ণ স্ক্রিনে সংক্ষিপ্ত স্টাইল',
+    nsAntiPeep: 'ফ্লোটিং অ্যান্টি-পিপ',
+    nsAntiPeepSub: 'কেউ স্ক্রিনে তাকালে বিষয়বস্তু স্বয়ংক্রিয়ভাবে লুকান।',
+    nsFloatingEnabledApps: 'ফ্লোটিং বিজ্ঞপ্তির অনুমতি আছে',
+    nsAllowNotif: 'বিজ্ঞপ্তির অনুমতি দিন',
+    nsRemindLevel: 'সতর্কতার তীব্রতা',
+    nsGrouping: 'বিজ্ঞপ্তি গ্রুপিং',
+    nsAuto: 'স্বয়ংক্রিয়',
+    nsRemindWays: 'সতর্কতার ধরন',
+    nsAllowRing: 'রিং করার অনুমতি',
+    nsVibrate: 'কম্পন',
+    nsMessageNotif: 'বার্তা বিজ্ঞপ্তি',
+    nsImportant: 'গুরুত্বপূর্ণ',
+    nsMinutesAgo: (n) => `${n} মিনিট আগে`,
+    nsHoursAgo: (n) => `${n} ঘণ্টা আগে`,
+    nsYesterday: 'গতকাল',
+    nsMonday: 'সোমবার',
+    nsTuesday: 'মঙ্গলবার',
 
     // Sound & Vibration
     soundRing: 'রিং',
@@ -398,6 +1142,16 @@ export const useI18nStore = defineStore('i18n', {
     },
     prayerName: (s) => (prayerId) => MESSAGES[s.locale]?.prayers?.[prayerId]?.name || prayerId,
     prayerFull: (s) => (prayerId) => MESSAGES[s.locale]?.prayers?.[prayerId]?.full || prayerId,
+    monthNames: (s) => MESSAGES[s.locale]?.monthNames || MESSAGES.zh.monthNames,
+    ccLabel: (s) => (id) => CC_LABELS[s.locale]?.[id] || CC_LABELS.zh[id] || id,
+    longWeekDays: (s) => MESSAGES[s.locale]?.longWeekDays || MESSAGES.zh.longWeekDays,
+    /* 通知种子文案按 appId 索引：存 key 而不是写死文本，切语言时已收的通知也会跟着变 */
+    notifTitle: (s) => (id) => MESSAGES[s.locale]?.demoNotifTitles?.[id] || MESSAGES.zh.demoNotifTitles?.[id] || id,
+    notifBody: (s) => (id) => MESSAGES[s.locale]?.demoNotifBodies?.[id] || MESSAGES.zh.demoNotifBodies?.[id] || '',
+    /* 演示数据：电话通讯录 / 通话记录 / 信息会话 */
+    demoChat: (s) => MESSAGES[s.locale]?.demoChat || MESSAGES.zh.demoChat,
+    demoRecents: (s) => MESSAGES[s.locale]?.demoRecents || MESSAGES.zh.demoRecents,
+    demoContacts: (s) => MESSAGES[s.locale]?.demoContacts || MESSAGES.zh.demoContacts,
     currentWeekDays: (s) => MESSAGES[s.locale]?.weekDays || MESSAGES.zh.weekDays,
     calWeekDays: (s) => MESSAGES[s.locale]?.calWeekDays || MESSAGES.zh.calWeekDays,
     appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || appId,

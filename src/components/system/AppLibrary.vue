@@ -111,8 +111,8 @@ function onCancelSearch() {
 
     <div class="al-content">
       <div class="al-header" @click.stop>
-        <div class="al-title">App 资源库</div>
-        <SearchBar v-model="query" placeholder="搜索 App" @cancel="onCancelSearch" />
+        <div class="al-title">{{ i18n.t('appLibrary') }}</div>
+        <SearchBar v-model="query" :placeholder="i18n.t('searchApp')" @cancel="onCancelSearch" />
       </div>
 
       <div class="al-body scrollable" @click="onBackdropClick">
@@ -128,7 +128,7 @@ function onCancelSearch() {
             </div>
           </div>
         </template>
-        <div v-else class="al-empty" @click.stop>无匹配结果</div>
+        <div v-else class="al-empty" @click.stop>{{ i18n.t('noMatch') }}</div>
       </div>
     </div>
   </div>

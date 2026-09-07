@@ -29,8 +29,13 @@ jobs:
         with:
           node-version: 20
 
+      # npm ci 而不是 npm install：严格按 lock 文件装，
+      # 依赖漂移会让「我这儿能跑、CI 挂了」变成常态
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
 
       - name: Build
         run: npm run build

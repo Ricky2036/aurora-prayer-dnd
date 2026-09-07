@@ -1,9 +1,17 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useControlStore } from '../../stores/controlStore'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useControlStore, LAYOUT_PRESETS } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useI18nStore } from '../../stores/i18nStore'
+import { useCapture } from '../../composables/useCapture'
+import LIcon from '../ui/LIcon.vue'
+
+/* 微调面板（373 行）改为按需异步加载：线上演示默认不进入微调模式，
+   这样能从生产首包剥离。DevConsole 自身保留 —— 录屏与三语切换是演示必需。 */
+const ControlCenterFineTunePanel = defineAsyncComponent(() =>
+  import('./ControlCenterFineTunePanel.vue')
+)
 
 const props = defineProps({
   mode: {
@@ -21,18 +29,40 @@ const props = defineProps({
   recordWithFrame: {
     type: Boolean,
     default: true
+  },
+  /** 控制台「带壳截图」开关状态（由 App.vue 经 v-model 传入） */
+  screenshotWithFrame: {
+    type: Boolean,
+    default: true
+  },
+  /** 截图进行中：禁用按钮 + 显示「截取中...」 */
+  isCapturing: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['toggle-recording', 'update:recordWithFrame'])
+const emit = defineEmits([
+  'toggle-recording',
+  'update:recordWithFrame',
+  'capture-screenshot',
+  'update:screenshotWithFrame'
+])
 
 const control = useControlStore()
 const system = useSystemStore()
 const prayerStore = usePrayerStore()
 const i18n = useI18nStore()
 
+/** 当前默认布局在三档分段控件里的下标（驱动滑块位移） */
+const presetIndex = computed(() =>
+  Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset))
+)
+
 /* ================= Tab 切换状态 ================= */
-const activeTab = ref('system') // 'system' | 'prayer' | 'control'
+const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+const initialTab = (urlParams?.get('overlay') === 'controlCenter' || urlParams?.get('finetune') === '1' || urlParams?.get('tab') === 'control') ? 'control' : 'system'
+const activeTab = ref(initialTab) // 'system' | 'prayer' | 'control'
 const tabs = [
   { id: 'system', name: '系统控制' },
   { id: 'prayer', name: '礼拜模式' },
@@ -223,6 +253,37 @@ function snapToEdge() {
     isSnapping.value = false
   }, 320)
 }
+
+/* ================= 录制计时（给「到底录没录上」一个明确反馈） ================= */
+/* 计时由 useCapture 单例统一维护：控制台和屏幕上的录制指示器显示的是同一份，
+   不会出现两个计时器各走各的。 */
+const { recordElapsed } = useCapture()
+
+/* ================= 图标微调模式快捷控制 ================= */
+const fineTuneCopied = ref(false)
+
+function onToggleFineTune(enabled) {
+  control.setFineTuningMode(enabled)
+  if (enabled) {
+    system.unlock()
+    system.settleOverlay('controlCenter', true)
+  }
+}
+
+function onCopyFineTune() {
+  const config = control.exportConfig()
+  const text = JSON.stringify(config, null, 2)
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      fineTuneCopied.value = true
+      setTimeout(() => { fineTuneCopied.value = false }, 1800)
+    }).catch(() => {
+      prompt('配置 JSON：', text)
+    })
+  } else {
+    prompt('配置 JSON：', text)
+  }
+}
 </script>
 
 <template>
@@ -337,13 +398,34 @@ function snapToEdge() {
                 <span>正在自动转码导出...</span>
               </template>
               <template v-else-if="isRecording">
-                <span class="pc-rec-square"></span>
-                <span>停止录制并自动转码</span>
+                <LIcon name="video" :size="15" />
+                <span>停止录制 · {{ recordElapsed }}</span>
               </template>
               <template v-else>
-                <span class="pc-rec-dot"></span>
+                <LIcon name="video" :size="15" />
                 <span>开始录制</span>
               </template>
+            </button>
+          </div>
+
+          <!-- 屏幕截图：带壳 / 不带壳两种效果 -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">屏幕截图</span>
+              <label class="pc-switch-wrap">
+                <span>带壳截图</span>
+                <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
+                <div class="pc-switch"></div>
+              </label>
+            </div>
+            <button
+              class="pc-btn"
+              :class="isCapturing ? 'pc-btn-disabled' : 'pc-btn-primary'"
+              :disabled="isCapturing"
+              @click="emit('capture-screenshot')"
+            >
+              <LIcon name="scissors" :size="15" />
+              <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
             </button>
           </div>
         </section>
@@ -401,26 +483,32 @@ function snapToEdge() {
 
         <!-- 3. 控制中心 Tab -->
         <section v-else-if="activeTab === 'control'" key="control" class="pc-tab-panel">
-          <!-- 隐私指示器 -->
+          <!-- 默认布局（机型） -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <span class="pc-card-title">隐私指示器</span>
-              <label class="pc-switch-wrap">
-                <span>显示隐私图标</span>
-                <input
-                  type="checkbox"
-                  :checked="control.showPrivacyIndicators"
-                  @change="control.setShowPrivacyIndicators($event.target.checked)"
-                />
-                <div class="pc-switch"></div>
-              </label>
+              <span class="pc-card-title">默认布局</span>
+            </div>
+            <div class="pc-seg">
+              <div
+                class="pc-seg-thumb-3"
+                :style="{ transform: `translateX(${Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset)) * 100}%)` }"
+              ></div>
+              <button
+                v-for="p in LAYOUT_PRESETS"
+                :key="p.id"
+                class="pc-seg-btn"
+                :class="{ on: control.layoutPreset === p.id }"
+                @click="control.setLayoutPreset(p.id)"
+              >
+                {{ p.label }}
+              </button>
             </div>
           </div>
 
           <!-- 排列算法 -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <span class="pc-card-title">控制中心编辑算法</span>
+              <span class="pc-card-title">编辑算法</span>
             </div>
             <div class="pc-seg">
               <div
@@ -444,18 +532,36 @@ function snapToEdge() {
             </div>
           </div>
 
-          <!-- 提示卡片 -->
-          <div class="pc-hint-card">
-            <div class="pc-hint-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="16" x2="12" y2="12"/>
-                <line x1="12" y1="8" x2="12.01" y2="8"/>
-              </svg>
+          <!-- 隐私指示 -->
+          <div class="pc-card pc-card-single">
+            <div class="pc-card-header">
+              <span class="pc-card-title">隐私指示</span>
+              <label class="pc-switch-wrap">
+                <input
+                  type="checkbox"
+                  :checked="control.showPrivacyIndicators"
+                  @change="control.setShowPrivacyIndicators($event.target.checked)"
+                />
+                <div class="pc-switch"></div>
+              </label>
             </div>
-            <p class="pc-hint-text">
-              在手机屏幕右上角边缘向下滑动，即可随时呼出控制中心；长按组件进入编辑网格。
-            </p>
+          </div>
+
+          <!-- 微调图标尺寸 (放置在最下方，开关打开后卡片内展开完整面板) -->
+          <div class="pc-card" :class="control.fineTuningMode ? 'pc-card-expanded' : 'pc-card-single'">
+            <div class="pc-card-header">
+              <span class="pc-card-title">图标尺寸</span>
+              <label class="pc-switch-wrap">
+                <input
+                  type="checkbox"
+                  :checked="control.fineTuningMode"
+                  @change="onToggleFineTune($event.target.checked)"
+                />
+                <div class="pc-switch"></div>
+              </label>
+            </div>
+            <!-- 开关开启时展开微调控制面板 -->
+            <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
           </div>
         </section>
       </Transition>
@@ -606,13 +712,34 @@ function snapToEdge() {
                         <span>正在自动转码导出...</span>
                       </template>
                       <template v-else-if="isRecording">
-                        <span class="pc-rec-square"></span>
-                        <span>停止录制并自动转码</span>
+                        <LIcon name="video" :size="15" />
+                        <span>停止录制 · {{ recordElapsed }}</span>
                       </template>
                       <template v-else>
-                        <span class="pc-rec-dot"></span>
+                        <LIcon name="video" :size="15" />
                         <span>开始录制</span>
                       </template>
+                    </button>
+                  </div>
+
+                  <!-- 屏幕截图：带壳 / 不带壳两种效果 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">屏幕截图</span>
+                      <label class="pc-switch-wrap">
+                        <span>带壳截图</span>
+                        <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
+                        <div class="pc-switch"></div>
+                      </label>
+                    </div>
+                    <button
+                      class="pc-btn"
+                      :class="isCapturing ? 'pc-btn-disabled' : 'pc-btn-primary'"
+                      :disabled="isCapturing"
+                      @click="emit('capture-screenshot')"
+                    >
+                      <LIcon name="scissors" :size="15" />
+                      <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
                     </button>
                   </div>
                 </section>
@@ -670,26 +797,32 @@ function snapToEdge() {
 
                 <!-- 3. 控制中心 Tab -->
                 <section v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
-                  <!-- 隐私指示器 -->
+                  <!-- 默认布局（机型） -->
                   <div class="pc-card">
                     <div class="pc-card-header">
-                      <span class="pc-card-title">隐私指示器</span>
-                      <label class="pc-switch-wrap">
-                        <span>显示隐私图标</span>
-                        <input
-                          type="checkbox"
-                          :checked="control.showPrivacyIndicators"
-                          @change="control.setShowPrivacyIndicators($event.target.checked)"
-                        />
-                        <div class="pc-switch"></div>
-                      </label>
+                      <span class="pc-card-title">默认布局</span>
+                    </div>
+                    <div class="pc-seg">
+                      <div
+                        class="pc-seg-thumb-3"
+                        :style="{ transform: `translateX(${presetIndex * 100}%)` }"
+                      ></div>
+                      <button
+                        v-for="p in LAYOUT_PRESETS"
+                        :key="p.id"
+                        class="pc-seg-btn"
+                        :class="{ on: control.layoutPreset === p.id }"
+                        @click="control.setLayoutPreset(p.id)"
+                      >
+                        {{ p.label }}
+                      </button>
                     </div>
                   </div>
 
                   <!-- 排列算法 -->
                   <div class="pc-card">
                     <div class="pc-card-header">
-                      <span class="pc-card-title">控制中心编辑算法</span>
+                      <span class="pc-card-title">编辑算法</span>
                     </div>
                     <div class="pc-seg">
                       <div
@@ -713,18 +846,36 @@ function snapToEdge() {
                     </div>
                   </div>
 
-                  <!-- 提示卡片 -->
-                  <div class="pc-hint-card">
-                    <div class="pc-hint-icon">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="16" x2="12" y2="12"/>
-                        <line x1="12" y1="8" x2="12.01" y2="8"/>
-                      </svg>
+                  <!-- 隐私指示 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header" style="margin-bottom: 0;">
+                      <span class="pc-card-title">隐私指示</span>
+                      <label class="pc-switch-wrap">
+                        <input
+                          type="checkbox"
+                          :checked="control.showPrivacyIndicators"
+                          @change="control.setShowPrivacyIndicators($event.target.checked)"
+                        />
+                        <div class="pc-switch"></div>
+                      </label>
                     </div>
-                    <p class="pc-hint-text">
-                      在手机屏幕右上角边缘向下滑动，即可随时呼出控制中心；长按组件进入编辑网格。
-                    </p>
+                  </div>
+
+                  <!-- 微调图标尺寸 (放置在最下方，开关打开后卡片内展开完整面板) -->
+                  <div class="pc-card">
+                    <div class="pc-card-header" :style="{ marginBottom: control.fineTuningMode ? '0' : '0' }">
+                      <span class="pc-card-title">图标尺寸</span>
+                      <label class="pc-switch-wrap">
+                        <input
+                          type="checkbox"
+                          :checked="control.fineTuningMode"
+                          @change="onToggleFineTune($event.target.checked)"
+                        />
+                        <div class="pc-switch"></div>
+                      </label>
+                    </div>
+                    <!-- 开关开启时展开微调控制面板 -->
+                    <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
                   </div>
                 </section>
               </Transition>
@@ -877,6 +1028,21 @@ function snapToEdge() {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 9px;
+}
+
+/* 只有标题一行的卡片（隐私指示器 / 微调图标尺寸收起态）：
+   通用卡片 padding 是 11px 13px 13px（上小下大，为多行内容留呼吸感），
+   单行卡片改用对称的 12px，标题+开关正好落在卡片垂直中心（卡片总高不变） */
+.pc-card.pc-card-single {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.pc-card.pc-card-single .pc-card-header {
+  margin-bottom: 0;
+}
+/* 微调面板展开态：面板自带 margin/padding-top 间距，标题与面板之间保持原有的 0 间隙 */
+.pc-card.pc-card-expanded .pc-card-header {
+  margin-bottom: 0;
 }
 
 .pc-card-title {
@@ -1042,31 +1208,16 @@ function snapToEdge() {
   background: #b91c1c;
 }
 
-/* 录屏几何图标 */
-.pc-rec-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #ffffff;
-  margin-right: 6px;
-  vertical-align: middle;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
-}
-
-.pc-rec-square {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 1.5px;
-  background: #ffffff;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
+/* 转码中的沙漏（纯状态指示，不是功能图标） */
 .pc-rec-spin {
   display: inline-block;
   margin-right: 6px;
+}
+
+/* 录屏 / 截图按钮的图标直接用控制中心同款矢量图（LIcon），
+   这里只补「图标与文字之间」的间距 —— 保持两者是同一个控件语言 */
+.pc-btn :deep(.l-icon) {
+  margin-right: 7px;
 }
 
 .pc-btn-toggle.pc-btn-danger {

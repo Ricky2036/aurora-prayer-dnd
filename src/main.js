@@ -26,3 +26,9 @@ if (urlParams.get('overlay') === 'controlCenter') {
 if (urlParams.get('edit') === '1') {
   control.setEditing(true)
 }
+if (urlParams.get('finetune') === '1') {
+  control.setFineTuningMode(true)
+}
+if (urlParams.get('privacy') === '1') {
+  control.setShowPrivacyIndicators(true)
+}

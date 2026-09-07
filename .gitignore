@@ -5,3 +5,28 @@ dist-ssr
 *.local
 .idea
 .vscode
+
+# ---- 构建与覆盖产物 ----
+build/
+coverage/
+
+# ---- 本地调试截图 / 录屏 ----
+screenshots/
+shots/
+
+# ---- 临时素材 ----
+user_svgs/
+*.tar.gz
+*.pptx
+*.ndjson
+
+# ---- 环境变量 ----
+.env
+.env.*
+
+# ---- saveDefaultsPlugin 写前备份 ----
+*.bak
+
+# ---- AI 工作区与本地评审产物（不入库） ----
+.workbuddy/
+code-review-*.html

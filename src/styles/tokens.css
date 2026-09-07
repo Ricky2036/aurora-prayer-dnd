@@ -41,10 +41,10 @@
   --material-dark: rgba(22, 22, 24, 0.62);
   --material-card: rgba(255, 255, 255, 0.68);
 
-  /* ---- 几何 ---- */
-  --screen-w: 389px;
-  --screen-h: 848px;
-  --screen-radius: 47px;
+  /* ---- 几何 (360x788, 比例严格匹配截图 1024:468 ≈ 2.188) ---- */
+  --screen-w: 360px;
+  --screen-h: 788px;
+  --screen-radius: 44px;
   --radius-icon: 14px;      /* 60px 图标的 22.5% */
   --radius-widget: 22px;
   --radius-card: 22px;
@@ -54,6 +54,18 @@
   /* 安全区 */
   --safe-top: 54px;           /* 状态栏高度 */
   --safe-bottom: 34px;        /* Home Indicator 区 */
+
+  /* 导航条（Home Indicator）
+     全局可见后会浮在通知中心 / 控制中心之上（z 96 > 94 > 92），叠层底部必须为它让位。
+     - zone  = 手势热区总高。原来是 safe-bottom + 18 = 52px，但导航条一旦全局可见，
+               这 52px 就会吞掉控制中心最后一排：那排砖块的中心只在屏幕底上方 53px，
+               只差 1px，视口高度一变（舞台缩放随之变化）就会被误判成点导航条。
+               收敛到安全区 34px 后，砖块中心有 19px 余量，缩放也不翻车。
+     - inset = 可见横条实际占据的高度（下边距 9px + 条高 5px），
+               叠层判断「是否溢出」时减的是这个值：再大就会让默认 1.00 倍
+               的控制中心（底部只剩 22px 余量）一上来就变成可滚动。 */
+  --home-indicator-zone: var(--safe-bottom);
+  --home-indicator-inset: 14px;
 
   /* ---- 排版 ---- */
   --text-large-title: 700 34px/41px var(--font-stack);
@@ -80,4 +92,14 @@
   --z-status-bar: 90;
   --z-home-indicator: 96;
   --z-brightness-filter: 71;
+
+  /* ---- 微调模式选中框（4 处共用：网格开关 / 头部按钮 / 胶囊 / 响铃三段）----
+     细一圈 + 去掉大范围外发光，只保留一层极淡的贴合描边；
+     offset 2px 让框与砖块之间留一道缝，不显得糊在一起。
+     注意：选中框是画在元素**外面**的，滚动容器的裁切线要为它留出余地，
+     否则最顶排（Wi-Fi 胶囊）的框会被切掉。 */
+  --ft-select-width: 1.5px;
+  --ft-select-color: #258fff;
+  --ft-select-offset: 2px;
+  --ft-select-glow: 0 0 6px rgba(37, 143, 255, 0.35);
 }

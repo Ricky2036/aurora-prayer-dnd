@@ -25,7 +25,7 @@ const i18n = useI18nStore()
     </div>
     <div class="ww-bottom">
       <div class="ww-condition">{{ i18n.t('weatherCondition') }}</div>
-      <div class="ww-range">{{ i18n.locale === 'zh' ? '最高 33° 最低 26°' : i18n.locale === 'en' ? 'H:33° L:26°' : 'সর্বোচ্চ ৩৩° সর্বনিম্ন ২৬°' }}</div>
+      <div class="ww-range">{{ i18n.t('tempRange') }}</div>
     </div>
   </div>
 </template>

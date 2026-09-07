@@ -1,8 +1,9 @@
 <script setup>
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
+import { useI18nStore } from '../../../stores/i18nStore'
 import { useBackHandler } from '../../../composables/backRegistry'
 
 /**
@@ -10,58 +11,45 @@ import { useBackHandler } from '../../../composables/backRegistry'
  */
 const props = defineProps({ app: Object })
 const notifications = useNotificationsStore()
+const i18n = useI18nStore()
 
-const CONTACTS = [
-  {
-    id: 'chenjing', name: '陈静', color: '#5AC8FA', time: '23:44',
-    preview: '明天评审会的资料我发你邮箱了，记得看一下 📮', unread: 1,
-    messages: [
-      { from: 'them', text: 'Ricky，明天下午评审会的议程定了', time: '23:40' },
-      { from: 'them', text: '先发你过目一下？', time: '23:41' },
-      { from: 'me', text: '好，发我吧，我路上看', time: '23:42' },
-      { from: 'them', text: '明天评审会的资料我发你邮箱了，记得看一下 📮', time: '23:44' }
-    ],
-    replies: ['收到 👌', '没问题，我明天提前到', '好，那就这么定']
-  },
-  {
-    id: 'team', name: '产品一群', color: '#34C759', time: '23:29',
-    preview: 'Leo：新版原型出了吗？下午想过一遍', unread: 2,
-    messages: [
-      { from: 'them', text: '各位，这版交互走查啥时候开始？', time: '23:25' },
-      { from: 'them', text: 'Leo：新版原型出了吗？下午想过一遍', time: '23:29' }
-    ],
-    replies: ['Leo：👍', 'Leo：那我拉个会']
-  },
-  {
-    id: 'wanggong', name: '王工', color: '#FF9500', time: '22:10',
-    preview: '接口文档我更新到 iWiki 了', unread: 0,
-    messages: [
-      { from: 'them', text: '接口文档我更新到 iWiki 了', time: '22:10' },
-      { from: 'me', text: '收到，我下午看', time: '22:15' }
-    ],
-    replies: ['好的']
-  },
-  {
-    id: 'mom', name: '妈妈', color: '#FF2D55', time: '20:03',
-    preview: '周末回家吃饭吗？', unread: 0,
-    messages: [
-      { from: 'them', text: '周末回家吃饭吗？', time: '20:03' },
-      { from: 'me', text: '回的，周六中午到', time: '20:20' }
-    ],
-    replies: ['好，给你做糖醋排骨']
-  }
-]
+/* 会话数据改从 i18n 取：联系人名、聊天正文、预置回复都是演示内容，
+   之前写死在组件里，切英文后整屏还是中文。结构化后每次挂载深拷贝一份，
+   避免发送的消息/已读状态残留到下一次打开。 */
+const CHAT_SOURCE = computed(() => structuredClone(i18n.demoChat || {}))
+
+/* i18n.demoChat 是对象（按 id 索引），这里补上组件需要的 id 与主题色，
+   并摊平成数组；颜色属于视觉常量，不需要翻译 */
+const CONTACT_META = {
+  chenjing: { color: '#5AC8FA', time: '23:44', unread: 1 },
+  team:     { color: '#34C759', time: '23:29', unread: 2 },
+  wanggong: { color: '#FF9500', time: '22:10', unread: 0 },
+  mom:      { color: '#FF2D55', time: '20:03', unread: 0 }
+}
+
+/* computed 而非一次性常量：一方面切语言要即时重取，
+   另一方面每次求值时重新深拷贝，避免已读状态/新发消息残留到下次打开 */
+const CONTACTS = computed(() => Object.entries(CHAT_SOURCE.value).map(([id, c]) => ({
+    id,
+    name: c.name,
+    messages: c.messages,
+    replies: c.replies,
+    preview: c.messages[c.messages.length - 1]?.text || '',
+    ...(CONTACT_META[id] || { color: '#8E8E93', time: '', unread: 0 })
+  }))
+)
+
 
 const stack = ref(['list'])
 const activeId = ref(null)
 const view = computed(() => stack.value[stack.value.length - 1])
-const activeContact = computed(() => CONTACTS.find((c) => c.id === activeId.value))
+const activeContact = computed(() => CONTACTS.value.find((c) => c.id === activeId.value))
 
 function openChat(c) {
   activeId.value = c.id
   c.unread = 0
   // 清除该应用角标
-  notifications.list = notifications.list.filter((n) => !(n.appId === 'messages' && n.title === c.name))
+  notifications.list = notifications.list.filter((n) => n.appId !== 'messages')
   stack.value.push('chat')
 }
 function pop() { if (stack.value.length > 1) stack.value.pop() }
@@ -82,6 +70,11 @@ async function scrollToBottom() {
   if (el) el.scrollTop = el.scrollHeight
 }
 
+/* 两条待清理的定时器：预置回复(1.1s) 与 进对话后的滚动(60ms)。
+   在这两个窗口内滑走关闭应用，回调仍会往已卸载组件的消息数组里塞内容 */
+let replyTimer = null
+let scrollTimer = null
+
 function send() {
   const text = draft.value.trim()
   if (!text || !activeContact.value) return
@@ -90,10 +83,12 @@ function send() {
   draft.value = ''
   scrollToBottom()
   // 预置回复脚本
-  setTimeout(() => {
+  clearTimeout(replyTimer)
+  replyTimer = setTimeout(() => {
     const reply = c.replies[Math.floor(Math.random() * c.replies.length)]
     c.messages.push({ from: 'them', text: reply, time: now() })
     scrollToBottom()
+    replyTimer = null
   }, 1100)
 }
 
@@ -104,8 +99,16 @@ function now() {
 
 function openChatAndScroll(c) {
   openChat(c)
-  setTimeout(scrollToBottom, 60)
+  clearTimeout(scrollTimer)
+  scrollTimer = setTimeout(() => { scrollToBottom(); scrollTimer = null }, 60)
 }
+
+onBeforeUnmount(() => {
+  clearTimeout(replyTimer)
+  clearTimeout(scrollTimer)
+  replyTimer = null
+  scrollTimer = null
+})
 
 /** 连续同侧气泡的圆角处理（iOS：同侧相邻气泡贴合角 4px） */
 function bubbleClass(m, i, msgs) {
@@ -129,8 +132,8 @@ function bubbleClass(m, i, msgs) {
       <!-- ============ 会话列表 ============ -->
       <div v-if="view === 'list'" key="list" class="msg-page scrollable">
         <div class="list-header">
-          <div class="large-title">信息</div>
-          <button class="edit-btn">编辑</button>
+          <div class="large-title">{{ i18n.t('messages') }}</div>
+          <button class="edit-btn">{{ i18n.t('edit') }}</button>
         </div>
         <div class="conversation-list">
           <div
@@ -157,7 +160,7 @@ function bubbleClass(m, i, msgs) {
 
       <!-- ============ 对话页 ============ -->
       <div v-else key="chat" class="msg-page chat-page">
-        <AppNavBar :title="activeContact?.name" back-label="信息" @back="pop">
+        <AppNavBar :title="activeContact?.name" :back-label="i18n.t('messages')" @back="pop">
           <template #right>
             <div class="chat-avatar" :style="{ background: activeContact?.color }">
               {{ activeContact?.name.slice(0, 1) }}
@@ -166,7 +169,7 @@ function bubbleClass(m, i, msgs) {
         </AppNavBar>
 
         <div ref="chatBodyRef" class="chat-body scrollable">
-          <div class="chat-time-sep">今天 {{ activeContact?.time }}</div>
+          <div class="chat-time-sep">{{ i18n.t('today') }} {{ activeContact?.time }}</div>
           <div
             v-for="(m, i) in activeContact?.messages"
             :key="i"
@@ -184,7 +187,7 @@ function bubbleClass(m, i, msgs) {
           <div class="ci-field">
             <input
               v-model="draft"
-              placeholder="iMessage 信息"
+              :placeholder="i18n.t('imessagePlaceholder')"
               @keyup.enter="send"
             />
           </div>

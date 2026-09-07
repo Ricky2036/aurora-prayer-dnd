@@ -29,6 +29,8 @@ const html = computed(() => {
   if (props.filled) {
     svg = svg.replace(/fill="none"/, 'fill="currentColor"')
   }
+  // 将硬编码的 fill="white" / stroke="white" 替换为 currentColor，使图标支持颜色染色
+  svg = svg.replace(/fill="white"/g, 'fill="currentColor"').replace(/stroke="white"/g, 'stroke="currentColor"')
   return svg
 })
 </script>

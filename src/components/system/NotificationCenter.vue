@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch, nextTick, onMounted } from 'vue'
+import { computed, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useSystemStore } from '../../stores/systemStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useClock } from '../../composables/useClock'
@@ -10,6 +10,7 @@ import { formatRelativeTime } from '../../utils/timeFormat'
 import { clamp } from '../../utils/math'
 import MusicPlayerCard from './MusicPlayerCard.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
+import { useI18nStore } from '../../stores/i18nStore'
 
 /**
  * 通知中心（移植自 notificationcenter.tsx）：
@@ -18,6 +19,7 @@ import MaterialBlur from '../ui/MaterialBlur.vue'
  * 叠层手势（下拉打开/上滑关闭）由 ScreenView 与 driver 驱动。
  */
 const system = useSystemStore()
+const i18n = useI18nStore()
 const notifications = useNotificationsStore()
 const { timeShort, now } = useClock()
 
@@ -51,12 +53,15 @@ function onNcClick(e) {
 
 /* ---------- 清除动画 ---------- */
 const isClearing = ref(false)
+let clearTimer = null
 function handleClearAll() {
   if (isClearing.value) return
   isClearing.value = true
-  setTimeout(() => {
+  clearTimeout(clearTimer)
+  clearTimer = setTimeout(() => {
     notifications.clearAll()
     isClearing.value = false
+    clearTimer = null
   }, 800)
 }
 
@@ -105,12 +110,21 @@ watch(() => notifications.list.length, async () => {
   await nextTick()
   updateStacking()
 })
-onMounted(() => setTimeout(updateStacking, 80))
+let mountTimer = null
+onMounted(() => { mountTimer = setTimeout(() => { updateStacking(); mountTimer = null }, 80) })
+
+onBeforeUnmount(() => {
+  clearTimeout(clearTimer)
+  clearTimeout(mountTimer)
+  clearTimer = null
+  mountTimer = null
+  if (rafId != null) { cancelAnimationFrame(rafId); rafId = null }
+})
 
 /* 星期/日期 */
-const WEEKDAYS_SHORT = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-const weekday = computed(() => WEEKDAYS_SHORT[now.value.getDay()])
-const monthDay = computed(() => `${now.value.getMonth() + 1}月 ${now.value.getDate()}`)
+/* 星期与月日走 i18n：英文是 Tue / Sep 8，中文是 周二 / 9月8日 */
+const weekday = computed(() => (i18n.currentWeekDays || [])[now.value.getDay()] || '')
+const monthDay = computed(() => i18n.t('monthDay')(i18n.monthNames[now.value.getMonth()] || now.value.getMonth() + 1, now.value.getDate()))
 
 /* 卡片点击展开描述 */
 const expandedId = ref(null)
@@ -152,17 +166,17 @@ function toggleExpand(id) {
               <NotificationIcon :type="n.iconType" />
               <div class="nc-card-body">
                 <div class="nc-card-head">
-                  <span class="nc-card-title">{{ n.title }}</span>
-                  <span class="nc-card-time">{{ formatRelativeTime(n.time) }}</span>
+                  <span class="nc-card-title">{{ i18n.notifTitle(n.appId) }}</span>
+                  <span class="nc-card-time">{{ formatRelativeTime(n.time, i18n.t) }}</span>
                 </div>
-                <p class="nc-card-desc" :class="{ 'line-clamp-2': expandedId !== n.id }">{{ n.body }}</p>
+                <p class="nc-card-desc" :class="{ 'line-clamp-2': expandedId !== n.id }">{{ i18n.notifBody(n.appId) }}</p>
               </div>
               <svg class="nc-card-chevron" :class="{ flipped: expandedId === n.id }" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
         </template>
         <div v-else class="nc-empty">
-          <div class="nc-empty-title">没有更早的通知</div>
+          <div class="nc-empty-title">{{ i18n.t('noOlderNotifs') }}</div>
         </div>
       </div>
     </div>
@@ -171,7 +185,7 @@ function toggleExpand(id) {
     <button
       v-if="notifications.list.length"
       class="nc-clear-fab"
-      title="清除所有通知"
+      :title="i18n.t('clearAllNotifs')"
       @click.stop="handleClearAll"
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>

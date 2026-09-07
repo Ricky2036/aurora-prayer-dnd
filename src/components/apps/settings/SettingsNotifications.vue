@@ -8,6 +8,13 @@ import { useI18nStore } from '../../../stores/i18nStore'
 
 const i18n = useI18nStore()
 
+/** 取「带参数的文案函数」。t() 在 key 缺失时会回退成 key 字符串，
+    直接当函数调用会抛错，所以统一在这里兜底成一个安全的空实现 */
+function tFn(key) {
+  const v = i18n.t(key)
+  return typeof v === 'function' ? v : () => ''
+}
+
 /**
  * 通知设置页（完整移植自 settingsprototype.tsx）：
  * 主视图（状态栏/控制中心/Dynamic Bar、通知类型三卡片、锁屏隐藏内容/智能提醒/轻打扰、
@@ -46,30 +53,39 @@ function toggleAppState(id) { appStates.value[id] = !appStates.value[id] }
 const appToggles = ref({ allow: true, badge: true, floating: true, lockScreen: true, ring: true, vibrate: true })
 function toggleAppSetting(key) { appToggles.value[key] = !appToggles.value[key] }
 
+/* 时间改用结构化数据（minutes / day），显示时才按当前语言格式化，
+   否则切到英文仍会漏出「65分钟前」这类硬编码中文 */
 const appListData = [
-  { id: 'transsioner', name: 'Transsioner', time: '65分钟前', type: 'transsioner' },
-  { id: 'clock', name: '时钟', time: '3小时前', type: 'clock' },
-  { id: 'google', name: 'Google', time: '11小时前', type: 'google' },
-  { id: 'phone', name: '电话', time: '24小时前', type: 'phone' },
-  { id: 'sms', name: '短信', time: '43小时前', type: 'sms' },
-  { id: 'bilibili', name: '哔哩哔哩', time: '昨天', type: 'bilibili' },
-  { id: 'map', name: '地图', time: '昨天', type: 'map' },
-  { id: 'dingdong', name: '叮咚买菜', time: '星期二', type: 'dingdong' },
-  { id: 'douyin1', name: '抖音', time: '星期二', type: 'douyin' },
-  { id: 'douyin2', name: '抖音精选', time: '星期一', type: 'douyin' }
+  { id: 'transsioner', minutes: 65, type: 'transsioner' },
+  { id: 'clock', minutes: 180, type: 'clock' },
+  { id: 'google', minutes: 660, type: 'google' },
+  { id: 'phone', minutes: 1440, type: 'phone' },
+  { id: 'sms', minutes: 2580, type: 'sms' },
+  { id: 'bilibili', day: 'nsYesterday', type: 'bilibili' },
+  { id: 'map', day: 'nsYesterday', type: 'map' },
+  { id: 'dingdong', day: 'nsTuesday', type: 'dingdong' },
+  { id: 'douyin1', day: 'nsTuesday', type: 'douyin' },
+  { id: 'douyin2', day: 'nsMonday', type: 'douyin' }
 ]
+
+/** 相对时间文案：优先按分钟，其次按周几 */
+function timeLabel(app) {
+  if (app.day) return i18n.t(app.day)
+  const h = app.minutes / 60
+  return h < 1 ? tFn('nsMinutesAgo')(app.minutes) : tFn('nsHoursAgo')(Math.round(h))
+}
 const lockScreenAppListData = appListData.slice(5)
 const floatingAppListData = [
-  { id: 'bilibili', name: '哔哩哔哩', type: 'bilibili' },
-  { id: 'map', name: '地图', type: 'map' },
-  { id: 'dingdong', name: '叮咚买菜', type: 'dingdong' },
-  { id: 'douyin1', name: '抖音', type: 'douyin' },
-  { id: 'douyin2', name: '抖音精选', type: 'douyin' },
-  { id: 'sms', name: '短信', type: 'sms' },
-  { id: 'amap', name: '高德地图', type: 'map' },
-  { id: 'switcher', name: '换机助手', type: 'transsioner' },
-  { id: 'notepad', name: '记事本', type: 'transsioner' },
-  { id: 'search', name: '搜索', type: 'transsioner' }
+  { id: 'bilibili', type: 'bilibili' },
+  { id: 'map', type: 'map' },
+  { id: 'dingdong', type: 'dingdong' },
+  { id: 'douyin1', type: 'douyin' },
+  { id: 'douyin2', type: 'douyin' },
+  { id: 'sms', type: 'sms' },
+  { id: 'amap', type: 'map' },
+  { id: 'switcher', type: 'transsioner' },
+  { id: 'notepad', type: 'transsioner' },
+  { id: 'search', type: 'transsioner' }
 ]
 
 const appIdMap = {
@@ -91,30 +107,30 @@ const emit = defineEmits(['back-to-settings'])
         <div class="ns-sticky">
           <button class="ns-back" @click="emit('back-to-settings')">
             <svg width="13" height="20" viewBox="0 0 8 13"><path d="M6.5 0.5 1 6.5l5.5 6" fill="none" stroke="#007AFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            <span>通知</span>
+            <span>{{ i18n.t('notifications') }}</span>
           </button>
         </div>
 
         <div class="ns-section mt-first">
-          <div class="ns-row" :arrow="true"><span class="ns-row-title">状态栏</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
-          <div class="ns-row"><span class="ns-row-title">控制中心</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
-          <div class="ns-row last"><span class="ns-row-title">Dynamic Bar</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+          <div class="ns-row" :arrow="true"><span class="ns-row-title">{{ i18n.t('nsStatusBar') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+          <div class="ns-row"><span class="ns-row-title">{{ i18n.t('nsControlCenter') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+          <div class="ns-row last"><span class="ns-row-title">{{ i18n.t('nsDynamicBar') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
         </div>
 
-        <div class="ns-group-label">通知类型</div>
+        <div class="ns-group-label">{{ i18n.t('nsType') }}</div>
         <div class="ns-type-cards">
           <div class="ns-type-card" @click="go('lockScreen')">
             <div class="phone-mini">
               <span class="pm-time">09:26</span>
               <div class="pm-bars"><i class="pm-bg"></i><i class="pm-green"></i></div>
             </div>
-            <span class="pm-label">锁屏通知</span>
+            <span class="pm-label">{{ i18n.t('nsLockScreenNotif') }}</span>
           </div>
           <div class="ns-type-card" @click="go('floatingScreen')">
             <div class="phone-mini">
               <span class="pm-green pm-top"></span>
             </div>
-            <span class="pm-label">悬浮通知</span>
+            <span class="pm-label">{{ i18n.t('nsFloatingNotif') }}</span>
           </div>
           <div class="ns-type-card">
             <div class="phone-mini pm-grid-wrap">
@@ -122,35 +138,35 @@ const emit = defineEmits(['back-to-settings'])
                 <i v-for="i in 16" :key="i" class="pm-cell" :class="{ badge: i === 3 }"></i>
               </div>
             </div>
-            <span class="pm-label">桌面角标</span>
+            <span class="pm-label">{{ i18n.t('nsHomeBadge') }}</span>
           </div>
         </div>
 
         <div class="ns-section">
           <div class="ns-row">
             <div class="ns-row-text">
-              <span class="ns-row-title">锁屏隐藏通知内容</span>
-              <span class="ns-row-sub">未解锁时收到通知，隐藏通知内容。</span>
+              <span class="ns-row-title">{{ i18n.t('nsHideLockContent') }}</span>
+              <span class="ns-row-sub">{{ i18n.t('nsHideLockContentSub') }}</span>
             </div>
             <ToggleSwitch v-model="globalHideLockContent" />
           </div>
           <div class="ns-row">
             <div class="ns-row-text">
-              <div class="ns-row-title-wrap"><span class="ns-row-title">智能提醒</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" stroke-linecap="round"/></svg></div>
-              <span class="ns-row-sub">开启后，将自动把不重要通知设为静音。</span>
+              <div class="ns-row-title-wrap"><span class="ns-row-title">{{ i18n.t('nsSmartReminder') }}</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" stroke-linecap="round"/></svg></div>
+              <span class="ns-row-sub">{{ i18n.t('nsSmartReminderSub') }}</span>
             </div>
             <ToggleSwitch v-model="smartReminder" />
           </div>
           <div class="ns-row last">
             <div class="ns-row-text">
-              <div class="ns-row-title-wrap"><span class="ns-row-title">通知轻打扰</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" stroke-linecap="round"/></svg></div>
-              <span class="ns-row-sub">全屏或短时间收到多条通知时自动降低音量。</span>
+              <div class="ns-row-title-wrap"><span class="ns-row-title">{{ i18n.t('nsAdaptiveNotif') }}</span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01" stroke-linecap="round"/></svg></div>
+              <span class="ns-row-sub">{{ i18n.t('nsAdaptiveNotifSub') }}</span>
             </div>
             <ToggleSwitch v-model="adaptiveNotif" />
           </div>
         </div>
 
-        <div class="ns-group-label">按发送时间排序
+        <div class="ns-group-label">{{ i18n.t('nsSortByTime') }}
           <span class="ns-sort"><i></i><i></i></span>
         </div>
         <div class="ns-section">
@@ -166,8 +182,8 @@ const emit = defineEmits(['back-to-settings'])
               <AppIcon v-if="getDesktopApp(app.id)" :app="getDesktopApp(app.id)" :size="36" :show-label="false" />
               <SettingsAppIcon v-else :type="app.type" :size="36" />
               <div class="ns-app-info">
-                <span class="ns-app-name">{{ i18n.appName(app.id) || app.name }}</span>
-                <span class="ns-app-time">{{ app.time }}</span>
+                <span class="ns-app-name">{{ i18n.appName(app.id) }}</span>
+                <span class="ns-app-time">{{ timeLabel(app) }}</span>
               </div>
             </div>
             <ToggleSwitch :model-value="appStates[app.id]" @update:modelValue="toggleAppState(app.id)" />
@@ -180,26 +196,26 @@ const emit = defineEmits(['back-to-settings'])
         <div class="ns-sticky">
           <button class="ns-back" @click="back()">
             <svg width="13" height="20" viewBox="0 0 8 13"><path d="M6.5 0.5 1 6.5l5.5 6" fill="none" stroke="#007AFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            <span>返回</span>
+            <span>{{ i18n.t('nsBack') }}</span>
           </button>
         </div>
 
-        <div class="ns-group-label">锁屏通知样式</div>
+        <div class="ns-group-label">{{ i18n.t('nsLockStyle') }}</div>
         <div class="ns-style-cards">
           <div class="ns-style-card" :class="{ active: lockScreenStyle === 'stacked' }" @click="lockScreenStyle = 'stacked'">
             <div class="phone-big">
               <span class="pb-time">09:26</span>
               <div class="pb-bars"><i class="pb-bg"></i><i class="pb-green"></i></div>
             </div>
-            <span class="pb-label">堆叠</span>
+            <span class="pb-label">{{ i18n.t('nsStacked') }}</span>
             <span class="pb-radio" :class="{ on: lockScreenStyle === 'stacked' }"></span>
           </div>
           <div class="ns-style-card" :class="{ active: lockScreenStyle === 'number' }" @click="lockScreenStyle = 'number'">
             <div class="phone-big">
               <span class="pb-time">09:26</span>
-              <span class="pb-count"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>4 条通知</span>
+              <span class="pb-count"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>{{ tFn('nsCountBadge')(4) }}</span>
             </div>
-            <span class="pb-label">数量</span>
+            <span class="pb-label">{{ i18n.t('nsCount') }}</span>
             <span class="pb-radio" :class="{ on: lockScreenStyle === 'number' }"></span>
           </div>
         </div>
@@ -207,27 +223,27 @@ const emit = defineEmits(['back-to-settings'])
         <div class="ns-section">
           <div class="ns-row">
             <div class="ns-row-text">
-              <span class="ns-row-title">通知亮屏提醒</span>
-              <span class="ns-row-sub">息屏状态下，收到允许在锁屏显示的新通知时自动亮屏。</span>
+              <span class="ns-row-title">{{ i18n.t('nsWakeOnNotif') }}</span>
+              <span class="ns-row-sub">{{ i18n.t('nsWakeOnNotifSub') }}</span>
             </div>
-            <span class="ns-value">已开启</span>
+            <span class="ns-value">{{ i18n.t('nsEnabled') }}</span>
           </div>
           <div class="ns-row last">
             <div class="ns-row-text">
-              <span class="ns-row-title">锁屏仅显示新通知</span>
-              <span class="ns-row-sub">看过的通知将不在锁屏显示。</span>
+              <span class="ns-row-title">{{ i18n.t('nsOnlyNewOnLock') }}</span>
+              <span class="ns-row-sub">{{ i18n.t('nsOnlyNewOnLockSub') }}</span>
             </div>
             <ToggleSwitch v-model="onlyNewOnLock" />
           </div>
         </div>
 
-        <div class="ns-group-label">已开启锁屏通知</div>
+        <div class="ns-group-label">{{ i18n.t('nsLockEnabledApps') }}</div>
         <div class="ns-section">
           <div v-for="(app, index) in lockScreenAppListData" :key="app.id" class="ns-row app-row" :class="{ last: index === lockScreenAppListData.length - 1 }">
             <div class="ns-app">
               <AppIcon v-if="getDesktopApp(app.id)" :app="getDesktopApp(app.id)" :size="36" :show-label="false" />
               <SettingsAppIcon v-else :type="app.type" :size="36" />
-              <span class="ns-app-name">{{ i18n.appName(app.id) || app.name }}</span>
+              <span class="ns-app-name">{{ i18n.appName(app.id) }}</span>
             </div>
             <ToggleSwitch :model-value="appStates[app.id]" @update:modelValue="toggleAppState(app.id)" />
           </div>
@@ -239,33 +255,33 @@ const emit = defineEmits(['back-to-settings'])
         <div class="ns-sticky">
           <button class="ns-back" @click="back()">
             <svg width="13" height="20" viewBox="0 0 8 13"><path d="M6.5 0.5 1 6.5l5.5 6" fill="none" stroke="#007AFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-            <span>返回</span>
+            <span>{{ i18n.t('nsBack') }}</span>
           </button>
-          <span class="ns-page-title">悬浮通知</span>
+          <span class="ns-page-title">{{ i18n.t('nsFloatingNotif') }}</span>
         </div>
 
         <div class="ns-section mt4">
-          <div class="ns-row"><span class="ns-row-title">悬浮通知样式</span><span class="ns-value gray">详细</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+          <div class="ns-row"><span class="ns-row-title">{{ i18n.t('nsFloatingStyle') }}</span><span class="ns-value gray">{{ i18n.t('nsDetailed') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
           <div class="ns-row">
-            <div class="ns-row-text"><span class="ns-row-title">全屏时使用简洁样式</span></div>
+            <div class="ns-row-text"><span class="ns-row-title">{{ i18n.t('nsConciseFullscreen') }}</span></div>
             <ToggleSwitch v-model="conciseFloating" />
           </div>
           <div class="ns-row last">
             <div class="ns-row-text">
-              <span class="ns-row-title">悬浮通知防偷窥</span>
-              <span class="ns-row-sub">检测到有人偷窥屏幕时自动隐藏通知内容。</span>
+              <span class="ns-row-title">{{ i18n.t('nsAntiPeep') }}</span>
+              <span class="ns-row-sub">{{ i18n.t('nsAntiPeepSub') }}</span>
             </div>
             <ToggleSwitch v-model="antiPeepFloating" />
           </div>
         </div>
 
-        <div class="ns-group-label">已开启悬浮通知权限</div>
+        <div class="ns-group-label">{{ i18n.t('nsFloatingEnabledApps') }}</div>
         <div class="ns-section">
           <div v-for="(app, index) in floatingAppListData" :key="app.id" class="ns-row app-row" :class="{ last: index === floatingAppListData.length - 1 }">
             <div class="ns-app">
               <AppIcon v-if="getDesktopApp(app.id)" :app="getDesktopApp(app.id)" :size="36" :show-label="false" />
               <SettingsAppIcon v-else :type="app.type" :size="36" />
-              <span class="ns-app-name">{{ i18n.appName(app.id) || app.name }}</span>
+              <span class="ns-app-name">{{ i18n.appName(app.id) }}</span>
             </div>
             <div class="ns-app-right"><i class="ns-divider"></i><ToggleSwitch :model-value="appStates[app.id]" @update:modelValue="toggleAppState(app.id)" /></div>
           </div>
@@ -287,57 +303,57 @@ const emit = defineEmits(['back-to-settings'])
 
         <div class="ns-section">
           <div class="ns-row">
-            <div class="ns-row-text"><span class="ns-row-title">允许通知</span></div>
+            <div class="ns-row-text"><span class="ns-row-title">{{ i18n.t('nsAllowNotif') }}</span></div>
             <ToggleSwitch v-model="appToggles.allow" />
           </div>
         </div>
 
         <template v-if="appToggles.allow">
           <div class="ns-section">
-            <div class="ns-row"><span class="ns-row-title">提醒强度</span><span class="ns-value gray">智能提醒</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
-            <div class="ns-row" :class="{ last: !globalHideLockContent }"><span class="ns-row-title">通知分组</span><span class="ns-value gray">自动</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+            <div class="ns-row"><span class="ns-row-title">{{ i18n.t('nsRemindLevel') }}</span><span class="ns-value gray">{{ i18n.t('nsSmartReminder') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+            <div class="ns-row" :class="{ last: !globalHideLockContent }"><span class="ns-row-title">{{ i18n.t('nsGrouping') }}</span><span class="ns-value gray">{{ i18n.t('nsAuto') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
             <div v-if="!globalHideLockContent" class="ns-row last">
               <div class="ns-row-text">
-                <span class="ns-row-title">锁屏隐藏通知内容</span>
-                <span class="ns-row-sub">未解锁时收到通知，隐藏通知内容。</span>
+                <span class="ns-row-title">{{ i18n.t('nsHideLockContent') }}</span>
+                <span class="ns-row-sub">{{ i18n.t('nsHideLockContentSub') }}</span>
               </div>
               <ToggleSwitch v-model="localHideLockContent" />
             </div>
           </div>
 
-          <div class="ns-group-label">提醒方式</div>
+          <div class="ns-group-label">{{ i18n.t('nsRemindWays') }}</div>
           <div class="ns-style-cards remind">
             <div class="ns-remind-card" :class="{ on: appToggles.lockScreen }" @click="toggleAppSetting('lockScreen')">
               <div class="phone-mini"><span class="pm-time">09:26</span><div class="pm-bars"><i class="pm-bg"></i><i class="pm-green"></i></div></div>
-              <span class="pm-label">锁屏通知</span>
+              <span class="pm-label">{{ i18n.t('nsLockScreenNotif') }}</span>
               <span class="pm-check" :class="{ on: appToggles.lockScreen }"><svg v-if="appToggles.lockScreen" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
             </div>
             <div class="ns-remind-card" :class="{ on: appToggles.floating }" @click="toggleAppSetting('floating')">
               <div class="phone-mini"><span class="pm-green pm-top"></span></div>
-              <span class="pm-label">悬浮通知</span>
+              <span class="pm-label">{{ i18n.t('nsFloatingNotif') }}</span>
               <span class="pm-check" :class="{ on: appToggles.floating }"><svg v-if="appToggles.floating" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
             </div>
             <div class="ns-remind-card" :class="{ on: appToggles.badge }" @click="toggleAppSetting('badge')">
               <div class="phone-mini pm-grid-wrap"><div class="pm-grid"><i v-for="i in 16" :key="i" class="pm-cell" :class="{ badge: i === 3 }"></i></div></div>
-              <span class="pm-label">桌面角标</span>
+              <span class="pm-label">{{ i18n.t('nsHomeBadge') }}</span>
               <span class="pm-check" :class="{ on: appToggles.badge }"><svg v-if="appToggles.badge" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
             </div>
           </div>
 
           <div class="ns-section">
             <div class="ns-row">
-              <div class="ns-row-text"><span class="ns-row-title">允许响铃</span></div>
+              <div class="ns-row-text"><span class="ns-row-title">{{ i18n.t('nsAllowRing') }}</span></div>
               <ToggleSwitch v-model="appToggles.ring" />
             </div>
             <div class="ns-row last">
-              <div class="ns-row-text"><span class="ns-row-title">振动</span></div>
+              <div class="ns-row-text"><span class="ns-row-title">{{ i18n.t('nsVibrate') }}</span></div>
               <ToggleSwitch v-model="appToggles.vibrate" />
             </div>
           </div>
 
-          <div class="ns-group-label">通知类型</div>
+          <div class="ns-group-label">{{ i18n.t('nsType') }}</div>
           <div class="ns-section">
-            <div class="ns-row last"><span class="ns-row-title">消息通知</span><span class="ns-value gray">重要</span></div>
+            <div class="ns-row last"><span class="ns-row-title">{{ i18n.t('nsMessageNotif') }}</span><span class="ns-value gray">{{ i18n.t('nsImportant') }}</span></div>
           </div>
         </template>
       </div>

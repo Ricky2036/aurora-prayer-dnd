@@ -1,32 +1,28 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
+import { useI18nStore } from '../../../stores/i18nStore'
 
 /**
  * 电话：底部 Tab（最近通话 / 通讯录 / 拨号键盘）。
  * 拨号键盘：圆形数字键 + 号码回显 + 拨打/删除；拨号即生成一条「呼叫中」模拟态。
  */
 const props = defineProps({ app: Object })
+const i18n = useI18nStore()
 
 const tab = ref('keypad') // recents | contacts | keypad
 
-const RECENTS = [
-  { name: '王工（深圳）', type: 'missed', time: '22:28', tag: '手机' },
-  { name: '陈静', type: 'outgoing', time: '21:47', tag: '手机' },
-  { name: '顺丰快递', type: 'incoming', time: '19:02', tag: '快递' },
-  { name: '妈妈', type: 'incoming', time: '昨天', tag: '手机' },
-  { name: 'Leo', type: 'missed', time: '昨天', tag: '手机' },
-  { name: '美团外卖', type: 'incoming', time: '周六', tag: '外卖' }
-]
-
-const CONTACTS = [
-  { name: '陈静', initial: '陈', color: '#5AC8FA' },
-  { name: 'Leo', initial: 'L', color: '#34C759' },
-  { name: '妈妈', initial: '妈', color: '#FF2D55' },
-  { name: '王工', initial: '王', color: '#FF9500' },
-  { name: '张伟', initial: '张', color: '#AF52DE' },
-  { name: '赵敏', initial: '赵', color: '#0A84FF' }
-]
+/* 演示数据从 i18n 取：姓名、标签、时间都跟着语言走；
+   颜色是视觉常量，用 id 顺序固定分配，不参与翻译 */
+const CONTACT_COLORS = ['#5AC8FA', '#34C759', '#FF2D55', '#FF9500', '#AF52DE', '#0A84FF']
+/* 必须 computed：写死在 setup 里的话，开着应用切语言时列表不会跟着变 */
+const RECENTS = computed(() => i18n.demoRecents || [])
+const CONTACTS = computed(() =>
+  (i18n.demoContacts || []).map((c, i) => ({
+    ...c,
+    color: CONTACT_COLORS[i % CONTACT_COLORS.length]
+  }))
+)
 
 const KEYS = [
   ['1', ''], ['2', 'ABC'], ['3', 'DEF'],
@@ -37,6 +33,7 @@ const KEYS = [
 
 const number = ref('')
 const calling = ref(false)
+let callTimer = null
 
 function pressKey(k) {
   if (number.value.length < 15) number.value += k
@@ -47,10 +44,12 @@ function backspace() {
 function call() {
   if (!number.value) return
   calling.value = true
-  setTimeout(() => {
+  clearTimeout(callTimer)
+  callTimer = setTimeout(() => {
     calling.value = false
     number.value = ''
     tab.value = 'recents'
+    callTimer = null
   }, 2200)
 }
 
@@ -63,10 +62,22 @@ const formatted = computed(() => {
 })
 
 const TABS = [
-  { id: 'recents', label: '最近通话', glyph: 'schedule' },
-  { id: 'contacts', label: '通讯录', glyph: 'person' },
-  { id: 'keypad', label: '拨号键盘', glyph: 'dialpad' }
+  { id: 'recents', key: 'phoneRecents', glyph: 'schedule' },
+  { id: 'contacts', key: 'phoneContacts', glyph: 'person' },
+  { id: 'keypad', key: 'phoneKeypad', glyph: 'dialpad' }
 ]
+
+/* tab 取值非法时 find 会返回 undefined，模板里直接 .label 会抛错并白屏，故兜底到首个 Tab */
+const activeTabLabel = computed(() => {
+  const t = TABS.find((x) => x.id === tab.value) ?? TABS[0]
+  return i18n.t(t.key)
+})
+
+/* 拨打中滑走关闭应用的话，2.2s 后的回调会写已卸载组件的 ref 并把 tab 改掉，故卸载时清掉 */
+onBeforeUnmount(() => {
+  clearTimeout(callTimer)
+  callTimer = null
+})
 </script>
 
 <template>
@@ -76,7 +87,7 @@ const TABS = [
       <div v-if="calling" class="calling-overlay">
         <div class="co-avatar">{{ number.slice(0, 1) }}</div>
         <div class="co-number">{{ formatted }}</div>
-        <div class="co-status">正在呼叫…</div>
+        <div class="co-status">{{ i18n.t('callCalling') }}</div>
         <div class="co-end" @click="calling = false; number = ''">
           <svg width="26" height="26" viewBox="0 0 24 24" style="transform: rotate(135deg)">
             <path :d="GLYPHS.phone" fill="#fff" />
@@ -86,7 +97,7 @@ const TABS = [
     </Transition>
 
     <div class="pa-header">
-      <div class="large-title">{{ TABS.find(t => t.id === tab).label }}</div>
+      <div class="large-title">{{ activeTabLabel }}</div>
     </div>
 
     <!-- 最近通话 -->
@@ -154,7 +165,7 @@ const TABS = [
         <svg width="24" height="24" viewBox="0 0 24 24">
           <path :d="GLYPHS[t.glyph]" :fill="tab === t.id ? '#007AFF' : '#8E8E93'" />
         </svg>
-        <span>{{ t.label }}</span>
+        <span>{{ i18n.t(t.key) }}</span>
       </button>
     </div>
   </div>

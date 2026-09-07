@@ -154,7 +154,8 @@ function handleClose(e) {
 
 /* 展开态尺寸：圆角矩形 */
 .island-card.is-expanded {
-  width: 358px;
+  width: calc(var(--screen-w, 360px) - 20px);
+  max-width: 358px;
   height: 80px;
   border-radius: 22px;
   padding: 0 16px 0 18px;

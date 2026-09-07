@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { getApp } from '../../config/apps'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { clamp } from '../../utils/math'
+import { useI18nStore } from '../../stores/i18nStore'
 
 /**
  * 通知卡片：锁屏摘要 / 通知中心共用。
@@ -13,6 +14,7 @@ const props = defineProps({
   dismissible: { type: Boolean, default: false }
 })
 const emit = defineEmits(['dismiss'])
+const i18n = useI18nStore()
 
 const app = computed(() => getApp(props.notification.appId))
 
@@ -20,12 +22,12 @@ const app = computed(() => getApp(props.notification.appId))
 const timeLabel = computed(() => {
   const diff = Date.now() - props.notification.time
   const m = Math.floor(diff / 60000)
-  if (m < 1) return '刚刚'
-  if (m < 60) return `${m}分钟前`
+  if (m < 1) return i18n.t('justNow')
+  if (m < 60) return i18n.t('minutesAgo')(m)
   const h = Math.floor(m / 60)
-  if (h < 24) return `${h}小时前`
+  if (h < 24) return i18n.t('hoursAgo')(h)
   const d = new Date(props.notification.time)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+  return i18n.t('monthDay')(i18n.monthNames[d.getMonth()] || d.getMonth() + 1, d.getDate())
 })
 
 /* ---- 左滑删除（卡片级轻量拖拽，独立实现不复用系统手势） ---- */
@@ -47,13 +49,24 @@ function onPointerMove(e) {
   const d = e.clientX - startX
   offsetX.value = clamp(d, FULL_DELETE, 0)
 }
+/* 滑出动画 180ms 后真正派发 dismiss。卡片若在这期间被「清空全部」移除，
+   定时器仍会向已卸载组件派发一次，故统一登记句柄并在卸载时清理 */
+let dismissTimer = null
+function scheduleDismiss() {
+  clearTimeout(dismissTimer)
+  dismissTimer = setTimeout(() => {
+    dismissTimer = null
+    emit('dismiss', props.notification.id)
+  }, 180)
+}
+
 function onPointerUp() {
   if (!dragging) return
   dragging = false
   if (offsetX.value <= FULL_DELETE * 0.85) {
     removing.value = true
     offsetX.value = -420
-    setTimeout(() => emit('dismiss', props.notification.id), 180)
+    scheduleDismiss()
   } else if (offsetX.value <= DELETE_THRESHOLD) {
     offsetX.value = DELETE_THRESHOLD // 停在露出删除键的位置
   } else {
@@ -63,8 +76,13 @@ function onPointerUp() {
 function quickDelete() {
   removing.value = true
   offsetX.value = -420
-  setTimeout(() => emit('dismiss', props.notification.id), 180)
+  scheduleDismiss()
 }
+
+onBeforeUnmount(() => {
+  clearTimeout(dismissTimer)
+  dismissTimer = null
+})
 
 const cardStyle = computed(() => ({
   transform: `translateX(${offsetX.value}px)`,
@@ -77,7 +95,7 @@ const deleteOpacity = computed(() => clamp(-offsetX.value / 60, 0, 1))
   <div class="nc-wrap">
     <div v-if="dismissible" class="nc-delete" :style="{ opacity: deleteOpacity }" @click="quickDelete">
       <svg width="18" height="18" viewBox="0 0 24 24"><path :d="GLYPHS.trash" fill="#fff" /></svg>
-      <span>清除</span>
+      <span>{{ i18n.t('clear') }}</span>
     </div>
 
     <div
@@ -96,10 +114,10 @@ const deleteOpacity = computed(() => clamp(-offsetX.value / 60, 0, 1))
       </div>
       <div class="nc-body">
         <div class="nc-head">
-          <span class="nc-title">{{ notification.title }}</span>
+          <span class="nc-title">{{ i18n.notifTitle(notification.appId) }}</span>
           <span class="nc-time">{{ timeLabel }}</span>
         </div>
-        <p class="nc-text">{{ notification.body }}</p>
+        <p class="nc-text">{{ i18n.notifBody(notification.appId) }}</p>
       </div>
     </div>
   </div>

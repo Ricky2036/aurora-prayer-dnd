@@ -297,7 +297,9 @@ useSwipeGesture(sideEdgeRef, {
 
     <DynamicIsland v-if="!system.anyOverlayOpen() && system.baseLayer !== 'lock'" />
     <StatusBar v-if="!system.anyOverlayOpen()" :light="chromeLight" />
-    <HomeIndicator v-if="!system.anyOverlayOpen()" :dark="!chromeLight" />
+    <!-- 导航条全局可见：通知中心 / 控制中心打开时也要浮在最上层（z 96 > CC 94 > NC 92），
+         点击 / 上滑可收起当前叠层。下方内容需为它预留 --home-indicator-inset 的安全高度。 -->
+    <HomeIndicator :dark="!chromeLight" />
   </div>
 </template>
 

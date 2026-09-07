@@ -1,5 +1,6 @@
 <script setup>
 import { GLYPHS } from '../../assets/icons/glyphs'
+import { useI18nStore } from '../../stores/i18nStore'
 
 /** iOS 16 风格分页指示：圆点 + 搜索胶囊 */
 const props = defineProps({
@@ -7,6 +8,7 @@ const props = defineProps({
   current: { type: Number, default: 0 }
 })
 const emit = defineEmits(['search'])
+const i18n = useI18nStore()
 </script>
 
 <template>
@@ -20,7 +22,7 @@ const emit = defineEmits(['search'])
     ></span>
     <button class="search-pill" @click="emit('search')">
       <svg width="12" height="12" viewBox="0 0 24 24"><path :d="GLYPHS.search" fill="#fff" /></svg>
-      <span>搜索</span>
+      <span>{{ i18n.t('search') }}</span>
     </button>
   </div>
 </template>

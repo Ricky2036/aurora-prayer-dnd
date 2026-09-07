@@ -3,26 +3,53 @@
  * 4 列绝对二维坐标系：打包排版 / 碰撞检测 / swap 模式虚拟显示引擎 / FLIP 动画。
  */
 
-/** 紧凑打包：按数组顺序把卡片塞入 4 列网格，返回带 r/c 坐标的布局 */
+const GRID_COLS = 4
+const MAX_GRID_ROWS = 128
+
+/** 把 w/h 规范化到 [1, max]：NaN / undefined / 0 / 负数 / 超界一律钳制。
+ *  这是 packLayout 不死循环的前提——保证内层 `c <= GRID_COLS - w` 至少执行一次。 */
+function normalizeSpan(value, max) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return 1
+  const i = Math.trunc(n)
+  if (i < 1) return 1
+  return i > max ? max : i
+}
+
+/**
+ * 紧凑打包：按数组顺序把卡片塞入 4 列网格，返回带 r/c 坐标的布局。
+ * 入口防御：w/h 先规范化，保证内层至少执行一次、外层行数有上界，循环必然收敛。
+ * 返回结构与防御前完全一致：元素顺序不变，仍是 {...item, r, c}。
+ */
 export function packLayout(items) {
   const grid = []
   const packed = []
+  if (!Array.isArray(items)) return packed
+
   items.forEach((item) => {
+    if (!item) return
     const newItem = { ...item }
+    // 钳制后写回：避免下游 cellStyle 生成 `span NaN` 这类无效 CSS
+    const w = normalizeSpan(newItem.w, GRID_COLS)
+    const h = normalizeSpan(newItem.h, MAX_GRID_ROWS)
+    newItem.w = w
+    newItem.h = h
+
     let placed = false
-    for (let r = 0; !placed; r++) {
+    let r = 0
+    for (; !placed && r < MAX_GRID_ROWS; r++) {
       if (!grid[r]) grid[r] = [null, null, null, null]
-      for (let c = 0; c <= 4 - newItem.w; c++) {
+      for (let c = 0; c <= GRID_COLS - w; c++) {
         let free = true
-        for (let ir = 0; ir < newItem.h; ir++) {
+        for (let ir = 0; ir < h && free; ir++) {
           if (!grid[r + ir]) grid[r + ir] = [null, null, null, null]
-          for (let ic = 0; ic < newItem.w; ic++) {
-            if (grid[r + ir][c + ic]) free = false
+          for (let ic = 0; ic < w; ic++) {
+            if (grid[r + ir][c + ic]) { free = false; break }
           }
         }
         if (free) {
-          for (let ir = 0; ir < newItem.h; ir++) {
-            for (let ic = 0; ic < newItem.w; ic++) {
+          for (let ir = 0; ir < h; ir++) {
+            for (let ic = 0; ic < w; ic++) {
               grid[r + ir][c + ic] = newItem.id
             }
           }
@@ -33,6 +60,13 @@ export function packLayout(items) {
           break
         }
       }
+    }
+    // 兜底（正常数据不可达）：保证 packed 数量与输入一致，
+    // 否则 computeDisplayLayout 的 find-by-id 会漏项、FLIP 会错位
+    if (!placed) {
+      newItem.r = r
+      newItem.c = 0
+      packed.push(newItem)
     }
   })
   return packed

@@ -5,6 +5,7 @@ import { useSpring } from '../../composables/useSpring'
 import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { useSystemStore } from '../../stores/systemStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
+import { useI18nStore } from '../../stores/i18nStore'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
 import { clamp } from '../../utils/math'
@@ -24,6 +25,7 @@ import MusicPlayerCard from './MusicPlayerCard.vue'
 const { timeShort, dateLong } = useClock()
 const system = useSystemStore()
 const notifications = useNotificationsStore()
+const i18n = useI18nStore()
 
 const rootRef = ref(null)
 const UNLOCK_SPAN = 460
@@ -55,6 +57,18 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (resizeObserver) resizeObserver.disconnect()
   window.removeEventListener('resize', updateScreenHeight)
+  // 回弹 rAF 循环必须取消：唯一出口是 isDragging 变 false，而拖拽中解锁时
+  // 组件被 v-if 卸载、touchend 不再派发，循环会永久空转占用主线程
+  if (boundsLoopId !== null) {
+    cancelAnimationFrame(boundsLoopId)
+    boundsLoopId = null
+  }
+  // 滚轮惯性定时器：卸载后仍会触发 isWheeling 写入
+  if (wheelTimeout) {
+    clearTimeout(wheelTimeout)
+    wheelTimeout = null
+  }
+  isSpringing.value = false
 })
 
 const BASE_Y = computed(() => screenHeight.value - 254)
@@ -77,6 +91,8 @@ const COLLAPSE_THRESHOLD = -26
 
 /* 锁屏只展示最新 6 条（与 TSX 一致），通知中心展示全部 */
 const lockNotifs = computed(() => notifications.list.slice(0, 6))
+/* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
+const notifCountLabel = computed(() => i18n.t('notifCount')(lockNotifs.value.length))
 const MAX_SCROLL = computed(() => Math.max(0, (lockNotifs.value.length - 1) * NOTIF_SPACING))
 
 /* ---------- 滚动状态 ---------- */
@@ -359,10 +375,10 @@ function notifStyle(i) {
           <NotificationIcon :type="n.iconType" :size="38" />
           <div class="ls-notif-body">
             <div class="ls-notif-head">
-              <span class="ls-notif-title">{{ n.title }}</span>
-              <span class="ls-notif-time">{{ formatRelativeTime(n.time) }}</span>
+              <span class="ls-notif-title">{{ i18n.notifTitle(n.appId) }}</span>
+              <span class="ls-notif-time">{{ formatRelativeTime(n.time, i18n.t) }}</span>
             </div>
-            <p class="ls-notif-desc">{{ n.body }}</p>
+            <p class="ls-notif-desc">{{ i18n.notifBody(n.appId) }}</p>
           </div>
         </div>
       </div>
@@ -374,7 +390,7 @@ function notifStyle(i) {
           <NotificationIcon :type="lockNotifs[1]?.iconType || 'default'" :size="22" />
           <NotificationIcon :type="lockNotifs[2]?.iconType || 'default'" :size="22" />
         </div>
-        <span class="lp-count">{{ lockNotifs.length }} 条通知</span>
+        <span class="lp-count">{{ notifCountLabel }}</span>
       </div>
 
       <!-- 底部快捷按钮 -->

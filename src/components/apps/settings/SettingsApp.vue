@@ -46,6 +46,15 @@ watch(
   }
 )
 
+/* 蓝牙 / 蜂窝网络 / 墙纸 / 电池 四个二级页本原型未实现。
+   原先它们被硬编码路由到 wifi / display 页（点「蓝牙」跳到 Wi-Fi 页），
+   改为统一的占位页并显示正确标题，避免跳错页。 */
+const placeholderKey = ref('')
+function pushUnimplemented(v) {
+  placeholderKey.value = v
+  push('placeholder')
+}
+
 function push(v) {
   isBack.value = false
   stack.value.push(v)
@@ -74,7 +83,8 @@ const viewTitles = computed(() => ({
   notifications: i18n.t('notifications'),
   sound: i18n.t('soundAndVibration'),
   dnd: i18n.t('dnd'),
-  prayer: i18n.t('prayerDnd')
+  prayer: i18n.t('prayerDnd'),
+  placeholder: i18n.t(placeholderKey.value) || i18n.t('general')
 }))
 
 /* 显示与亮度：横向亮度滑块 */
@@ -115,12 +125,12 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
         </div>
 
         <div class="cell-group">
-          <ListCell glyph="airplane" icon-bg="#FF9F0A" :title="i18n.locale === 'zh' ? '飞行模式' : i18n.locale === 'en' ? 'Airplane Mode' : 'বিমান মোড'">
+          <ListCell glyph="airplane" icon-bg="#FF9F0A" :title="i18n.t('airplaneMode')">
             <template #right><ToggleSwitch v-model="control.airplane" /></template>
           </ListCell>
-          <ListCell glyph="wifi" icon-bg="#0A84FF" :title="i18n.t('wifi')" :value="control.wifi ? 'Aurora_5G' : (i18n.locale === 'zh' ? '关闭' : i18n.locale === 'en' ? 'Off' : 'বন্ধ')" chevron @click="push('wifi')" />
-          <ListCell glyph="bluetooth" icon-bg="#0A84FF" :title="i18n.locale === 'zh' ? '蓝牙' : i18n.locale === 'en' ? 'Bluetooth' : 'ব্লুটুথ'" :value="control.bluetooth ? (i18n.locale === 'zh' ? '打开' : i18n.locale === 'en' ? 'On' : 'চালু') : (i18n.locale === 'zh' ? '关闭' : i18n.locale === 'en' ? 'Off' : 'বন্ধ')" chevron @click="push('wifi')" />
-          <ListCell icon-text="信" icon-bg="#34C759" :title="i18n.locale === 'zh' ? '蜂窝网络' : i18n.locale === 'en' ? 'Cellular' : 'সেলুলার'" chevron last @click="push('wifi')" />
+          <ListCell glyph="wifi" icon-bg="#0A84FF" :title="i18n.t('wifi')" :value="control.wifi ? 'Aurora_5G' : i18n.t('off')" chevron @click="push('wifi')" />
+          <ListCell glyph="bluetooth" icon-bg="#0A84FF" :title="i18n.t('bluetooth')" :value="control.bluetooth ? i18n.t('on') : i18n.t('off')" chevron @click="pushUnimplemented('bluetooth')" />
+          <ListCell :icon-text="i18n.t('cellular').slice(0, 1)" icon-bg="#34C759" :title="i18n.t('cellular')" chevron last @click="pushUnimplemented('cellular')" />
         </div>
 
         <div class="cell-group">
@@ -131,8 +141,8 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
         <div class="cell-group">
           <ListCell glyph="gear" icon-bg="#8E8E93" :title="i18n.t('general')" chevron @click="push('general')" />
           <ListCell glyph="sun" icon-bg="#0A84FF" :title="i18n.t('displayAndBrightness')" chevron @click="push('display')" />
-          <ListCell glyph="image" icon-bg="#5AC8FA" :title="i18n.locale === 'zh' ? '墙纸' : i18n.locale === 'en' ? 'Wallpaper' : 'ওয়ালপেপার'" chevron @click="push('display')" />
-          <ListCell glyph="battery" icon-bg="#34C759" :title="i18n.locale === 'zh' ? '电池' : i18n.locale === 'en' ? 'Battery' : 'ব্যাটারি'" :value="Math.round(control.battery * 100) + '%'" chevron last @click="push('display')" />
+          <ListCell glyph="image" icon-bg="#5AC8FA" :title="i18n.t('wallpaper')" chevron @click="pushUnimplemented('wallpaper')" />
+          <ListCell glyph="battery" icon-bg="#34C759" :title="i18n.t('battery')" :value="Math.round(control.battery * 100) + '%'" chevron last @click="pushUnimplemented('battery')" />
         </div>
 
       </div>
@@ -159,17 +169,22 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
 
       <!-- ================= 二级页 ================= -->
       <div v-else :key="view" class="settings-page">
-        <AppNavBar :title="viewTitles[view]" back-label="设置" @back="pop" />
+        <AppNavBar :title="viewTitles[view]" :back-label="i18n.t('settings')" @back="pop" />
+
+        <!-- 未实现页面的占位（蓝牙 / 蜂窝网络 / 墙纸 / 电池） -->
+        <div v-if="view === 'placeholder'" class="scrollable detail-body">
+          <div class="placeholder-note">{{ i18n.t('notImplemented') }}</div>
+        </div>
 
         <!-- 无线局域网 -->
-        <div v-if="view === 'wifi'" class="scrollable detail-body">
+        <div v-else-if="view === 'wifi'" class="scrollable detail-body">
           <div class="cell-group">
-            <ListCell glyph="wifi" icon-bg="#0A84FF" title="无线局域网" last>
+            <ListCell glyph="wifi" icon-bg="#0A84FF" :title="i18n.t('wifi')" last>
               <template #right><ToggleSwitch v-model="control.wifi" /></template>
             </ListCell>
           </div>
           <template v-if="control.wifi">
-            <div class="group-header">当前网络</div>
+            <div class="group-header">{{ i18n.t('currentNetwork') }}</div>
             <div class="cell-group">
               <ListCell title="Aurora_5G" last>
                 <template #right>
@@ -178,7 +193,7 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
                 </template>
               </ListCell>
             </div>
-            <div class="group-header">其他网络</div>
+            <div class="group-header">{{ i18n.t('otherNetworks') }}</div>
             <div class="cell-group">
               <ListCell v-for="(n, i) in networks" :key="n" :title="n" :last="i === networks.length - 1">
                 <template #right>
@@ -187,23 +202,23 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
               </ListCell>
             </div>
           </template>
-          <div v-else class="empty-note">无线局域网已关闭</div>
+          <div v-else class="empty-note">{{ i18n.t('wifiOffNote') }}</div>
         </div>
 
         <!-- 显示与亮度 -->
         <div v-else-if="view === 'display'" class="scrollable detail-body">
-          <div class="group-header">外观</div>
+          <div class="group-header">{{ i18n.t('appearance') }}</div>
           <div class="appearance-row">
             <div class="appearance-card selected">
               <div class="appearance-preview light"></div>
-              <span>浅色</span>
+              <span>{{ i18n.t('light') }}</span>
             </div>
             <div class="appearance-card">
               <div class="appearance-preview dark"></div>
-              <span>深色</span>
+              <span>{{ i18n.t('dark') }}</span>
             </div>
           </div>
-          <div class="group-header">亮度</div>
+          <div class="group-header">{{ i18n.t('brightnessLabel') }}</div>
           <div class="brightness-card">
             <svg width="16" height="16" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
             <div
@@ -219,27 +234,27 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
             <svg width="22" height="22" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
           </div>
           <div class="cell-group">
-            <ListCell title="原彩显示">
+            <ListCell :title="i18n.t('trueTone')">
               <template #right><ToggleSwitch :model-value="true" /></template>
             </ListCell>
-            <ListCell title="夜览" value="日落到日出" chevron last />
+            <ListCell :title="i18n.t('nightShift')" :value="i18n.t('sunsetToSunrise')" chevron last />
           </div>
         </div>
 
         <!-- 通用 -->
         <div v-else class="scrollable detail-body">
           <div class="cell-group">
-            <ListCell title="关于本机" chevron @click="" />
-            <ListCell title="软件更新" value="已是最新" last />
+            <ListCell :title="i18n.t('about')" chevron />
+            <ListCell :title="i18n.t('softwareUpdate')" :value="i18n.t('upToDate')" last />
           </div>
-          <div class="group-header">设备信息</div>
+          <div class="group-header">{{ i18n.t('deviceInfo') }}</div>
           <div class="cell-group">
-            <ListCell title="名称" value="Aurora One" />
-            <ListCell title="型号" value="Aurora Phone" />
-            <ListCell title="系统版本" value="26.0 (21A345)" last />
+            <ListCell :title="i18n.t('deviceName')" value="Aurora One" />
+            <ListCell :title="i18n.t('model')" value="Aurora Phone" />
+            <ListCell :title="i18n.t('systemVersion')" value="26.0 (21A345)" last />
           </div>
           <div class="cell-group">
-            <ListCell title="储存空间" value="256 GB 中 214 GB 可用" last />
+            <ListCell :title="i18n.t('storage')" value="214 GB / 256 GB" last />
           </div>
         </div>
       </div>
@@ -360,6 +375,16 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
   color: var(--label-secondary);
   font: var(--text-subhead);
   margin-top: 40px;
+}
+
+/* 未实现二级页的占位空状态 */
+.placeholder-note {
+  text-align: center;
+  color: var(--label-tertiary, var(--label-secondary));
+  font: var(--text-subhead);
+  margin-top: 120px;
+  padding: 0 40px;
+  line-height: 1.6;
 }
 .settings-footer {
   text-align: center;

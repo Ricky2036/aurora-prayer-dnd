@@ -196,15 +196,18 @@ function toggleWeekDay(day) {
 
 function saveEdit() {
   if (!editingPrayer.value) return
-  let label = '每天'
+  // 这条 label 会存进 store 并显示在列表上，必须跟着语言走，否则切英文后这里仍是中文
+  let label = i18n.t('repeatEveryday')
   if (editForm.value.repeatType === 'weekday') {
-    label = '工作日启用 · 周末关闭'
+    label = i18n.t('repeatWeekdayOn')
   } else if (editForm.value.repeatType === 'weekend') {
-    label = '仅周末启用'
+    label = i18n.t('repeatWeekendOnly')
   } else if (editForm.value.repeatType === 'custom') {
-    if (editForm.value.repeatDays.length === 7) label = '每天'
-    else if (editForm.value.repeatDays.length === 5 && !editForm.value.repeatDays.includes(5) && !editForm.value.repeatDays.includes(6)) label = '工作日启用 · 周末关闭'
-    else label = '每周 ' + editForm.value.repeatDays.map(d => weekDays.value.find(w => w.day === d)?.label).join('、')
+    if (editForm.value.repeatDays.length === 7) label = i18n.t('repeatEveryday')
+    else if (editForm.value.repeatDays.length === 5 && !editForm.value.repeatDays.includes(5) && !editForm.value.repeatDays.includes(6)) label = i18n.t('repeatWeekdayOn')
+    else label = i18n.t('repeatWeekly')(
+      editForm.value.repeatDays.map(d => weekDays.value.find(w => w.day === d)?.label).join(i18n.t('repeatDaySep'))
+    )
   }
 
   prayerStore.updatePrayer(editingPrayer.value.id, {
@@ -307,7 +310,7 @@ function saveEdit() {
 
         <div class="scrollable detail-body">
           <!-- 时间设置分组（深灰色字体，无背板，点击在屏幕底部呼出时间滚轮弹窗） -->
-          <div class="group-header">{{ i18n.locale === 'zh' ? '时间设置' : i18n.locale === 'en' ? 'TIME SETTINGS' : 'সময় নির্ধারণ' }}</div>
+          <div class="group-header">{{ i18n.t('prayerTimeSettings') }}</div>
           <div class="cell-group">
             <div class="list-cell clickable" @click="openTimePicker('start')">
               <div class="lc-main">
@@ -349,7 +352,7 @@ function saveEdit() {
               @click="selectRepeatPreset('weekday')"
             >
               <div class="lc-main">
-                <span class="lc-title">{{ i18n.locale === 'zh' ? '工作日 (周日至周四)' : i18n.locale === 'en' ? 'Weekdays (Sun-Thu)' : 'কার্যদিবস (রবি-বৃহঃ)' }}</span>
+                <span class="lc-title">{{ i18n.t('repeatWeekdaySunThu') }}</span>
                 <div class="lc-right">
                   <svg v-if="editForm.repeatType === 'weekday'" width="18" height="18" viewBox="0 0 24 24">
                     <path :d="GLYPHS.check" fill="#007AFF" />
@@ -363,7 +366,7 @@ function saveEdit() {
               @click="selectRepeatPreset('weekend')"
             >
               <div class="lc-main" :class="{ 'no-sep': editForm.repeatType !== 'custom' }">
-                <span class="lc-title">{{ i18n.locale === 'zh' ? '周末 (周五至周六)' : i18n.locale === 'en' ? 'Weekend (Fri-Sat)' : 'ছুটির দিন (শুক্র-শনি)' }}</span>
+                <span class="lc-title">{{ i18n.t('repeatWeekendFriSat') }}</span>
                 <div class="lc-right">
                   <svg v-if="editForm.repeatType === 'weekend'" width="18" height="18" viewBox="0 0 24 24">
                     <path :d="GLYPHS.check" fill="#007AFF" />
