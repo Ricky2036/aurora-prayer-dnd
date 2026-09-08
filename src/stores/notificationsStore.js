@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { seedNotifications } from '../config/seedNotifications'
+import { seedNotifications } from '../config/seedNotifications.js'
 
 let nextId = 100
 
@@ -23,10 +23,11 @@ export const useNotificationsStore = defineStore('notifications', {
 
   actions: {
     /** 新增一条通知 = push 一下，锁屏/通知中心/角标自动同步 */
-    push({ appId, title, body, minutesAgo = 0 }) {
+    push({ appId, title, body, minutesAgo = 0, iconType }) {
       this.list.unshift({
         id: nextId++,
         appId,
+        iconType: iconType || appId,
         title,
         body,
         time: Date.now() - minutesAgo * 60000
