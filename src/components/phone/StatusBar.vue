@@ -5,6 +5,7 @@ import { useControlStore } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import StatusIcons from '../ui/StatusIcons.vue'
+import LIcon from '../ui/LIcon.vue'
 
 const { timeShort } = useClock()
 const control = useControlStore()
@@ -20,12 +21,21 @@ const hideTime = computed(() => {
 const props = defineProps({
   light: { type: Boolean, default: true }
 })
+
+/* 状态栏指示图标：启用对应功能时点亮（图标与对应开关按钮同源，保证视觉一致）
+ * DND 有两个状态字段（控制中心 control.dnd 与设置页 control.doNotDisturb 未互相同步），
+ * 任一为 true 都点亮，两个入口都能在状态栏看到。 */
+const dndOn = computed(() => control.dnd || control.doNotDisturb)
 </script>
 
 <template>
   <div class="status-bar" :style="{ color: light ? '#fff' : '#000' }">
     <span class="sb-time" :style="{ opacity: hideTime ? 0 : 1 }">{{ timeShort }}</span>
     <div class="sb-right">
+      <LIcon v-if="dndOn" name="moon" :size="13" class="sb-ind" />
+      <LIcon v-if="control.hotspot" name="radio" :size="13" class="sb-ind" />
+      <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="13" class="sb-ind" />
+      <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="13" class="sb-ind" />
       <StatusIcons :color="light ? '#fff' : '#000'" />
     </div>
   </div>
@@ -59,5 +69,8 @@ const props = defineProps({
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.sb-ind {
+  flex: 0 0 auto;
 }
 </style>
