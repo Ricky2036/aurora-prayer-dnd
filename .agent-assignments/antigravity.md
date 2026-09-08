@@ -4,14 +4,14 @@ Branch: `antigravity/lane`
 
 Development port: `5175`
 
-Default ownership:
+Current module ownership:
 
-- visual QA and browser regression
-- reusable UI components under `src/components/ui/**`
-- widgets under `src/components/widgets/**`
-- developer tooling under `src/components/dev/**` and `scripts/**`
-- screenshots, reproduction scripts, and accessibility/performance checks
+- all independent apps under `src/components/apps/**`, except notification/control-center surfaces
+- app-specific stores, assets, interactions, and tests
+- visual QA and whole-product regression
+- integration worktree maintenance, cherry-picks, conflict resolution, final build, and publishing `main`
+- shared app registration changes in `src/config/apps.js` and `src/components/apps/registry.js`, performed during integration
 
-Do not modify shared integration files listed in `AGENTS.md` without an active exclusive assignment. Prefer reporting reproducible defects separately from implementing fixes outside this ownership area.
+Antigravity may modify shared files only while integrating an accepted handoff or when an explicit task assigns the file. It must not implement feature work directly in the integration worktree.
 
-Before handoff run the relevant regression scripts and `npm run build`.
+Before publishing run `npm test`, `npm run build`, and the relevant browser regressions.

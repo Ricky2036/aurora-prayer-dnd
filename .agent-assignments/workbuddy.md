@@ -4,12 +4,16 @@ Branch: `workbuddy/lane`
 
 Development port: `5173`
 
-Default ownership:
+Current module ownership:
 
-- product feature implementation inside `src/components/apps/**`
-- feature-specific state stores, excluding shared system/home stores
-- app content, interactions, and feature-level tests
-- public assets required by its assigned feature
+- Control Center behavior and presentation
+- `src/components/system/ControlCenter.vue`
+- `src/components/system/cc/**`
+- `src/stores/controlStore.js`
+- `src/components/dev/ControlCenterFineTunePanel.vue`
+- Control Center-specific scripts and tests, including `scripts/debug-cc-drag.mjs` and `scripts/shots-cc.mjs`
+
+Related reusable UI files such as `SliderControl.vue`, `ToggleSwitch.vue`, and global styles are not automatically owned. Request an explicit lock before changing them.
 
 Do not modify shared integration files listed in `AGENTS.md` without an active exclusive assignment.
 

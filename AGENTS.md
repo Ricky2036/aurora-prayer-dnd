@@ -10,7 +10,7 @@ Use the current worktree directory name:
 - `tos-workbuddy` -> read `.agent-assignments/workbuddy.md`
 - `tos-codex` -> read `.agent-assignments/codex.md`
 - `tos-antigravity` -> read `.agent-assignments/antigravity.md`
-- `2026-08-02-23-04-06` -> integration worktree; do not implement features here
+- `2026-08-02-23-04-06` -> integration worktree; Antigravity is the designated integration owner and feature work is not implemented here
 
 If the directory name does not match one of these values, stop and ask which role owns the workspace.
 
@@ -21,7 +21,7 @@ If the directory name does not match one of these values, stop and ask which rol
 3. Never discard, reset, stash, or overwrite changes you did not create.
 4. Do not edit shared integration files unless the current task explicitly assigns them to you.
 5. Keep commits small and task-specific. Stage explicit paths; do not use `git add -A`.
-6. Do not merge or cherry-pick into `main`. The integration owner does that centrally.
+6. Do not merge or cherry-pick into `main`. Antigravity does that centrally from the integration worktree.
 7. Do not push `main`, force-push, or rewrite published history.
 8. Run the checks listed in your role file before handoff.
 9. Use the development port assigned to your role with `--strictPort`.
@@ -64,4 +64,4 @@ Every completed task must report:
 - known risks or follow-up work
 - whether any shared-file lock can be released
 
-The integration owner cherry-picks one task at a time, verifies it, updates `ACTIVE_TASKS.md`, and then publishes `main`.
+Antigravity cherry-picks one task at a time from the integration worktree, verifies it, updates `ACTIVE_TASKS.md`, and then publishes `main`.
