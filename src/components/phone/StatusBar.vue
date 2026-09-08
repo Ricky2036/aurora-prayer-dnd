@@ -6,6 +6,7 @@ import { useSystemStore } from '../../stores/systemStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import StatusIcons from '../ui/StatusIcons.vue'
 import LIcon from '../ui/LIcon.vue'
+import { orderedIndicators } from '../../utils/statusBarIndicators'
 
 const { timeShort } = useClock()
 const control = useControlStore()
@@ -28,7 +29,7 @@ const props = defineProps({
 const dndOn = computed(() => control.dnd || control.doNotDisturb)
 
 /* ============ 状态栏图标优先级 ============
- * 设计原则（Ricky 2026-09-08）：
+ * 设计原则（Ricky 2026-09-08）：与下拉控制中心状态行共用 src/utils/statusBarIndicators.js 同一套规则。
  *  1) 给每个状态栏图标定优先级；优先级越高越靠近右侧（越显眼 / 越晚被隐藏）。
  *  2) 原生连接图标（信号/Wi-Fi/电池，来自 <StatusIcons>）视为最高优先级，永远显示、固定在最右。
  *  3) 5 个功能指示器按优先级从右往左排（左=低优先级），整体放在原生图标左侧。
@@ -36,17 +37,8 @@ const dndOn = computed(() => control.dnd || control.doNotDisturb)
  *     摄像头右边界，就隐藏「最低优先级」的指示器，避免与摄像头重叠。
  * 渲染顺序 = 优先级升序（DOM 左→右 = 低→高），故蓝牙(50)在最右、紧邻原生图标。
  * 隐藏顺序 = 优先级升序（先藏 vibrate，最后才藏蓝牙）。
- * 想调整权重：改下面 priority 数字即可（同档可并列）。 */
-const indicatorDefs = [
-  { key: 'vibrate',   icon: 'vibrate',   size: 18, sw: 2.5, priority: 20, show: () => control.soundMode === 'vibrate' },
-  { key: 'mute',      icon: 'bellOff',   size: 18, sw: 2.5, priority: 30, show: () => control.soundMode === 'mute' },
-  { key: 'hotspot',   icon: 'radio',     size: 18, sw: 2.5, priority: 40, show: () => control.hotspot },
-  { key: 'bluetooth', icon: 'bluetooth', size: 16, sw: 2.4, priority: 50, show: () => control.bluetooth },
-  { key: 'dnd',       icon: 'moon',      size: 18, sw: 2.5, priority: 60, show: () => dndOn.value }
-]
-// 渲染顺序：优先级升序（左→右 = 低→高）
-const orderedIndicators = [...indicatorDefs].sort((a, b) => a.priority - b.priority)
-const activeIndicators = computed(() => orderedIndicators.filter((d) => d.show()))
+ * 想调整权重：改 src/utils/statusBarIndicators.js 里的 priority 数字即可（同档可并列）。 */
+const activeIndicators = computed(() => orderedIndicators.filter((d) => d.show(control)))
 
 /* 被摄像头空间挤压而隐藏的指示器的 key 集合（空对象=全部显示） */
 const hidden = ref({})
@@ -117,7 +109,7 @@ watch(
       <div class="sb-indicators">
         <LIcon
           v-for="d in orderedIndicators"
-          v-show="d.show() && !hidden[d.key]"
+          v-show="d.show(control) && !hidden[d.key]"
           :key="d.key"
           :name="d.icon"
           :size="d.size"

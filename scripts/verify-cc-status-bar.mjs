@@ -42,6 +42,22 @@ async function ccIndTileIds() {
     })
   })
 }
+// 取指定 data-key 的状态指示器对应的开关磁贴 data-id（同源证明，按 key 精确定位，不依赖 DOM 顺序）
+async function matchIndicator(key) {
+  return page.evaluate((k) => {
+    const el = document.querySelector(`.cc-status .cc-ind[data-key="${k}"]`)
+    if (!el) return null
+    const ds = [...el.querySelectorAll('svg path')].map((p) => p.getAttribute('d'))
+    const cells = [...document.querySelectorAll('[data-id]')]
+    for (const cell of cells) {
+      for (const icon of cell.querySelectorAll('.l-icon')) {
+        const cd = [...icon.querySelectorAll('svg path')].map((p) => p.getAttribute('d'))
+        if (cd.length === ds.length && ds.every((d, i) => d === cd[i])) return cell.getAttribute('data-id')
+      }
+    }
+    return null
+  }, key)
+}
 
 const setOff = async () => {
   await page.evaluate(() => {
@@ -69,38 +85,14 @@ check('状态行 含蓝牙常量', ids.includes('bluetooth'), `ids=${JSON.string
 
 await tap('dnd')
 ids = await ccIndTileIds()
-let m = await page.evaluate(() => {
-  const inds = [...document.querySelectorAll('.cc-status .cc-ind')]
-  const cells = [...document.querySelectorAll('[data-id]')]
-  for (const el of inds) {
-    const ds = [...el.querySelectorAll('svg path')].map((p) => p.getAttribute('d'))
-    for (const cell of cells)
-      for (const icon of cell.querySelectorAll('.l-icon')) {
-        const cd = [...icon.querySelectorAll('svg path')].map((p) => p.getAttribute('d'))
-        if (cd.length === ds.length && ds.every((d, i) => d === cd[i])) return cell.getAttribute('data-id')
-      }
-  }
-  return null
-})
+let m = await matchIndicator('dnd')
 check('启用勿扰 → CC状态行功能指示器={moon}', JSON.stringify(funcIds(ids)) === JSON.stringify(['dnd']), `func=${JSON.stringify(funcIds(ids))}`)
 check('勿扰指示器与 dnd 开关按钮同源', m === 'dnd', `匹配磁贴: ${m}`)
 
 await tap('dnd') // 关
 await tap('hotspot')
 ids = await ccIndTileIds()
-m = await page.evaluate(() => {
-  const inds = [...document.querySelectorAll('.cc-status .cc-ind')]
-  const cells = [...document.querySelectorAll('[data-id]')]
-  for (const el of inds) {
-    const ds = [...el.querySelectorAll('svg path')].map((p) => p.getAttribute('d'))
-    for (const cell of cells)
-      for (const icon of cell.querySelectorAll('.l-icon')) {
-        const cd = [...icon.querySelectorAll('svg path')].map((p) => p.getAttribute('d'))
-        if (cd.length === ds.length && ds.every((d, i) => d === cd[i])) return cell.getAttribute('data-id')
-      }
-  }
-  return null
-})
+m = await matchIndicator('hotspot')
 check('启用热点 → CC状态行功能指示器={radio}', JSON.stringify(funcIds(ids)) === JSON.stringify(['hotspot']), `func=${JSON.stringify(funcIds(ids))}`)
 check('热点指示器与 hotspot 开关按钮同源', m === 'hotspot', `匹配磁贴: ${m}`)
 
