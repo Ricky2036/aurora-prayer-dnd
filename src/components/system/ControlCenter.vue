@@ -32,11 +32,13 @@ const visible = computed(() => overlay.value.status !== 'closed')
 /* 下拉控制中心状态行：与桌面状态栏共用 src/utils/statusBarIndicators.js 同一套优先级排序规则，
  * 保证「下拉控制中心后的状态栏图标排序规则与桌面状态栏规则一致」（Ricky 2026-09-08）。
  * 单卡：全部指示器按优先级升序一排渲染。
- * 双卡两行：按优先级分段（<=40 落第1行 SIM1，>=50 落第2行 SIM2），
- *   每段内部仍按优先级升序，整体自上而下连续升序，与桌面规则一致。 */
+ * 双卡两行：按优先级分段（<=30 落第1行 SIM1，>=40 落第2行 SIM2），
+ *   每段内部仍按优先级升序，整体自上而下连续升序，与桌面规则一致。
+ *   分段阈值取 30/40 的意图是「双卡两行图标数更均衡」：低优先级组(vibrate/mute)2 个放第1行，
+ *   高优先级组(hotspot/bluetooth/dnd)3 个放第2行，避免第2行图标过少（Ricky 2026-09-08）。 */
 const ccIndicators = computed(() => orderedIndicators.filter((d) => d.show(control)))
-const ccDualRow1 = computed(() => orderedIndicators.filter((d) => d.priority <= 40 && d.show(control)))
-const ccDualRow2 = computed(() => orderedIndicators.filter((d) => d.priority >= 50 && d.show(control)))
+const ccDualRow1 = computed(() => orderedIndicators.filter((d) => d.priority <= 30 && d.show(control)))
+const ccDualRow2 = computed(() => orderedIndicators.filter((d) => d.priority >= 40 && d.show(control)))
 
 const layerStyle = computed(() => ({
   transform: `translateY(${(overlay.value.progress - 1) * 100}%)`,
