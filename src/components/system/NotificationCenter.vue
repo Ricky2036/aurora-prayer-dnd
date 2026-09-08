@@ -238,35 +238,32 @@ let rafId = null
 function updateStacking() {
   rafId = null
   const container = listRef.value
-  if (!container) return
-  const containerRect = container.getBoundingClientRect()
+  if (!container || overlay.value.status === 'closed') return
+  const containerHeight = container.clientHeight
+  if (!containerHeight) return
+
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 计算上方固定/流式内容（播放器卡片或活动卡片）的下边缘，堆叠基线绝不侵入上方卡片
   const player = container.querySelector('.nc-player-instance')
-  const playerBottom = player ? (player.getBoundingClientRect().bottom - containerRect.top) : 0
-  
-  // 堆叠基准阈值：位于可视区底部（留出底部清理按钮安全区），但绝对不高于播放器下方
-  const bottomThreshold = Math.max(playerBottom + 6, containerRect.height - 130)
+  const playerBottom = player ? (player.offsetTop + player.offsetHeight - container.scrollTop) : 0
+  const bottomThreshold = Math.max(playerBottom + 6, containerHeight - 130)
 
-  wrappers.forEach((wrapper) => {
-    const rect = wrapper.getBoundingClientRect()
+  for (let i = 0; i < wrappers.length; i++) {
+    const wrapper = wrappers[i]
     const card = wrapper.querySelector('.nc-card')
-    if (!card) return
+    if (!card) continue
     const swipeX = swipeOffsets.value[wrapper.dataset.id] || 0
-    const relativeY = rect.top - containerRect.top
+    const relativeY = wrapper.offsetTop - container.scrollTop
 
     if (relativeY > bottomThreshold) {
       const excess = relativeY - bottomThreshold
       const stackIndex = excess / 48
       if (stackIndex <= 3) {
         const scale = Math.max(0.88, 1 - stackIndex * 0.04)
-        // visualY: 向下微露，形成清晰精致的卡片堆叠边缘层
         const visualY = stackIndex <= 1 ? stackIndex * 14 : (14 + (stackIndex - 1) * 10)
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
         card.style.opacity = Math.max(0.5, 1 - stackIndex * 0.16)
-        card.style.filter = `brightness(${Math.max(0.82, 1 - stackIndex * 0.1)})`
       } else {
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 34}px, 0) scale(0.84)`
         card.style.opacity = 0
@@ -274,9 +271,8 @@ function updateStacking() {
     } else {
       card.style.transform = `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)`
       card.style.opacity = 1
-      card.style.filter = 'brightness(1)'
     }
-  })
+  }
 }
 
 function onScroll() {
@@ -295,13 +291,7 @@ watch(swipeOffsets, () => {
 watch(() => overlay.value.status, async (status) => {
   if (status === 'open') {
     await nextTick()
-    setTimeout(updateStacking, 40)
-  }
-})
-
-watch(() => overlay.value.progress, (p) => {
-  if (p > 0.05) {
-    if (rafId == null) rafId = requestAnimationFrame(updateStacking)
+    setTimeout(updateStacking, 30)
   }
 })
 
@@ -905,7 +895,7 @@ function toggleExpand(id) {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: none;
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
+  transition: background 0.2s ease;
   transform-origin: top;
 }
 .nc-card.is-swiping,
