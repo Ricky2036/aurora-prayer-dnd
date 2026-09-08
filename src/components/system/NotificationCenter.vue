@@ -256,9 +256,9 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 底部堆叠阈值：只有当内容滚动触及容器视口底部（底部无多余空间）时才开始堆叠
-  // 底部留出约 92px 保证单张卡片可见高度，绝不悬浮在半空中
-  const bottomThreshold = containerHeight - 92
+  // 只有当列表实际内容高度超出可视高度时，才会有“底部无空间”的情况发生
+  const isOverflowing = container.scrollHeight > containerHeight + 20
+  const bottomThreshold = containerHeight - 20
   const scrollTop = container.scrollTop
 
   // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
@@ -268,7 +268,8 @@ function updateStacking() {
     items.push({
       card: w.querySelector('.nc-card'),
       id: w.dataset.id,
-      offsetTop: w.offsetTop
+      offsetTop: w.offsetTop,
+      offsetHeight: w.offsetHeight
     })
   }
 
@@ -279,9 +280,11 @@ function updateStacking() {
     if (!card) continue
     const swipeX = swipeOffsets.value[item.id] || 0
     const relativeY = item.offsetTop - scrollTop
+    const cardBottom = relativeY + item.offsetHeight
 
-    if (relativeY > bottomThreshold) {
-      const excess = relativeY - bottomThreshold
+    // 只有当列表真正超出且该卡片触及容器真正的最底部极限时，才做堆叠
+    if (isOverflowing && cardBottom > bottomThreshold) {
+      const excess = cardBottom - bottomThreshold
       // 底部卡片视觉位置保持在 bottomThreshold 不变（通过 -excess 抵消向下位移）
       // 随着向下滑动，卡片逐渐缩小（1.0 -> 0.92），上层更高 z-index 的卡片向下滑动自然滑过并将其遮挡覆盖
       const shrinkProgress = Math.min(1, excess / 64)
@@ -640,13 +643,12 @@ watch(expandedId, async () => {
   font: 500 15px/1.3 var(--font-stack);
 }
 
-/* 贯通式列表：全屏边缘贴合，卡片滑动至屏幕边缘直接被视口裁切 */
+/* 贯通式列表：全屏边缘贴合，卡片滑动至屏幕边缘直接被视口裁切，顶部无弧形黑边 */
 .nc-list {
   flex: 1;
   margin: 4px 0 0;
-  padding: 0 14px 130px;
+  padding: 6px 14px 130px;
   box-sizing: border-box;
-  border-radius: 24px 24px 0 0;
   overflow-y: auto;
   overflow-x: clip;
   overscroll-behavior-y: contain;
@@ -665,9 +667,7 @@ watch(expandedId, async () => {
   width: 100%;
   height: 84px;
   border-radius: 26px;
-  background: rgba(14, 14, 16, 0.92);
-  backdrop-filter: blur(36px);
-  -webkit-backdrop-filter: blur(36px);
+  background: rgba(20, 20, 24, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: none;
   display: flex;
@@ -930,10 +930,8 @@ watch(expandedId, async () => {
   gap: 12px;
   padding: 13px 14px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: none;
   cursor: pointer;
   transition: background 0.2s ease;
