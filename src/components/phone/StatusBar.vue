@@ -32,10 +32,10 @@ const dndOn = computed(() => control.dnd || control.doNotDisturb)
   <div class="status-bar" :style="{ color: light ? '#fff' : '#000' }">
     <span class="sb-time" :style="{ opacity: hideTime ? 0 : 1 }">{{ timeShort }}</span>
     <div class="sb-right">
-      <LIcon v-if="dndOn" name="moon" :size="13" class="sb-ind" />
-      <LIcon v-if="control.hotspot" name="radio" :size="13" class="sb-ind" />
-      <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="13" class="sb-ind" />
-      <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="13" class="sb-ind" />
+      <LIcon v-if="dndOn" name="moon" :size="16" :stroke-width="2.4" class="sb-ind" />
+      <LIcon v-if="control.hotspot" name="radio" :size="16" :stroke-width="2.4" class="sb-ind" />
+      <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="16" :stroke-width="2.4" class="sb-ind" />
+      <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="16" :stroke-width="2.4" class="sb-ind" />
       <StatusIcons :color="light ? '#fff' : '#000'" />
     </div>
   </div>
