@@ -8,8 +8,15 @@ const emit = defineEmits(['open-subpage'])
 const prayer = usePrayerStore()
 const { timeShort, today } = useClock()
 
-// 当前选中的礼拜卡片（默认当前活动的晌礼或当前礼拜）
-const selectedPrayerId = ref('dhuhr')
+// 当前选中的礼拜卡片（与 prayerStore 灵动岛状态双向同步）
+const selectedPrayerId = computed({
+  get: () => prayer.currentIslandPrayer?.id || 'dhuhr',
+  set: (val) => {
+    if (val && val !== 'sunrise') {
+      prayer.setSimulatedPrayer(val)
+    }
+  }
+})
 
 // 6 个礼拜及日出时间节点（与参考视频 Clock.mp4 保持一致）
 const PRAYER_SLOTS = [

@@ -113,10 +113,10 @@ const prayerSubtitle = computed(() => {
 
 /* 紧凑胶囊收起态显示的文本 */
 const compactCapsuleTime = computed(() => {
-  if (isTimerActive.value) return clockStore.formattedTimerIsland
-  if (isStopwatchActive.value) return clockStore.formattedStopwatchIsland
-  if (isRecorderActive.value) return recorderStore.formattedTime
-  if (isPrayerActive.value) return formattedPrayerCountdown.value
+  if (primaryActiveItem.value === 'timer') return clockStore.formattedTimerIsland
+  if (primaryActiveItem.value === 'stopwatch') return clockStore.formattedStopwatchIsland
+  if (primaryActiveItem.value === 'recorder') return recorderStore.formattedTime
+  if (primaryActiveItem.value === 'prayer') return formattedPrayerCountdown.value
   return ''
 })
 
@@ -132,6 +132,8 @@ function handlePrimaryCardClick() {
       openClockTab('stopwatch')
     } else if (primaryActiveItem.value === 'recorder') {
       openRecorderApp()
+    } else if (primaryActiveItem.value === 'prayer') {
+      openClockTab('muslim')
     }
   }
 }
@@ -144,6 +146,8 @@ function handleSecondaryCardClick() {
     openClockTab('stopwatch')
   } else if (secondaryActiveItem.value === 'recorder') {
     openRecorderApp()
+  } else if (secondaryActiveItem.value === 'prayer') {
+    openClockTab('muslim')
   }
 }
 
@@ -200,16 +204,16 @@ function handleClosePrayer(e) {
       <!-- ================= 1.1 收起态图层（顶部胶囊） ================= -->
       <div class="morph-layer compact-layer">
         <div class="cc-left">
-          <svg v-if="isTimerActive" width="13" height="13" viewBox="0 0 24 24">
+          <svg v-if="primaryActiveItem === 'timer'" width="13" height="13" viewBox="0 0 24 24">
             <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
           </svg>
-          <svg v-else-if="isStopwatchActive" width="13" height="13" viewBox="0 0 24 24">
+          <svg v-else-if="primaryActiveItem === 'stopwatch'" width="13" height="13" viewBox="0 0 24 24">
             <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
           </svg>
-          <span v-else-if="isRecorderActive" class="rc-mini-wave">
+          <span v-else-if="primaryActiveItem === 'recorder'" class="rc-mini-wave">
             <i></i><i></i><i></i><i></i><i></i>
           </span>
-          <svg v-else-if="isPrayerActive" width="13" height="13" viewBox="0 0 24 24">
+          <svg v-else-if="primaryActiveItem === 'prayer'" width="13" height="13" viewBox="0 0 24 24">
             <path :d="GLYPHS.moon" fill="#00C853" />
           </svg>
         </div>
@@ -503,6 +507,33 @@ function handleClosePrayer(e) {
               </svg>
               <svg v-else width="18" height="18" viewBox="0 0 24 24">
                 <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 副项：礼拜 -->
+        <template v-else-if="secondaryActiveItem === 'prayer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-prayer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="GLYPHS.moon" fill="#00C853" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ formattedPrayerCountdown }}</span>
+              <span class="ilc-sub-label">{{ prayerSubtitle }}</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="handleClosePrayer"
+              title="关闭"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
               </svg>
             </button>
           </div>
