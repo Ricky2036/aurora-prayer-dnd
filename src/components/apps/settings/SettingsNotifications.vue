@@ -185,7 +185,7 @@ const emit = defineEmits(['back-to-settings'])
             @click="openAppDetail(app)"
           >
             <div class="ns-app">
-              <NotificationIcon :type="app.iconType" :size="36" />
+              <NotificationIcon :type="app.iconType" :size="40" />
               <div class="ns-app-info">
                 <span class="ns-app-name">{{ i18n.notifTitle(app.appId) }}</span>
                 <span class="ns-app-time">{{ formatRelativeTime(app.time, i18n.t) }}</span>
@@ -246,7 +246,7 @@ const emit = defineEmits(['back-to-settings'])
         <div class="ns-section">
           <div v-for="(app, index) in notificationApps" :key="app.id" class="ns-row app-row" :class="{ last: index === notificationApps.length - 1 }">
             <div class="ns-app">
-              <NotificationIcon :type="app.iconType" :size="36" />
+              <NotificationIcon :type="app.iconType" :size="40" />
               <span class="ns-app-name">{{ i18n.notifTitle(app.appId) }}</span>
             </div>
             <ToggleSwitch :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" />
@@ -265,7 +265,7 @@ const emit = defineEmits(['back-to-settings'])
         </div>
 
         <div class="ns-section mt4">
-          <div class="ns-row"><span class="ns-row-title">{{ i18n.t('nsFloatingStyle') }}</span><span class="ns-value gray">{{ i18n.t('nsDetailed') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+          <div class="ns-row"><span class="ns-row-title">{{ i18n.t('nsFloatingStyle') }}</span><div class="ns-row-value-wrap"><span class="ns-value gray">{{ i18n.t('nsDetailed') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div></div>
           <div class="ns-row">
             <div class="ns-row-text"><span class="ns-row-title">{{ i18n.t('nsConciseFullscreen') }}</span></div>
             <ToggleSwitch v-model="conciseFloating" />
@@ -283,7 +283,7 @@ const emit = defineEmits(['back-to-settings'])
         <div class="ns-section">
           <div v-for="(app, index) in notificationApps" :key="app.id" class="ns-row app-row" :class="{ last: index === notificationApps.length - 1 }">
             <div class="ns-app">
-              <NotificationIcon :type="app.iconType" :size="36" />
+              <NotificationIcon :type="app.iconType" :size="40" />
               <span class="ns-app-name">{{ i18n.notifTitle(app.appId) }}</span>
             </div>
             <div class="ns-app-right"><i class="ns-divider"></i><ToggleSwitch :model-value="getAppState(app.id)" @update:modelValue="toggleAppState(app.id)" /></div>
@@ -300,18 +300,18 @@ const emit = defineEmits(['back-to-settings'])
           </button>
         </div>
 
-        <!-- 所有开关集中放置在一张大卡片中 -->
-        <div class="ns-section mt-first">
+        <!-- 卡片左上方小标题：系统应用 -->
+        <div class="ns-group-label">{{ i18n.t('nsSystemApps') }}</div>
+
+        <!-- 所有开关集中放置在一张大卡片中（去掉副文本，保持极简单行排版） -->
+        <div class="ns-section">
           <!-- 系统录音 -->
           <div class="ns-row db-row">
             <div class="db-item-left">
               <div class="db-app-icon db-icon-recorder">
                 <img :src="voicememosIconUrl" alt="Voice Memos" class="db-icon-img" />
               </div>
-              <div class="ns-row-text">
-                <span class="ns-row-title">{{ i18n.t('nsDynamicBarRecorder') }}</span>
-                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarRecorderSub') }}</span>
-              </div>
+              <span class="ns-row-title">{{ i18n.t('nsDynamicBarRecorder') }}</span>
             </div>
             <ToggleSwitch v-model="notificationsStore.islandSettings.recorder" />
           </div>
@@ -324,10 +324,7 @@ const emit = defineEmits(['back-to-settings'])
                   <path :d="CLOCK_ICONS.timer" fill="#FFFFFF" />
                 </svg>
               </div>
-              <div class="ns-row-text">
-                <span class="ns-row-title">{{ i18n.t('nsDynamicBarTimer') }}</span>
-                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarTimerSub') }}</span>
-              </div>
+              <span class="ns-row-title">{{ i18n.t('nsDynamicBarTimer') }}</span>
             </div>
             <ToggleSwitch v-model="notificationsStore.islandSettings.timer" />
           </div>
@@ -340,10 +337,7 @@ const emit = defineEmits(['back-to-settings'])
                   <path :d="CLOCK_ICONS.stopwatch" fill="#FFFFFF" />
                 </svg>
               </div>
-              <div class="ns-row-text">
-                <span class="ns-row-title">{{ i18n.t('nsDynamicBarStopwatch') }}</span>
-                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarStopwatchSub') }}</span>
-              </div>
+              <span class="ns-row-title">{{ i18n.t('nsDynamicBarStopwatch') }}</span>
             </div>
             <ToggleSwitch v-model="notificationsStore.islandSettings.stopwatch" />
           </div>
@@ -356,10 +350,7 @@ const emit = defineEmits(['back-to-settings'])
                   <path :d="CLOCK_ICONS.muslim" fill="#FFFFFF" />
                 </svg>
               </div>
-              <div class="ns-row-text">
-                <span class="ns-row-title">{{ i18n.t('nsDynamicBarPrayer') }}</span>
-                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarPrayerSub') }}</span>
-              </div>
+              <span class="ns-row-title">{{ i18n.t('nsDynamicBarPrayer') }}</span>
             </div>
             <ToggleSwitch v-model="notificationsStore.islandSettings.prayer" />
           </div>
@@ -372,10 +363,7 @@ const emit = defineEmits(['back-to-settings'])
                   <path :d="GLYPHS.music" fill="#FFFFFF" />
                 </svg>
               </div>
-              <div class="ns-row-text">
-                <span class="ns-row-title">{{ i18n.t('nsDynamicBarMedia') }}</span>
-                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarMediaSub') }}</span>
-              </div>
+              <span class="ns-row-title">{{ i18n.t('nsDynamicBarMedia') }}</span>
             </div>
             <ToggleSwitch v-model="notificationsStore.islandSettings.media" />
           </div>
@@ -400,15 +388,17 @@ const emit = defineEmits(['back-to-settings'])
           <h1 class="ns-hero-title">{{ i18n.notifTitle(currentDetailApp.appId) }}</h1>
         </div>
 
+        <!-- 卡片 1：总开关（允许通知） -->
         <div class="ns-section">
-          <!-- 总开关：允许通知 -->
-          <div class="ns-row" :class="{ last: !getAppState(currentDetailApp.id) }">
+          <div class="ns-row last">
             <div class="ns-row-text"><span class="ns-row-title">{{ i18n.t('nsAllowNotif') }}</span></div>
             <ToggleSwitch :model-value="getAppState(currentDetailApp.id)" @update:modelValue="toggleAppState(currentDetailApp.id)" />
           </div>
+        </div>
 
-          <!-- 总开关下方的子开关：实时活动通知 -->
-          <div v-if="getAppState(currentDetailApp.id)" class="ns-row last">
+        <!-- 卡片 2：实时活动开关（单独一个卡片承载） -->
+        <div v-if="getAppState(currentDetailApp.id)" class="ns-section">
+          <div class="ns-row last">
             <div class="ns-row-text">
               <span class="ns-row-title">{{ i18n.t('nsLiveActivitiesNotif') }}</span>
               <span class="ns-row-sub">{{ i18n.t('nsLiveActivitiesNotifSub') }}</span>
@@ -418,9 +408,22 @@ const emit = defineEmits(['back-to-settings'])
         </div>
 
         <template v-if="getAppState(currentDetailApp.id)">
+          <!-- 卡片 3：提醒强度与通知分组（副文本紧靠在箭头左侧） -->
           <div class="ns-section">
-            <div class="ns-row"><span class="ns-row-title">{{ i18n.t('nsRemindLevel') }}</span><span class="ns-value gray">{{ i18n.t('nsSmartReminder') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
-            <div class="ns-row" :class="{ last: !globalHideLockContent }"><span class="ns-row-title">{{ i18n.t('nsGrouping') }}</span><span class="ns-value gray">{{ i18n.t('nsAuto') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+            <div class="ns-row">
+              <span class="ns-row-title">{{ i18n.t('nsRemindLevel') }}</span>
+              <div class="ns-row-value-wrap">
+                <span class="ns-value gray">{{ i18n.t('nsSmartReminder') }}</span>
+                <svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg>
+              </div>
+            </div>
+            <div class="ns-row" :class="{ last: !globalHideLockContent }">
+              <span class="ns-row-title">{{ i18n.t('nsGrouping') }}</span>
+              <div class="ns-row-value-wrap">
+                <span class="ns-value gray">{{ i18n.t('nsAuto') }}</span>
+                <svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg>
+              </div>
+            </div>
             <div v-if="!globalHideLockContent" class="ns-row last">
               <div class="ns-row-text">
                 <span class="ns-row-title">{{ i18n.t('nsHideLockContent') }}</span>
@@ -576,6 +579,7 @@ const emit = defineEmits(['back-to-settings'])
   display: block;
 }
 .ns-row-title-wrap { display: flex; align-items: center; gap: 5px; }
+.ns-row-value-wrap { display: flex; align-items: center; gap: 8px; flex: none; }
 .ns-value { font: 400 14px/1 var(--font-stack); color: #8e8e93; flex: none; }
 .ns-value.gray { color: #c7c7cc; margin-right: 3px; }
 .chev { flex: none; }
@@ -583,13 +587,13 @@ const emit = defineEmits(['back-to-settings'])
 .tappable:active { background: #f2f2f7; }
 
 /* 应用行 */
-.app-row { min-height: 52px; padding: 0 16px; cursor: default; }
-.ns-app { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.ns-app-info { display: flex; flex-direction: column; min-width: 0; }
-.ns-app-name { font: 400 15px/1.2 var(--font-stack); color: #1c1c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ns-app-time { font: 400 12px/1.3 var(--font-stack); color: #8e8e93; margin-top: 2px; }
+.app-row { min-height: 64px; padding: 10px 16px; cursor: default; }
+.ns-app { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.ns-app-info { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.ns-app-name { font: 400 16.5px/1.25 var(--font-stack); color: #1c1c1e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ns-app-time { font: 400 13px/1.35 var(--font-stack); color: #8e8e93; margin-top: 2px; }
 .ns-app-right { display: flex; align-items: center; }
-.ns-divider { width: 1px; height: 20px; background: rgba(60, 60, 67, 0.12); margin-right: 16px; border-radius: 1px; }
+.ns-divider { width: 1px; height: 24px; background: rgba(60, 60, 67, 0.12); margin-right: 16px; border-radius: 1px; }
 
 /* 通知设置内开关缩小为紧凑尺寸（44×26） */
 .notif-settings :deep(.toggle-switch) {
