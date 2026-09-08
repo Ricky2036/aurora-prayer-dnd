@@ -256,8 +256,8 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 只有当卡片触及视口底部安全区时才开始堆叠（允许通知与底部清除按钮重叠，保留适度安全间距）
-  const bottomThreshold = containerHeight - 26
+  // 堆叠起始基准线：提升至安全呼吸区（与底部清除按钮形成自然叠放层次，距离容器底部 74px）
+  const bottomThreshold = containerHeight - 74
   const scrollTop = container.scrollTop
 
   // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
@@ -276,18 +276,17 @@ function updateStacking() {
     })
   }
 
-  // 批量样式写入：基于真实几何覆盖关系的动态 clip-path 遮挡，底层卡片内容完整存在，自然被上层卡片遮挡
-  let prevVisualBottom = -Infinity
-
+  // 批量样式写入：整卡保持完整自然圆角矩形，绝不添加任何裁切切角
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
     const card = item.card
     if (!card) continue
 
-    // 确保内容 100% 完整，杜绝 opacity: 0 偷懒隐藏内容
+    // 确保内容完整，绝不在内容上使用 opacity: 0
     if (item.content && item.content.style.opacity) item.content.style.opacity = ''
     if (item.icon && item.icon.style.opacity) item.icon.style.opacity = ''
     if (item.chevron && item.chevron.style.opacity) item.chevron.style.opacity = ''
+    if (card.style.clipPath) card.style.clipPath = ''
 
     const swipeX = swipeOffsets.value[item.id] || 0
     const relativeY = item.offsetTop - scrollTop
@@ -306,39 +305,15 @@ function updateStacking() {
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
         card.style.opacity = '1'
         card.style.pointerEvents = 'auto'
-
-        // 视觉顶部与底部
-        const visualTop = relativeY + translateY + (item.offsetHeight * (1 - scale)) / 2
-        const visualBottom = relativeY + translateY + (item.offsetHeight * (1 + scale)) / 2
-
-        // 计算上层卡片对本卡片的几何遮挡（上层卡片在 DOM 中较前，z-index 较高，处于表层）
-        if (prevVisualBottom > visualTop) {
-          const overlapVisual = prevVisualBottom - visualTop
-          const clipTopLocal = overlapVisual / scale
-          if (clipTopLocal >= item.offsetHeight) {
-            card.style.clipPath = 'inset(100%)'
-            card.style.opacity = '0'
-            card.style.pointerEvents = 'none'
-          } else {
-            card.style.clipPath = `inset(${Math.round(clipTopLocal)}px 0 0 0 round 24px)`
-          }
-        } else {
-          card.style.clipPath = ''
-        }
-
-        prevVisualBottom = visualBottom
       } else {
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 32}px, 0) scale(0.8)`
         card.style.opacity = '0'
         card.style.pointerEvents = 'none'
-        card.style.clipPath = ''
       }
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
       card.style.pointerEvents = ''
-      card.style.clipPath = ''
-      prevVisualBottom = relativeY + item.offsetHeight
     }
   }
 }
@@ -971,11 +946,9 @@ watch(expandedId, async () => {
   gap: 12px;
   padding: 13px 14px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.20);
-  backdrop-filter: blur(28px) saturate(180%);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
   cursor: pointer;
   transition: background 0.2s ease;
   transform-origin: center center;
@@ -988,7 +961,7 @@ watch(expandedId, async () => {
 .nc-card.has-swipe-transition {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
-.nc-card:hover { background: rgba(255, 255, 255, 0.12); }
+.nc-card:hover { background: rgba(255, 255, 255, 0.16); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .nc-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .nc-card-title {
