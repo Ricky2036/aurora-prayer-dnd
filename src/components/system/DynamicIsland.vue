@@ -568,11 +568,11 @@ function handleClosePrayer(e) {
   transform: scale(0.95);
 }
 
-/* 展开态尺寸：经典礼拜模式大圆角矩形 (高度80px，圆角32px，更圆润大气) */
+/* 展开态尺寸：经典礼拜模式大圆角矩形 (高度80px，圆角28px) */
 .island-card.is-expanded {
   width: 100%;
   height: 80px;
-  border-radius: 32px;
+  border-radius: 28px;
   padding: 0 16px 0 18px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
@@ -684,7 +684,7 @@ function handleClosePrayer(e) {
   margin-top: 10px;
   width: 100%;
   height: 80px;
-  border-radius: 32px;
+  border-radius: 28px;
   background: #000000;
   color: #ffffff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
@@ -740,7 +740,7 @@ function handleClosePrayer(e) {
 .subcard-slide-leave-from {
   opacity: 1;
   transform: translateY(0) scale(1, 1);
-  border-radius: 32px;
+  border-radius: 28px;
 }
 
 /* 副卡片内部元素在收起时立即快速淡出（100ms），绝不闪屏 */
