@@ -88,6 +88,26 @@ for (const p of PRESETS) {
   check(`预设 ${p.id}: 高亮条命中第 ${r.idx} 段`, true)
   check(`预设 ${p.id}: 左对齐(误差<2px)`, dl < 2, `Δ左=${dl}`)
   check(`预设 ${p.id}: 右对齐(误差<2px)`, dr < 2, `Δ右=${dr}`)
+
+  // 6 个按钮同属一张卡片 → 全局只能有 1 个高亮，另一行的滑块必须隐藏
+  const solo = await page.evaluate(() => {
+    const card = [...document.querySelectorAll('.pc-card')].find(
+      (c) => c.querySelector('.pc-card-title')?.textContent.trim() === '默认布局'
+    )
+    return {
+      onCount: card.querySelectorAll('.pc-seg-btn.on').length,
+      idleThumbs: card.querySelectorAll('.pc-seg-thumb-3.is-idle').length,
+      visibleThumbs: [...card.querySelectorAll('.pc-seg-thumb-3')].filter(
+        (t) => getComputedStyle(t).opacity !== '0'
+      ).length
+    }
+  })
+  check(`预设 ${p.id}: 仅 1 个按钮高亮`, solo.onCount === 1, `on=${solo.onCount}`)
+  check(
+    `预设 ${p.id}: 仅 1 个滑块可见（另一行隐藏）`,
+    solo.visibleThumbs === 1 && solo.idleThumbs === 1,
+    `visible=${solo.visibleThumbs} idle=${solo.idleThumbs}`
+  )
 }
 
 console.log(errs.length ? '\n控制台错误: ' + errs.join('; ') : '\n无控制台错误')

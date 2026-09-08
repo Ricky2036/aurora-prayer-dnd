@@ -63,7 +63,9 @@ const presetIndex = computed(() =>
  *  按 preset.series 分流；series 缺省时归入 tOS16，避免新预设掉出控件。 */
 const tos16Presets = computed(() => LAYOUT_PRESETS.filter((p) => (p.series || '16') === '16'))
 const tos17Presets = computed(() => LAYOUT_PRESETS.filter((p) => p.series === '17'))
-const rowIndex = (list) => Math.max(0, list.findIndex((p) => p.id === control.layoutPreset))
+/** 当前布局在该行的下标；不在这一行返回 -1 —— 这一行就不显示高亮滑块，
+ *  否则滑块会停在第 0 段，和另一行的选中项一起看着像"同时高亮两个"。 */
+const rowIndex = (list) => list.findIndex((p) => p.id === control.layoutPreset)
 
 /* ================= Tab 切换状态 ================= */
 const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
@@ -523,9 +525,10 @@ function onCopyFineTune() {
                 <div class="pc-seg">
                   <div
                     class="pc-seg-thumb-3"
+                    :class="{ 'is-idle': rowIndex(tos16Presets) < 0 }"
                     :style="{
                       width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
-                      transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
+                      transform: `translateX(${Math.max(0, rowIndex(tos16Presets)) * 100}%)`
                     }"
                   ></div>
                   <button
@@ -544,9 +547,10 @@ function onCopyFineTune() {
                 <div class="pc-seg">
                   <div
                     class="pc-seg-thumb-3"
+                    :class="{ 'is-idle': rowIndex(tos17Presets) < 0 }"
                     :style="{
                       width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
-                      transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
+                      transform: `translateX(${Math.max(0, rowIndex(tos17Presets)) * 100}%)`
                     }"
                   ></div>
                   <button
@@ -906,9 +910,10 @@ function onCopyFineTune() {
                         <div class="pc-seg">
                           <div
                             class="pc-seg-thumb-3"
+                            :class="{ 'is-idle': rowIndex(tos16Presets) < 0 }"
                             :style="{
                               width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
-                              transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
+                              transform: `translateX(${Math.max(0, rowIndex(tos16Presets)) * 100}%)`
                             }"
                           ></div>
                           <button
@@ -927,9 +932,10 @@ function onCopyFineTune() {
                         <div class="pc-seg">
                           <div
                             class="pc-seg-thumb-3"
+                            :class="{ 'is-idle': rowIndex(tos17Presets) < 0 }"
                             :style="{
                               width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
-                              transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
+                              transform: `translateX(${Math.max(0, rowIndex(tos17Presets)) * 100}%)`
                             }"
                           ></div>
                           <button
@@ -1312,8 +1318,13 @@ function onCopyFineTune() {
   width: calc(33.333% - 2px);
   background: #2563eb;
   border-radius: 9px;
-  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.18s ease;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+}
+
+/* 当前选中的布局不在这一行 → 整行不亮，避免两行滑块同时高亮 */
+.pc-seg-thumb-3.is-idle {
+  opacity: 0;
 }
 
 .pc-seg-btn {
