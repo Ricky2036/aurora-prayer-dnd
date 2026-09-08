@@ -231,67 +231,11 @@ function handleClearAll() {
   }, 800)
 }
 
-/* ---------- 物理阻尼堆叠算法（滚动时底部卡片逐张堆叠） ---------- */
 const listRef = ref(null)
-let rafId = null
-function updateStacking() {
-  rafId = null
-  const container = listRef.value
-  if (!container) return
-  const containerRect = container.getBoundingClientRect()
-  const wrappers = container.querySelectorAll('.nc-item-wrapper')
-  const bottomThreshold = containerRect.height - 180
-  wrappers.forEach((wrapper) => {
-    const rect = wrapper.getBoundingClientRect()
-    const card = wrapper.querySelector('.nc-card')
-    if (!card) return
-    // 横滑偏移：从 data-id 取该卡当前 swipeOffset，和堆叠变换合成到同一个 transform。
-    // 不要在模板里用 :style="{transform: translateX}" —— 它会在每次重渲染把这里的堆叠 scale 冲掉。
-    const swipeX = swipeOffsets.value[wrapper.dataset.id] || 0
-    const relativeY = rect.top - containerRect.top
-    if (relativeY > bottomThreshold) {
-      const excess = relativeY - bottomThreshold
-      const stackIndex = excess / 50
-      if (stackIndex <= 3.5) {
-        const scale = Math.max(0.75, 1 - stackIndex * 0.08)
-        let visualY = 0
-        if (stackIndex <= 1) visualY = stackIndex * 24
-        else if (stackIndex <= 2) visualY = 24 + (stackIndex - 1) * 12
-        else visualY = 36 + (stackIndex - 2) * 6
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
-        card.style.opacity = Math.max(0.4, 1 - stackIndex * 0.2)
-        card.style.filter = `brightness(${Math.max(0.7, 1 - stackIndex * 0.25)})`
-      } else {
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 50}px, 0) scale(0.7)`
-        card.style.opacity = 0
-      }
-    } else {
-      card.style.transform = `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)`
-      card.style.opacity = 1
-      card.style.filter = 'brightness(1)'
-    }
-  })
-}
-function onScroll() {
-  if (rafId == null) rafId = requestAnimationFrame(updateStacking)
-}
-watch(() => notifications.list.length, async () => {
-  await nextTick()
-  updateStacking()
-})
-// 横滑偏移变化时，把堆叠变换和横滑合成重算（updateStacking 里已含 translateX）
-watch(swipeOffsets, () => {
-  if (rafId == null) rafId = requestAnimationFrame(updateStacking)
-}, { deep: true })
-let mountTimer = null
-onMounted(() => { mountTimer = setTimeout(() => { updateStacking(); mountTimer = null }, 80) })
 
 onBeforeUnmount(() => {
   clearTimeout(clearTimer)
-  clearTimeout(mountTimer)
   clearTimer = null
-  mountTimer = null
-  if (rafId != null) { cancelAnimationFrame(rafId); rafId = null }
 })
 
 /* 星期/日期 */
@@ -333,7 +277,7 @@ function toggleExpand(id) {
       </div>
 
       <!-- 贯通式列表 -->
-      <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
+      <div ref="listRef" class="nc-list scrollable">
         <!-- 灵动岛活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个） -->
         <template v-for="act in activeActivities" :key="act.id">
           <div class="nc-swipe-card-wrapper nc-activity-wrapper">
@@ -505,6 +449,7 @@ function toggleExpand(id) {
             <div
               class="nc-card"
               :class="{ expanded: expandedId === n.id, 'is-swiping': isSwipingCard && activeCardId === n.id }"
+              :style="{ transform: `translateX(${swipeOffsets[n.id] || 0}px)` }"
               @pointerdown="onCardPointerDown($event, n.id)"
               @pointermove="onCardPointerMove($event, n.id)"
               @pointerup="onCardPointerUp($event, n.id)"
@@ -611,7 +556,7 @@ function toggleExpand(id) {
   backdrop-filter: blur(36px);
   -webkit-backdrop-filter: blur(36px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -774,7 +719,8 @@ function toggleExpand(id) {
   flex: none;
   position: relative;
   z-index: 5;
-  margin-bottom: 3px;
+  margin-bottom: 0;
+  box-shadow: none !important;
 }
 
 /* ---- 滑动容器与底层操作按钮 ---- */
@@ -782,7 +728,7 @@ function toggleExpand(id) {
   flex: none;
   position: relative;
   border-radius: 24px;
-  overflow: hidden;
+  overflow: visible;
   will-change: transform;
 }
 
@@ -875,7 +821,7 @@ function toggleExpand(id) {
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: none;
   cursor: pointer;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
   transform-origin: top;

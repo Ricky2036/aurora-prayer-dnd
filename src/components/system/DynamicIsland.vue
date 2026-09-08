@@ -351,14 +351,20 @@ function handleClosePrayer(e) {
         <!-- 主项：录音 -->
         <template v-else-if="primaryActiveItem === 'recorder'">
           <div class="ilc-left">
-            <div class="ilc-icon-wrap icon-recorder">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff453a">
-                <path d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4z"/>
-              </svg>
+            <div class="rc-expanded-left">
+              <div class="rc-audio-bars">
+                <span class="bar bar-1"></span>
+                <span class="bar bar-2"></span>
+                <span class="bar bar-3"></span>
+                <span class="bar bar-main"></span>
+                <span class="bar bar-5"></span>
+                <span class="bar bar-6"></span>
+                <span class="bar bar-7"></span>
+              </div>
             </div>
             <div class="ilc-time-col">
               <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
-              <span class="ilc-sub-label">录音中...</span>
+              <span class="ilc-sub-label">{{ recorderStore.isPaused ? '录音已暂停' : '正在录音' }}</span>
             </div>
           </div>
 
@@ -530,14 +536,20 @@ function handleClosePrayer(e) {
         <!-- 副项：录音 -->
         <template v-else-if="item === 'recorder'">
           <div class="ilc-left">
-            <div class="ilc-icon-wrap icon-recorder">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff453a">
-                <path d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4z"/>
-              </svg>
+            <div class="rc-expanded-left">
+              <div class="rc-audio-bars">
+                <span class="bar bar-1"></span>
+                <span class="bar bar-2"></span>
+                <span class="bar bar-3"></span>
+                <span class="bar bar-main"></span>
+                <span class="bar bar-5"></span>
+                <span class="bar bar-6"></span>
+                <span class="bar bar-7"></span>
+              </div>
             </div>
             <div class="ilc-time-col">
               <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
-              <span class="ilc-sub-label">正在录音</span>
+              <span class="ilc-sub-label">{{ recorderStore.isPaused ? '录音已暂停' : '正在录音' }}</span>
             </div>
           </div>
 
@@ -860,6 +872,53 @@ function handleClosePrayer(e) {
 
 .icon-recorder {
   background: rgba(235, 68, 54, 0.16);
+}
+
+/* 展开卡片左侧：声波跳动频谱（与录音原版设计及通知栏完全统一） */
+.rc-expanded-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+
+.rc-audio-bars {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  height: 32px;
+}
+
+.rc-audio-bars .bar {
+  display: inline-block;
+  width: 3px;
+  border-radius: 1.5px;
+  background: #ffffff;
+}
+
+.rc-audio-bars .bar-1 { height: 16px; animation: rcAudioPulse 1.2s infinite alternate 0.1s; }
+.rc-audio-bars .bar-2 { height: 10px; animation: rcAudioPulse 1.2s infinite alternate 0.3s; }
+.rc-audio-bars .bar-3 { height: 22px; animation: rcAudioPulse 1.2s infinite alternate 0.15s; }
+.rc-audio-bars .bar-main {
+  width: 3.5px;
+  height: 30px;
+  background: #ff5238;
+  animation: rcAudioPulseMain 0.9s infinite alternate 0.05s;
+}
+.rc-audio-bars .bar-5 { height: 12px; animation: rcAudioPulse 1.2s infinite alternate 0.4s; }
+.rc-audio-bars .bar-6 { height: 6px; animation: rcAudioPulse 1.2s infinite alternate 0.2s; }
+.rc-audio-bars .bar-7 { height: 4px; animation: rcAudioPulse 1.2s infinite alternate 0.5s; }
+
+@keyframes rcAudioPulse {
+  0% { transform: scaleY(0.45); opacity: 0.6; }
+  100% { transform: scaleY(1.15); opacity: 1; }
+}
+
+@keyframes rcAudioPulseMain {
+  0% { transform: scaleY(0.5); }
+  100% { transform: scaleY(1.1); }
 }
 
 .ilc-time-col {

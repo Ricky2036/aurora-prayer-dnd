@@ -53,7 +53,7 @@ function togglePlay(e) {
   backdrop-filter: blur(40px);
   -webkit-backdrop-filter: blur(40px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: none;
   border-radius: 32px;
   padding: 16px;
   display: flex;
