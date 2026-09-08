@@ -23,7 +23,7 @@ await page.waitForTimeout(900)
 // 打开控制中心 → 编辑模式
 await page.locator('.edge-cc').click()
 await page.waitForTimeout(800)
-await page.locator('.cc-header .cc-icon-btn').nth(1).click()
+await page.locator('.cc-header .cc-header-btn').nth(0).click()
 await page.waitForTimeout(400)
 
 // 合成 HTML5 拖拽：flashlight → hotspot 位置
