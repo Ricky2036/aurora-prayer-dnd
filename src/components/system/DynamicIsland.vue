@@ -180,7 +180,7 @@ function handleClosePrayer(e) {
       </div>
     </div>
 
-    <!-- ================= 2. 展开态：独立卡片列表，无外层包裹大黑框 ================= -->
+    <!-- ================= 2. 展开态：独立圆角矩形卡片列表（回归经典礼拜模式大尺寸） ================= -->
     <div v-else class="island-expanded-list">
       <!-- 录音活动卡片 -->
       <div
@@ -189,14 +189,14 @@ function handleClosePrayer(e) {
         @click="openRecorderApp"
       >
         <div class="ilc-left">
-          <div class="ilc-icon-wrap">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="#ff453a">
+          <div class="ilc-icon-wrap icon-recorder">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff453a">
               <path d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4z"/>
             </svg>
           </div>
           <div class="ilc-time-col">
             <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
-            <span class="ilc-sub-label">录音中</span>
+            <span class="ilc-sub-label">录音中...</span>
           </div>
         </div>
 
@@ -218,13 +218,16 @@ function handleClosePrayer(e) {
         @click="openClockTab('timer')"
       >
         <div class="ilc-left">
-          <div class="ilc-icon-wrap">
-            <svg width="20" height="20" viewBox="0 0 24 24">
+          <div class="ilc-icon-wrap icon-timer">
+            <svg width="22" height="22" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
             </svg>
           </div>
           <div class="ilc-time-col">
             <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
+            <span class="ilc-sub-label">
+              {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
+            </span>
           </div>
         </div>
 
@@ -234,7 +237,7 @@ function handleClosePrayer(e) {
             @click.stop="clockStore.cancelTimer()"
             title="取消倒计时"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24">
+            <svg width="18" height="18" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.close" fill="#fff" />
             </svg>
           </button>
@@ -249,13 +252,13 @@ function handleClosePrayer(e) {
           >
             <svg
               v-if="clockStore.timer.status === 'running'"
-              width="16"
-              height="16"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
             >
               <path :d="CLOCK_ICONS.pause" fill="#000" />
             </svg>
-            <svg v-else width="16" height="16" viewBox="0 0 24 24">
+            <svg v-else width="18" height="18" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.play" fill="#000" />
             </svg>
           </button>
@@ -269,14 +272,16 @@ function handleClosePrayer(e) {
         @click="openClockTab('stopwatch')"
       >
         <div class="ilc-left">
-          <div class="ilc-icon-wrap">
-            <svg width="20" height="20" viewBox="0 0 24 24">
+          <div class="ilc-icon-wrap icon-stopwatch">
+            <svg width="22" height="22" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
             </svg>
           </div>
           <div class="ilc-time-col">
             <span class="ilc-main-time">{{ clockStore.formattedStopwatchIsland }}</span>
-            <span class="ilc-sub-label">秒表</span>
+            <span class="ilc-sub-label">
+              {{ clockStore.stopwatch.status === 'paused' ? '秒表 · 已暂停' : '秒表 · 计时中' }}
+            </span>
           </div>
         </div>
 
@@ -288,7 +293,7 @@ function handleClosePrayer(e) {
             @click.stop="clockStore.recordLap()"
             title="计次"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24">
+            <svg width="18" height="18" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.lap" fill="#fff" />
             </svg>
           </button>
@@ -298,7 +303,7 @@ function handleClosePrayer(e) {
             @click.stop="clockStore.resetStopwatch()"
             title="重置秒表"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24">
+            <svg width="18" height="18" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.close" fill="#fff" />
             </svg>
           </button>
@@ -315,13 +320,13 @@ function handleClosePrayer(e) {
           >
             <svg
               v-if="clockStore.stopwatch.status === 'running'"
-              width="16"
-              height="16"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
             >
               <path :d="CLOCK_ICONS.pause" fill="#000" />
             </svg>
-            <svg v-else width="16" height="16" viewBox="0 0 24 24">
+            <svg v-else width="18" height="18" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.play" fill="#000" />
             </svg>
           </button>
@@ -335,7 +340,7 @@ function handleClosePrayer(e) {
       >
         <div class="ilc-left">
           <div class="ilc-icon-wrap icon-prayer">
-            <svg width="20" height="20" viewBox="0 0 24 24">
+            <svg width="22" height="22" viewBox="0 0 24 24">
               <path :d="GLYPHS.moon" fill="#00C853" />
             </svg>
           </div>
@@ -351,7 +356,7 @@ function handleClosePrayer(e) {
             @click.stop="handleClosePrayer"
             title="关闭"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24">
+            <svg width="18" height="18" viewBox="0 0 24 24">
               <path :d="CLOCK_ICONS.close" fill="#fff" />
             </svg>
           </button>
@@ -378,7 +383,7 @@ function handleClosePrayer(e) {
   z-index: 97;
   user-select: none;
   width: calc(var(--screen-w, 360px) - 20px);
-  max-width: 356px;
+  max-width: 358px;
   pointer-events: none;
 }
 
@@ -467,12 +472,12 @@ function handleClosePrayer(e) {
   100% { transform: scaleY(1.1); opacity: 1; }
 }
 
-/* ================= 2. 展开态独立卡片列表 (无外层大背景) ================= */
+/* ================= 2. 展开态独立圆角矩形卡片列表 (回归礼拜模式尺寸) ================= */
 .island-expanded-list {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   background: transparent !important;
   box-shadow: none !important;
   border: none !important;
@@ -480,17 +485,17 @@ function handleClosePrayer(e) {
   pointer-events: none;
 }
 
-/* 每一个独立的胶囊卡片（与参考视频完全一致） */
+/* 独立圆角矩形卡片（高度80px，圆角22px，完美契合礼拜模式大气比例） */
 .island-live-card {
   width: 100%;
-  height: 56px;
-  border-radius: 26px;
+  height: 80px;
+  border-radius: 22px;
   background: #000000;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px 0 16px;
+  padding: 0 16px 0 18px;
   box-sizing: border-box;
   cursor: pointer;
   pointer-events: auto;
@@ -499,7 +504,7 @@ function handleClosePrayer(e) {
 }
 
 .island-live-card:active {
-  filter: brightness(1.15);
+  filter: brightness(1.12);
 }
 
 @keyframes cardSlideDown {
@@ -516,12 +521,14 @@ function handleClosePrayer(e) {
 .ilc-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  min-width: 0;
+  flex: 1;
 }
 
+/* 44px 圆形图标衬底 */
 .ilc-icon-wrap {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -529,49 +536,67 @@ function handleClosePrayer(e) {
   flex: none;
 }
 
+.icon-timer,
+.icon-stopwatch {
+  background: rgba(255, 149, 0, 0.16);
+}
+
 .icon-prayer {
-  background: rgba(0, 200, 83, 0.15);
+  background: rgba(0, 200, 83, 0.16);
+}
+
+.icon-recorder {
+  background: rgba(235, 68, 54, 0.16);
 }
 
 .ilc-time-col {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  margin-left: 14px;
+  margin-right: 12px;
+  min-width: 0;
 }
 
 .ilc-main-time {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: 1.15;
   letter-spacing: -0.3px;
 }
 
 .ilc-sub-label {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: 11px;
-  color: #8e8e93;
-  margin-top: 1px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* 右侧控制按键组 */
 .ilc-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: none;
 }
 
+/* 42px 大圆操作按键 */
 .ilc-btn {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: background 0.15s ease, transform 0.1s ease;
   flex: none;
 }
 
@@ -580,27 +605,27 @@ function handleClosePrayer(e) {
 }
 
 .ilc-btn.btn-cancel {
-  background: #2c2c2e;
+  background: #333336;
 }
 
 .ilc-btn.btn-cancel:hover {
-  background: #3a3a3c;
+  background: #444448;
 }
 
 .ilc-btn.btn-playpause {
   background: #ff9500;
-  box-shadow: 0 2px 8px rgba(255, 149, 0, 0.4);
+  box-shadow: 0 4px 14px rgba(255, 149, 0, 0.4);
 }
 
 .ilc-btn.btn-stop-record {
   background: #eb4436;
-  box-shadow: 0 2px 8px rgba(235, 68, 54, 0.4);
+  box-shadow: 0 4px 14px rgba(235, 68, 54, 0.4);
 }
 
 .btn-stop-square {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
   background: #ffffff;
 }
 </style>

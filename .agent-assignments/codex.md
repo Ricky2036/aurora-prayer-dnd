@@ -2,7 +2,7 @@
 
 Branch: `codex/lane`
 
-Development port: `8888`
+Development port: disabled (服务已停用/端口关闭)
 
 Current module ownership:
 
