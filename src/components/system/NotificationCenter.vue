@@ -219,6 +219,9 @@ function updateStacking() {
     const rect = wrapper.getBoundingClientRect()
     const card = wrapper.querySelector('.nc-card')
     if (!card) return
+    // 横滑偏移：从 data-id 取该卡当前 swipeOffset，和堆叠变换合成到同一个 transform。
+    // 不要在模板里用 :style="{transform: translateX}" —— 它会在每次重渲染把这里的堆叠 scale 冲掉。
+    const swipeX = swipeOffsets.value[wrapper.dataset.id] || 0
     const relativeY = rect.top - containerRect.top
     if (relativeY > bottomThreshold) {
       const excess = relativeY - bottomThreshold
@@ -229,15 +232,15 @@ function updateStacking() {
         if (stackIndex <= 1) visualY = stackIndex * 24
         else if (stackIndex <= 2) visualY = 24 + (stackIndex - 1) * 12
         else visualY = 36 + (stackIndex - 2) * 6
-        card.style.transform = `translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
+        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
         card.style.opacity = Math.max(0.4, 1 - stackIndex * 0.2)
         card.style.filter = `brightness(${Math.max(0.7, 1 - stackIndex * 0.25)})`
       } else {
-        card.style.transform = `translate3d(0, ${-excess + 50}px, 0) scale(0.7)`
+        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 50}px, 0) scale(0.7)`
         card.style.opacity = 0
       }
     } else {
-      card.style.transform = 'translate3d(0, 0, 0) scale(1)'
+      card.style.transform = `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)`
       card.style.opacity = 1
       card.style.filter = 'brightness(1)'
     }
@@ -250,6 +253,10 @@ watch(() => notifications.list.length, async () => {
   await nextTick()
   updateStacking()
 })
+// 横滑偏移变化时，把堆叠变换和横滑合成重算（updateStacking 里已含 translateX）
+watch(swipeOffsets, () => {
+  if (rafId == null) rafId = requestAnimationFrame(updateStacking)
+}, { deep: true })
 let mountTimer = null
 onMounted(() => { mountTimer = setTimeout(() => { updateStacking(); mountTimer = null }, 80) })
 
@@ -366,6 +373,7 @@ function toggleExpand(id) {
             :key="n.id"
             class="nc-item-wrapper nc-swipe-card-wrapper"
             :class="{ clearing: isClearing }"
+            :data-id="n.id"
             :style="{ transitionDelay: isClearing ? idx * 40 + 'ms' : '0ms', zIndex: notifications.list.length - idx }"
           >
             <!-- 底层滑动操作按钮 -->
@@ -388,7 +396,6 @@ function toggleExpand(id) {
             <div
               class="nc-card"
               :class="{ expanded: expandedId === n.id, 'is-swiping': isSwipingCard && activeCardId === n.id }"
-              :style="{ transform: `translateX(${swipeOffsets[n.id] || 0}px)` }"
               @pointerdown="onCardPointerDown($event, n.id)"
               @pointermove="onCardPointerMove($event, n.id)"
               @pointerup="onCardPointerUp($event, n.id)"
