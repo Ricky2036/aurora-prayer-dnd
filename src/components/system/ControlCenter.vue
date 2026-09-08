@@ -12,6 +12,7 @@ import LIcon from '../ui/LIcon.vue'
 import StatusIcons from '../ui/StatusIcons.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
 import { clamp } from '../../utils/math'
+import { orderedIndicators } from '../../utils/statusBarIndicators'
 import albumCover from '../../assets/icons/album_cover.png'
 
 /**
@@ -28,7 +29,14 @@ const overlay = computed(() => system.overlays.controlCenter)
 const visible = computed(() => overlay.value.status !== 'closed')
 
 // 状态栏指示器：勿扰/热点/静音/振动 启用后，在控制中心状态行也点亮（与开关按钮同源 LIcon）
-const dndOn = computed(() => control.dnd || control.doNotDisturb)
+/* 下拉控制中心状态行：与桌面状态栏共用 src/utils/statusBarIndicators.js 同一套优先级排序规则，
+ * 保证「下拉控制中心后的状态栏图标排序规则与桌面状态栏规则一致」（Ricky 2026-09-08）。
+ * 单卡：全部指示器按优先级升序一排渲染。
+ * 双卡两行：按优先级分段（<=40 落第1行 SIM1，>=50 落第2行 SIM2），
+ *   每段内部仍按优先级升序，整体自上而下连续升序，与桌面规则一致。 */
+const ccIndicators = computed(() => orderedIndicators.filter((d) => d.show(control)))
+const ccDualRow1 = computed(() => orderedIndicators.filter((d) => d.priority <= 40 && d.show(control)))
+const ccDualRow2 = computed(() => orderedIndicators.filter((d) => d.priority >= 50 && d.show(control)))
 
 const layerStyle = computed(() => ({
   transform: `translateY(${(overlay.value.progress - 1) * 100}%)`,
@@ -954,11 +962,7 @@ const glassRing = computed(() =>
               <span class="cc-carrier">{{ i18n.ccLabel('carrier1') }}</span>
             </div>
             <div class="cc-status-right">
-              <LIcon v-if="dndOn" name="moon" :size="18" :stroke-width="2.5" class="cc-ind" />
-              <LIcon v-if="control.hotspot" name="radio" :size="18" :stroke-width="2.5" class="cc-ind" />
-              <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="cc-ind" />
-              <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="cc-ind" />
-              <LIcon v-if="control.bluetooth" name="bluetooth" :size="16" :stroke-width="2.4" class="cc-ind" />
+              <LIcon v-for="d in ccIndicators" :key="d.key" :name="d.icon" :size="d.size" :stroke-width="d.sw" class="cc-ind" :data-key="d.key" :data-prio="d.priority" />
               <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
               <span class="cc-battery-pct">91%</span>
               <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
@@ -974,8 +978,7 @@ const glassRing = computed(() =>
                 <span class="cc-carrier">{{ i18n.ccLabel('carrier1') }}</span>
               </div>
               <div class="cc-status-right">
-                <LIcon v-if="dndOn" name="moon" :size="18" :stroke-width="2.5" class="cc-ind" />
-                <LIcon v-if="control.hotspot" name="radio" :size="18" :stroke-width="2.5" class="cc-ind" />
+                <LIcon v-for="d in ccDualRow1" :key="d.key" :name="d.icon" :size="d.size" :stroke-width="d.sw" class="cc-ind" :data-key="d.key" :data-prio="d.priority" />
                 <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
                 <span class="cc-battery-pct">91%</span>
                 <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
@@ -988,9 +991,7 @@ const glassRing = computed(() =>
                 <span class="cc-carrier">{{ i18n.ccLabel('carrier2') }}</span>
               </div>
               <div class="cc-status-right cc-status-sub-icons">
-                <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="cc-ind" />
-                <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="cc-ind" />
-                <LIcon v-if="control.bluetooth" name="bluetooth" :size="16" :stroke-width="2.4" class="cc-ind" />
+                <LIcon v-for="d in ccDualRow2" :key="d.key" :name="d.icon" :size="d.size" :stroke-width="d.sw" class="cc-ind" :data-key="d.key" :data-prio="d.priority" />
               </div>
             </div>
           </div>
