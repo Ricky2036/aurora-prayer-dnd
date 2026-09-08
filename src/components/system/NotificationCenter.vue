@@ -276,11 +276,19 @@ function updateStacking() {
     })
   }
 
-  // 批量样式写入
+  // 批量样式写入：基于真实几何覆盖关系的动态 clip-path 遮挡，底层卡片内容完整存在，自然被上层卡片遮挡
+  let prevVisualBottom = -Infinity
+
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
     const card = item.card
     if (!card) continue
+
+    // 确保内容 100% 完整，杜绝 opacity: 0 偷懒隐藏内容
+    if (item.content && item.content.style.opacity) item.content.style.opacity = ''
+    if (item.icon && item.icon.style.opacity) item.icon.style.opacity = ''
+    if (item.chevron && item.chevron.style.opacity) item.chevron.style.opacity = ''
+
     const swipeX = swipeOffsets.value[item.id] || 0
     const relativeY = item.offsetTop - scrollTop
     const cardBottom = relativeY + item.offsetHeight
@@ -289,36 +297,48 @@ function updateStacking() {
     if (cardBottom > bottomThreshold) {
       const excess = cardBottom - bottomThreshold
       const stackIndex = excess / 48
+
       if (stackIndex <= 3.5) {
         const scale = Math.max(0.82, 1 - stackIndex * 0.05)
         const visualY = stackIndex <= 1 ? stackIndex * 12 : (12 + (stackIndex - 1) * 8)
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
+        const translateY = -excess + visualY
+
+        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
         card.style.opacity = '1'
-        card.style.filter = ''
         card.style.pointerEvents = 'auto'
 
-        // 堆叠在后方的卡片文字与图标渐隐（iOS 经典堆叠机制：底层卡片只保留圆角底板轮廓，不露内部文字内容）
-        const contentOpacity = Math.max(0, 1 - stackIndex * 2.2)
-        if (item.content) item.content.style.opacity = contentOpacity < 0.99 ? contentOpacity : ''
-        if (item.icon) item.icon.style.opacity = contentOpacity < 0.99 ? contentOpacity : ''
-        if (item.chevron) item.chevron.style.opacity = contentOpacity < 0.99 ? contentOpacity : ''
+        // 视觉顶部与底部
+        const visualTop = relativeY + translateY + (item.offsetHeight * (1 - scale)) / 2
+        const visualBottom = relativeY + translateY + (item.offsetHeight * (1 + scale)) / 2
+
+        // 计算上层卡片对本卡片的几何遮挡（上层卡片在 DOM 中较前，z-index 较高，处于表层）
+        if (prevVisualBottom > visualTop) {
+          const overlapVisual = prevVisualBottom - visualTop
+          const clipTopLocal = overlapVisual / scale
+          if (clipTopLocal >= item.offsetHeight) {
+            card.style.clipPath = 'inset(100%)'
+            card.style.opacity = '0'
+            card.style.pointerEvents = 'none'
+          } else {
+            card.style.clipPath = `inset(${Math.round(clipTopLocal)}px 0 0 0 round 24px)`
+          }
+        } else {
+          card.style.clipPath = ''
+        }
+
+        prevVisualBottom = visualBottom
       } else {
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 32}px, 0) scale(0.8)`
-        card.style.opacity = 0
-        card.style.filter = ''
+        card.style.opacity = '0'
         card.style.pointerEvents = 'none'
-        if (item.content) item.content.style.opacity = 0
-        if (item.icon) item.icon.style.opacity = 0
-        if (item.chevron) item.chevron.style.opacity = 0
+        card.style.clipPath = ''
       }
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
-      card.style.filter = ''
       card.style.pointerEvents = ''
-      if (item.content) item.content.style.opacity = ''
-      if (item.icon) item.icon.style.opacity = ''
-      if (item.chevron) item.chevron.style.opacity = ''
+      card.style.clipPath = ''
+      prevVisualBottom = relativeY + item.offsetHeight
     }
   }
 }
@@ -951,9 +971,11 @@ watch(expandedId, async () => {
   gap: 12px;
   padding: 13px 14px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.20);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition: background 0.2s ease;
   transform-origin: center center;
