@@ -1,6 +1,7 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useBackHandler } from '../../../composables/backRegistry'
+import { useClockStore } from '../../../stores/clockStore'
 import { CLOCK_ICONS } from './clockIcons'
 import AlarmTab from './tabs/AlarmTab.vue'
 import MuslimTab from './tabs/MuslimTab.vue'
@@ -14,8 +15,13 @@ const props = defineProps({
   app: { type: Object, default: () => ({}) }
 })
 
-// 当前激活的 Tab（默认闹钟 Tab）
-const activeTab = ref('alarm')
+const clock = useClockStore()
+
+// 当前激活的 Tab（与 store 联动）
+const activeTab = computed({
+  get: () => clock.activeTab,
+  set: (val) => clock.setActiveTab(val)
+})
 
 // 二级页面导航栈：null | 'muslim-alarm' | 'general-settings'
 const subpage = ref(null)

@@ -158,6 +158,12 @@ export const useClockStore = defineStore('clock', {
       laps: [] // { id, lapNumber, lapMs, totalMs }
     },
 
+    // 当前激活的 Tab
+    activeTab: 'alarm',
+
+    // 灵动岛展开状态
+    islandExpanded: true,
+
     // 设置项
     settings: {
       muslimAlarmEnabled: true,
@@ -189,6 +195,28 @@ export const useClockStore = defineStore('clock', {
     timerProgress: (state) => {
       if (state.timer.totalDuration <= 0) return 1
       return state.timer.remainingSeconds / state.timer.totalDuration
+    },
+
+    isTimerActive: (state) => state.timer.status === 'running' || state.timer.status === 'paused',
+    isStopwatchActive: (state) => state.stopwatch.status === 'running' || state.stopwatch.status === 'paused',
+    hasActiveClockIsland: (state) =>
+      state.timer.status === 'running' ||
+      state.timer.status === 'paused' ||
+      state.stopwatch.status === 'running' ||
+      state.stopwatch.status === 'paused',
+
+    formattedTimerIsland: (state) => {
+      const s = state.timer.remainingSeconds
+      const m = Math.floor(s / 60)
+      const sec = s % 60
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    },
+
+    formattedStopwatchIsland: (state) => {
+      const totalSec = Math.floor(state.stopwatch.elapsedMs / 1000)
+      const m = Math.floor(totalSec / 60)
+      const sec = totalSec % 60
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
     }
   },
 
@@ -336,6 +364,19 @@ export const useClockStore = defineStore('clock', {
         clearInterval(this.stopwatch.intervalId)
         this.stopwatch.intervalId = null
       }
+    },
+
+    /* ---- 灵动岛与标签切换 ---- */
+    setActiveTab(tab) {
+      this.activeTab = tab
+    },
+
+    toggleIslandExpanded() {
+      this.islandExpanded = !this.islandExpanded
+    },
+
+    setIslandExpanded(val) {
+      this.islandExpanded = val
     }
   }
 })
