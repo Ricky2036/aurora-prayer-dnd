@@ -130,7 +130,7 @@ function onCardPointerMove(e, id) {
     e.preventDefault?.()
     let nextOffset = cardInitialOffset + dx
     if (nextOffset > 0) nextOffset = nextOffset * 0.2
-    if (nextOffset < -160) nextOffset = -160 + (nextOffset + 160) * 0.2
+    if (nextOffset < -260) nextOffset = -260 + (nextOffset + 260) * 0.2
     swipeOffsets.value = {
       ...swipeOffsets.value,
       [id]: nextOffset
@@ -154,7 +154,17 @@ function onCardPointerUp(e, id) {
     }, 280)
 
     const currentOffset = swipeOffsets.value[id] || 0
-    if (currentOffset < -45) {
+    if (currentOffset <= -170) {
+      // 超过 50%~60% 阈值，直接飞出并删除该卡片
+      swipedTransitionId.value = id
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -420
+      }
+      setTimeout(() => {
+        onDeleteCard(id)
+      }, 200)
+    } else if (currentOffset < -45) {
       resetOtherCards(id)
       swipeOffsets.value = {
         ...swipeOffsets.value,
@@ -242,27 +252,27 @@ function onDeleteCard(id) {
   swipeOffsets.value = next
 }
 
-/** 滑动操作按钮弹性物理与位移动画计算 */
+/** 滑动操作按钮弹性物理与位移动画计算（不缩放图标，通过动态拉伸设置与删除按钮间距体现弹性） */
 function getActionBtnStyle(id, type) {
   const offset = swipeOffsets.value[id] || 0
   if (offset >= 0) {
     return {
       opacity: 0,
-      transform: 'scale(0.6)',
+      transform: 'translateX(0)',
       pointerEvents: 'none'
     }
   }
   const dist = Math.abs(offset)
   const isSettings = type === 'settings'
-  const p = Math.min(1, dist / 118)
-  const extra = Math.max(0, (dist - 118) * 0.003)
-  const scale = (0.65 + 0.35 * p + extra).toFixed(3)
   const opacity = Math.min(1, dist / 35).toFixed(2)
-  const shiftX = Math.max(0, (dist - 118) * (isSettings ? 0.22 : 0.12))
+  // 当滑动超过 118px 时，拉伸按钮间距
+  const extraDist = Math.max(0, dist - 118)
+  const extraGap = extraDist * 0.45
+  const shiftX = isSettings ? extraGap : (extraGap * 0.12)
   const isCurrentlySwiping = isSwipingCard && activeCardId === id
   return {
     opacity,
-    transform: `scale(${scale}) translateX(${-shiftX}px)`,
+    transform: `translateX(${-shiftX}px)`,
     transition: isCurrentlySwiping ? 'none' : 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease'
   }
 }
@@ -1025,6 +1035,7 @@ watch(expandedId, async () => {
   max-height: 44px;
   border-radius: 50%;
   flex: none;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1045,10 +1056,15 @@ watch(expandedId, async () => {
 .nc-action-btn :deep(svg) {
   display: block;
   flex: none;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
 }
 
 .nc-btn-settings {
-  color: #1c1c1e;
+  color: #ffffff;
 }
 .nc-btn-delete {
   color: #ff3b30;

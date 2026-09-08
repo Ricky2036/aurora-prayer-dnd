@@ -9,6 +9,8 @@ import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useControlStore } from '../../stores/controlStore'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import LIcon from '../ui/LIcon.vue'
+import MusicPlayerCard from './MusicPlayerCard.vue'
 import albumCover from '../../assets/icons/album_cover.png'
 
 const prayerStore = usePrayerStore()
@@ -212,7 +214,8 @@ function handleClosePrayer(e) {
       class="island-card"
       :class="{
         'is-expanded': isExpanded,
-        'is-compact': !isExpanded
+        'is-compact': !isExpanded,
+        'is-media': isExpanded && primaryActiveItem === 'media'
       }"
       @click="handlePrimaryCardClick"
     >
@@ -231,7 +234,9 @@ function handleClosePrayer(e) {
           <svg v-else-if="primaryActiveItem === 'prayer'" width="13" height="13" viewBox="0 0 24 24">
             <path :d="GLYPHS.moon" fill="#00C853" />
           </svg>
-          <img v-else-if="primaryActiveItem === 'media'" :src="albumCover" class="media-mini-cover" alt="Cover" />
+          <div v-else-if="primaryActiveItem === 'media'" class="media-mini-cover-wrap">
+            <img :src="albumCover" class="media-mini-cover" alt="Cover" />
+          </div>
         </div>
 
         <div class="cc-camera-slot"></div>
@@ -244,8 +249,11 @@ function handleClosePrayer(e) {
         </div>
       </div>
 
-      <!-- ================= 1.2 展开态图层（80px大圆角矩形） ================= -->
-      <div class="morph-layer expanded-layer">
+      <!-- ================= 1.2 展开态图层（大圆角矩形） ================= -->
+      <div
+        class="morph-layer expanded-layer"
+        :class="{ 'is-media-layer': primaryActiveItem === 'media' }"
+      >
         <!-- 主项：定时器 -->
         <template v-if="primaryActiveItem === 'timer'">
           <div class="ilc-left">
@@ -416,36 +424,9 @@ function handleClosePrayer(e) {
           </div>
         </template>
 
-        <!-- 主项：音乐 -->
+        <!-- 主项：音乐（与通知中心高卡片完全一致的布局） -->
         <template v-else-if="primaryActiveItem === 'media'">
-          <div class="ilc-left ilc-media-left">
-            <img :src="albumCover" class="ilc-media-cover" alt="Cover" />
-            <div class="ilc-time-col">
-              <span class="ilc-media-title">{{ control.mediaTitle }}</span>
-              <span class="ilc-sub-label">{{ control.mediaArtist }}</span>
-            </div>
-          </div>
-
-          <div class="ilc-actions ilc-media-actions">
-            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="上一首">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-            </button>
-            <button
-              class="ilc-btn btn-playpause"
-              @click.stop="control.toggleMediaPlaying()"
-              title="暂停/开始"
-            >
-              <svg v-if="control.mediaPlaying" width="18" height="18" viewBox="0 0 24 24">
-                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
-              </svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24">
-                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
-              </svg>
-            </button>
-            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="下一首">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
-            </button>
-          </div>
+          <MusicPlayerCard :is-island="true" />
         </template>
       </div>
     </div>
@@ -461,6 +442,7 @@ function handleClosePrayer(e) {
         v-for="item in subActiveItems"
         :key="item"
         class="island-secondary-card"
+        :class="{ 'is-media-card': item === 'media' }"
         @click="handleCardClick(item)"
       >
         <!-- 副项：秒表 -->
@@ -633,36 +615,9 @@ function handleClosePrayer(e) {
           </div>
         </template>
 
-        <!-- 副项：音乐 -->
+        <!-- 副项：音乐（与通知中心高卡片完全一致的布局） -->
         <template v-else-if="item === 'media'">
-          <div class="ilc-left ilc-media-left">
-            <img :src="albumCover" class="ilc-media-cover" alt="Cover" />
-            <div class="ilc-time-col">
-              <span class="ilc-media-title">{{ control.mediaTitle }}</span>
-              <span class="ilc-sub-label">{{ control.mediaArtist }}</span>
-            </div>
-          </div>
-
-          <div class="ilc-actions ilc-media-actions">
-            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="上一首">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-            </button>
-            <button
-              class="ilc-btn btn-playpause"
-              @click.stop="control.toggleMediaPlaying()"
-              title="暂停/开始"
-            >
-              <svg v-if="control.mediaPlaying" width="18" height="18" viewBox="0 0 24 24">
-                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
-              </svg>
-              <svg v-else width="18" height="18" viewBox="0 0 24 24">
-                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
-              </svg>
-            </button>
-            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="下一首">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
-            </button>
-          </div>
+          <MusicPlayerCard :is-island="true" />
         </template>
       </div>
     </TransitionGroup>
@@ -1077,12 +1032,21 @@ function handleClosePrayer(e) {
 }
 
 /* 微型音乐胶囊图层 */
-.media-mini-cover {
+.media-mini-cover-wrap {
   width: 16px;
   height: 16px;
   border-radius: 4px;
-  object-fit: cover;
+  overflow: hidden;
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.media-mini-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.08);
 }
 .media-mini-wave {
   display: flex;
@@ -1110,39 +1074,25 @@ function handleClosePrayer(e) {
   50% { height: 100%; opacity: 1; }
 }
 
-/* 展开态音乐卡片样式 */
-.ilc-media-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
+/* 展开态主卡片：音乐使用与通知中心完全一致的较高卡片尺寸 (164px, 32px 圆角) */
+.island-card.is-expanded.is-media {
+  height: 164px;
+  border-radius: 32px;
 }
-.ilc-media-cover {
-  width: 46px;
-  height: 46px;
-  border-radius: 10px;
-  object-fit: cover;
-  flex: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+
+/* 展开态主卡片音乐图层 */
+.expanded-layer.is-media-layer {
+  display: block;
+  padding: 16px;
+  white-space: normal;
 }
-.ilc-media-title {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  color: #ffffff;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ilc-media-actions {
-  gap: 6px;
-}
-.btn-media-ctrl {
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-}
-.btn-media-ctrl:hover {
-  background: rgba(255, 255, 255, 0.22);
+
+/* 展开态副卡片：若为音乐，高度同样为 164px，圆角 32px */
+.island-secondary-card.is-media-card {
+  height: 164px;
+  border-radius: 32px;
+  padding: 16px;
+  display: block;
+  white-space: normal;
 }
 </style>
