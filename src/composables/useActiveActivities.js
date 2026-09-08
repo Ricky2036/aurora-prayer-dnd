@@ -4,6 +4,7 @@ import { useRecorderStore } from '../stores/recorderStore'
 import { usePrayerStore } from '../stores/prayerStore'
 import { useSystemStore } from '../stores/systemStore'
 import { useI18nStore } from '../stores/i18nStore'
+import { useNotificationsStore } from '../stores/notificationsStore'
 
 /**
  * 集中管理所有处于活动状态的灵动岛 Live Activity
@@ -15,23 +16,24 @@ export function useActiveActivities() {
   const prayerStore = usePrayerStore()
   const system = useSystemStore()
   const i18n = useI18nStore()
+  const notificationsStore = useNotificationsStore()
 
   prayerStore.startTicker()
 
   const isRecorderActive = computed(() => {
-    return recorderStore.isRecording && system.activeAppId !== 'voicememos'
+    return notificationsStore.isIslandEnabled('recorder') && recorderStore.isRecording && system.activeAppId !== 'voicememos'
   })
 
   const isTimerActive = computed(() => {
-    return clockStore.isTimerActive && system.activeAppId !== 'clock'
+    return notificationsStore.isIslandEnabled('timer') && clockStore.isTimerActive && system.activeAppId !== 'clock'
   })
 
   const isStopwatchActive = computed(() => {
-    return clockStore.isStopwatchActive && system.activeAppId !== 'clock'
+    return notificationsStore.isIslandEnabled('stopwatch') && clockStore.isStopwatchActive && system.activeAppId !== 'clock'
   })
 
   const isPrayerActive = computed(() => {
-    return Boolean(prayerStore.currentIslandPrayer)
+    return notificationsStore.isIslandEnabled('prayer') && Boolean(prayerStore.currentIslandPrayer)
   })
 
   const formattedPrayerCountdown = computed(() => {

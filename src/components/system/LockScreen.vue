@@ -28,6 +28,7 @@ import albumArt from '../../assets/img/album-2.jpg'
  */
 import MusicPlayerCard from './MusicPlayerCard.vue'
 import LIcon from '../ui/LIcon.vue'
+import IslandCloseModal from '../ui/IslandCloseModal.vue'
 
 const { timeShort, dateLong } = useClock()
 const system = useSystemStore()
@@ -263,8 +264,9 @@ function resetOtherCards(exceptId = null) {
 }
 
 function onCardPointerDown(e, id) {
-  // 普通通知在折叠态禁止横滑，但录音卡片（id === '__recorder__'）始终默认展开展示，允许随时左滑操作
-  if (isCollapsed.value && id !== '__recorder__') return
+  // 普通通知在折叠态禁止横滑，但活跃灵动岛卡片始终默认展开展示，允许随时左滑操作
+  const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
+  if (isCollapsed.value && !isAct) return
   activeCardId = id
   cardPointerStartX = e.clientX
   cardPointerStartY = e.clientY
@@ -276,7 +278,8 @@ function onCardPointerDown(e, id) {
 }
 
 function onCardPointerMove(e, id) {
-  if (activeCardId !== id || (isCollapsed.value && id !== '__recorder__')) return
+  const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
+  if (activeCardId !== id || (isCollapsed.value && !isAct)) return
   const dx = e.clientX - cardPointerStartX
   const dy = e.clientY - cardPointerStartY
 
@@ -339,6 +342,55 @@ function onCardPointerUp(e, id) {
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
+}
+
+const isIslandModalVisible = ref(false)
+const pendingIslandAct = ref(null)
+
+function onRequestDeleteActivity(act) {
+  pendingIslandAct.value = act
+  isIslandModalVisible.value = true
+}
+
+function stopActivityInstance(act) {
+  if (!act) return
+  if (act.isRecorder || act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
+    recorder.stopRecording()
+  } else if (act.type === 'timer' || act.id === 'timer') {
+    clock.cancelTimer()
+  } else if (act.type === 'stopwatch' || act.id === 'stopwatch') {
+    clock.resetStopwatch()
+  } else if (act.type === 'prayer' || act.id === 'prayer') {
+    prayer.closeIsland()
+  }
+}
+
+function handleCloseOnce() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleClosePermanent() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act)
+  notifications.setIslandEnabled(act.type, false)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleCancelIslandModal() {
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
 }
 
 function onDeleteCard(item) {
@@ -431,8 +483,9 @@ useSwipeGesture(rootRef, {
   direction: -1,
   span: UNLOCK_SPAN,
   canStart(e) {
+    if (isIslandModalVisible.value) return false
     // 交互区（播放器/通知/胶囊）的上滑留给展开与滚动逻辑
-    if (e.target?.closest?.('.ls-interact')) return false
+    if (e.target?.closest?.('.ls-interact, .island-modal-backdrop')) return false
     return true
   },
   onStart() { snapTo(progress.value) },
@@ -460,8 +513,9 @@ useSwipeGesture(rootRef, {
 
 /* 点击空白处 → 收起已滑开卡片 &（展开态时）收起锁屏展开列表 */
 function onBackdropTap(e) {
+  if (isIslandModalVisible.value) return
   // 点击卡片本体、按钮或交互区域内部时不收起滑开状态
-  if (e.target.closest('.ls-card-front, .ls-swipe-actions, .ls-action-btn, .ls-shortcut, .ls-pill')) {
+  if (e.target.closest('.ls-card-front, .ls-swipe-actions, .ls-action-btn, .ls-shortcut, .ls-pill, .island-modal-backdrop')) {
     return
   }
   if (Object.keys(swipeOffsets.value).length > 0) {
@@ -614,7 +668,7 @@ function notifStyle(i) {
               <button class="ls-action-btn ls-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
                 <LIcon name="headerSettings" :size="20" />
               </button>
-              <button class="ls-action-btn ls-btn-delete" @click.stop="onDeleteCard(act)" :title="i18n.t('delete')">
+              <button class="ls-action-btn ls-btn-delete" @click.stop="onRequestDeleteActivity(act)" :title="i18n.t('delete')">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 6h18"/>
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -820,6 +874,15 @@ function notifStyle(i) {
         </button>
       </div>
     </div>
+
+    <!-- 灵动岛关闭确认弹窗 -->
+    <IslandCloseModal
+      :visible="isIslandModalVisible"
+      :act="pendingIslandAct"
+      @close-once="handleCloseOnce"
+      @close-permanent="handleClosePermanent"
+      @cancel="handleCancelIslandModal"
+    />
   </div>
 </template>
 

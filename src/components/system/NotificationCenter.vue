@@ -18,6 +18,7 @@ import { usePrayerStore } from '../../stores/prayerStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
+import IslandCloseModal from '../ui/IslandCloseModal.vue'
 
 /**
  * 通知中心（移植自 notificationcenter.tsx）：
@@ -58,9 +59,10 @@ let lastSwipeEndTime = 0
 const swipedTransitionId = ref(null)
 
 function onNcClick(e) {
+  if (isIslandModalVisible.value) return
   if (Date.now() - lastSwipeEndTime < 350) return
   // 点击卡片本体、操作按钮、播放器、清除按钮等交互元素内部时，不重置滑开状态也不关闭叠层
-  if (e.target.closest('.nc-card, .nc-activity-card, .nc-swipe-card-wrapper, .nc-item-wrapper, .nc-activity-wrapper, .ls-player, .nc-player-instance, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, button, a, input, label')) {
+  if (e.target.closest('.nc-card, .nc-activity-card, .nc-swipe-card-wrapper, .nc-item-wrapper, .nc-activity-wrapper, .ls-player, .nc-player-instance, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, .island-modal-backdrop, button, a, input, label')) {
     return
   }
   // 点击空白处时，如果有滑开的卡片，先收回
@@ -170,6 +172,55 @@ function onCardPointerUp(e, id) {
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
+}
+
+const isIslandModalVisible = ref(false)
+const pendingIslandAct = ref(null)
+
+function onRequestDeleteActivity(act) {
+  pendingIslandAct.value = act
+  isIslandModalVisible.value = true
+}
+
+function stopActivityInstance(act) {
+  if (!act) return
+  if (act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
+    recorder.stopRecording()
+  } else if (act.type === 'timer' || act.id === 'timer') {
+    clock.cancelTimer()
+  } else if (act.type === 'stopwatch' || act.id === 'stopwatch') {
+    clock.resetStopwatch()
+  } else if (act.type === 'prayer' || act.id === 'prayer') {
+    prayer.closeIsland()
+  }
+}
+
+function handleCloseOnce() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleClosePermanent() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act)
+  notifications.setIslandEnabled(act.type, false)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleCancelIslandModal() {
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
 }
 
 function onDeleteCard(id) {
@@ -427,7 +478,7 @@ watch(expandedId, async () => {
               <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
                 <LIcon name="headerSettings" :size="20" />
               </button>
-              <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard(act.id)" :title="i18n.t('delete')">
+              <button class="nc-action-btn nc-btn-delete" @click.stop="onRequestDeleteActivity(act)" :title="i18n.t('delete')">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 6h18"/>
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -627,6 +678,15 @@ watch(expandedId, async () => {
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
     </button>
+
+    <!-- 灵动岛关闭确认弹窗 -->
+    <IslandCloseModal
+      :visible="isIslandModalVisible"
+      :act="pendingIslandAct"
+      @close-once="handleCloseOnce"
+      @close-permanent="handleClosePermanent"
+      @cancel="handleCancelIslandModal"
+    />
   </div>
 </template>
 

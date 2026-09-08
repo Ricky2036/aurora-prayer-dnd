@@ -47,9 +47,6 @@ const lockScreenStyle = ref('stacked')
 const onlyNewOnLock = ref(false)
 const conciseFloating = ref(true)
 const antiPeepFloating = ref(true)
-const dynamicBarMaster = ref(true)
-const dynamicBarMedia = ref(true)
-const dynamicBarPrayer = ref(true)
 
 const appStates = ref({
   transsioner: true, clock: true, google: true, phone: true, sms: true,
@@ -312,26 +309,47 @@ const emit = defineEmits(['back-to-settings'])
               <span class="ns-row-title">{{ i18n.t('nsDynamicBar') }}</span>
               <span class="ns-row-sub">{{ i18n.t('nsDynamicBarSub') }}</span>
             </div>
-            <ToggleSwitch v-model="dynamicBarMaster" />
+            <ToggleSwitch v-model="notificationsStore.islandSettings.master" />
           </div>
         </div>
 
-        <template v-if="dynamicBarMaster">
+        <template v-if="notificationsStore.islandSettings.master">
           <div class="ns-group-label">{{ i18n.t('nsRemindWays') }}</div>
           <div class="ns-section">
             <div class="ns-row">
               <div class="ns-row-text">
-                <span class="ns-row-title">{{ i18n.t('nsDynamicBarMedia') }}</span>
-                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarMediaSub') }}</span>
+                <span class="ns-row-title">{{ i18n.t('nsDynamicBarRecorder') }}</span>
+                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarRecorderSub') }}</span>
               </div>
-              <ToggleSwitch v-model="dynamicBarMedia" />
+              <ToggleSwitch v-model="notificationsStore.islandSettings.recorder" />
             </div>
-            <div class="ns-row last">
+            <div class="ns-row">
+              <div class="ns-row-text">
+                <span class="ns-row-title">{{ i18n.t('nsDynamicBarTimer') }}</span>
+                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarTimerSub') }}</span>
+              </div>
+              <ToggleSwitch v-model="notificationsStore.islandSettings.timer" />
+            </div>
+            <div class="ns-row">
+              <div class="ns-row-text">
+                <span class="ns-row-title">{{ i18n.t('nsDynamicBarStopwatch') }}</span>
+                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarStopwatchSub') }}</span>
+              </div>
+              <ToggleSwitch v-model="notificationsStore.islandSettings.stopwatch" />
+            </div>
+            <div class="ns-row">
               <div class="ns-row-text">
                 <span class="ns-row-title">{{ i18n.t('nsDynamicBarPrayer') }}</span>
                 <span class="ns-row-sub">{{ i18n.t('nsDynamicBarPrayerSub') }}</span>
               </div>
-              <ToggleSwitch v-model="dynamicBarPrayer" />
+              <ToggleSwitch v-model="notificationsStore.islandSettings.prayer" />
+            </div>
+            <div class="ns-row last">
+              <div class="ns-row-text">
+                <span class="ns-row-title">{{ i18n.t('nsDynamicBarMedia') }}</span>
+                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarMediaSub') }}</span>
+              </div>
+              <ToggleSwitch v-model="notificationsStore.islandSettings.media" />
             </div>
           </div>
         </template>

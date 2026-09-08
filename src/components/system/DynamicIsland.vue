@@ -5,6 +5,7 @@ import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { useI18nStore } from '../../stores/i18nStore'
+import { useNotificationsStore } from '../../stores/notificationsStore'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 
@@ -13,27 +14,28 @@ const recorderStore = useRecorderStore()
 const clockStore = useClockStore()
 const system = useSystemStore()
 const i18n = useI18nStore()
+const notificationsStore = useNotificationsStore()
 
 if (typeof window !== 'undefined') {
   window.__clock = clockStore
   window.__prayer = prayerStore
 }
 
-/* 各独立活动项活跃判断（录音中/计时中/秒表中，且当前不在对应 App 内部） */
+/* 各独立活动项活跃判断（录音中/计时中/秒表中，且当前不在对应 App 内部，且灵动岛开关开启） */
 const isRecorderActive = computed(() => {
-  return recorderStore.isRecording && system.activeAppId !== 'voicememos'
+  return notificationsStore.isIslandEnabled('recorder') && recorderStore.isRecording && system.activeAppId !== 'voicememos'
 })
 
 const isTimerActive = computed(() => {
-  return clockStore.isTimerActive && system.activeAppId !== 'clock'
+  return notificationsStore.isIslandEnabled('timer') && clockStore.isTimerActive && system.activeAppId !== 'clock'
 })
 
 const isStopwatchActive = computed(() => {
-  return clockStore.isStopwatchActive && system.activeAppId !== 'clock'
+  return notificationsStore.isIslandEnabled('stopwatch') && clockStore.isStopwatchActive && system.activeAppId !== 'clock'
 })
 
 const isPrayerActive = computed(() => {
-  return Boolean(prayerStore.currentIslandPrayer)
+  return notificationsStore.isIslandEnabled('prayer') && Boolean(prayerStore.currentIslandPrayer)
 })
 
 /* 是否有任意灵动岛活动 */

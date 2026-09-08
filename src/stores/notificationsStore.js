@@ -8,7 +8,15 @@ export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
     list: seedNotifications(),
     targetView: null, // 'notifications' | null
-    targetSubView: null // 'dynamicBar' | 'main' | null
+    targetSubView: null, // 'dynamicBar' | 'main' | null
+    islandSettings: {
+      master: true,
+      recorder: true,
+      timer: true,
+      stopwatch: true,
+      prayer: true,
+      media: true
+    }
   }),
 
   getters: {
@@ -18,6 +26,11 @@ export const useNotificationsStore = defineStore('notifications', {
       const map = {}
       for (const n of s.list) map[n.appId] = (map[n.appId] || 0) + 1
       return map
+    },
+    /** 检查指定活动是否允许上灵动岛展示 */
+    isIslandEnabled: (s) => (key) => {
+      if (!s.islandSettings.master) return false
+      return s.islandSettings[key] !== false
     }
   },
 
@@ -44,6 +57,12 @@ export const useNotificationsStore = defineStore('notifications', {
     setTargetView(view, subView = null) {
       this.targetView = view
       this.targetSubView = subView
+    },
+
+    setIslandEnabled(key, enabled) {
+      if (key in this.islandSettings) {
+        this.islandSettings[key] = enabled
+      }
     }
   }
 })
