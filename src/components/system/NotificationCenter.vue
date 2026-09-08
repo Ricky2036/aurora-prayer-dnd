@@ -256,9 +256,12 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 堆叠起始基准线：提升至安全呼吸区（与底部清除按钮形成自然叠放层次，距离容器底部 74px）
-  const bottomThreshold = containerHeight - 74
+  // 堆叠起始基准线：提升至安全呼吸区（与底部清除按钮形成自然叠放层次，距离容器底部 76px）
+  const bottomThreshold = containerHeight - 76
   const scrollTop = container.scrollTop
+
+  // 最下方挤压极限位置：紧贴容器底部（距容器底 4px），彻底消除底部空隙
+  const maxVisualY = Math.max(68, containerHeight - bottomThreshold - 4)
 
   // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
   const items = []
@@ -293,23 +296,34 @@ function updateStacking() {
       const excess = cardBottom - bottomThreshold
       const stackIndex = excess / 48
 
-      if (stackIndex <= 3.5) {
-        const scale = Math.max(0.82, 1 - stackIndex * 0.05)
-        const visualY = stackIndex <= 1 ? stackIndex * 12 : (12 + (stackIndex - 1) * 8)
-        const translateY = -excess + visualY
-
-        // 根据滑动堆叠距离调节白毛玻璃卡片不透明度（0.14 提高至 0.22），加厚雾面遮挡透底，绝不隐藏文字
-        const bgAlpha = clamp(0.14 + (excess / 48) * 0.08, 0.14, 0.22)
-        card.style.setProperty('--nc-card-bg-alpha', String(bgAlpha.toFixed(2)))
-
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
-        card.style.opacity = '1'
-        card.style.pointerEvents = 'auto'
+      // 物理堆叠位移：让底层卡片随挤压深度持续向下推移直至最底部位置（maxVisualY），无缝贴合底部消除空隙
+      let visualY
+      if (stackIndex <= 1) {
+        visualY = stackIndex * 16
+      } else if (stackIndex <= 2) {
+        visualY = 16 + (stackIndex - 1) * 20
+      } else if (stackIndex <= 3) {
+        visualY = 36 + (stackIndex - 2) * 18
       } else {
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 32}px, 0) scale(0.8)`
-        card.style.opacity = '0'
-        card.style.pointerEvents = 'none'
+        visualY = Math.min(maxVisualY, 54 + (stackIndex - 3) * 16)
       }
+
+      const translateY = -excess + visualY
+      const scale = Math.max(0.78, 1 - stackIndex * 0.055)
+
+      // 根据滑动堆叠距离调节白毛玻璃卡片不透明度（0.14 提高至 0.22），加厚雾面遮挡透底，绝不隐藏文字
+      const bgAlpha = clamp(0.14 + (excess / 48) * 0.08, 0.14, 0.22)
+      card.style.setProperty('--nc-card-bg-alpha', String(bgAlpha.toFixed(2)))
+
+      // 自然渐隐消失：当过度挤压并推至最底部时（stackIndex 1.6 ~ 3.8），不透明度平滑衰减至 0，无任何突兀切断
+      let opacity = 1
+      if (stackIndex > 1.6) {
+        opacity = clamp(1 - (stackIndex - 1.6) / 2.2, 0, 1)
+      }
+
+      card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
+      card.style.opacity = String(opacity.toFixed(3))
+      card.style.pointerEvents = opacity < 0.08 ? 'none' : 'auto'
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
