@@ -231,11 +231,94 @@ function handleClearAll() {
   }, 800)
 }
 
+/* ---------- 灵动堆叠算法（滚动到底部时平滑叠放，与顶部卡片无缝紧密堆叠） ---------- */
 const listRef = ref(null)
+let rafId = null
+
+function updateStacking() {
+  rafId = null
+  const container = listRef.value
+  if (!container) return
+  const containerRect = container.getBoundingClientRect()
+  const wrappers = container.querySelectorAll('.nc-item-wrapper')
+  if (!wrappers.length) return
+
+  // 计算上方固定/流式内容（播放器卡片或活动卡片）的下边缘，堆叠基线绝不侵入上方卡片
+  const player = container.querySelector('.nc-player-instance')
+  const playerBottom = player ? (player.getBoundingClientRect().bottom - containerRect.top) : 0
+  
+  // 堆叠基准阈值：位于可视区底部（留出底部清理按钮安全区），但绝对不高于播放器下方
+  const bottomThreshold = Math.max(playerBottom + 6, containerRect.height - 130)
+
+  wrappers.forEach((wrapper) => {
+    const rect = wrapper.getBoundingClientRect()
+    const card = wrapper.querySelector('.nc-card')
+    if (!card) return
+    const swipeX = swipeOffsets.value[wrapper.dataset.id] || 0
+    const relativeY = rect.top - containerRect.top
+
+    if (relativeY > bottomThreshold) {
+      const excess = relativeY - bottomThreshold
+      const stackIndex = excess / 48
+      if (stackIndex <= 3) {
+        const scale = Math.max(0.88, 1 - stackIndex * 0.04)
+        // visualY: 向下微露，形成清晰精致的卡片堆叠边缘层
+        const visualY = stackIndex <= 1 ? stackIndex * 14 : (14 + (stackIndex - 1) * 10)
+        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
+        card.style.opacity = Math.max(0.5, 1 - stackIndex * 0.16)
+        card.style.filter = `brightness(${Math.max(0.82, 1 - stackIndex * 0.1)})`
+      } else {
+        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 34}px, 0) scale(0.84)`
+        card.style.opacity = 0
+      }
+    } else {
+      card.style.transform = `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)`
+      card.style.opacity = 1
+      card.style.filter = 'brightness(1)'
+    }
+  })
+}
+
+function onScroll() {
+  if (rafId == null) rafId = requestAnimationFrame(updateStacking)
+}
+
+watch(() => notifications.list.length, async () => {
+  await nextTick()
+  updateStacking()
+})
+
+watch(swipeOffsets, () => {
+  if (rafId == null) rafId = requestAnimationFrame(updateStacking)
+}, { deep: true })
+
+watch(() => overlay.value.status, async (status) => {
+  if (status === 'open') {
+    await nextTick()
+    setTimeout(updateStacking, 40)
+  }
+})
+
+watch(() => overlay.value.progress, (p) => {
+  if (p > 0.05) {
+    if (rafId == null) rafId = requestAnimationFrame(updateStacking)
+  }
+})
+
+let mountTimer = null
+onMounted(() => {
+  mountTimer = setTimeout(() => {
+    updateStacking()
+    mountTimer = null
+  }, 100)
+})
 
 onBeforeUnmount(() => {
   clearTimeout(clearTimer)
+  clearTimeout(mountTimer)
   clearTimer = null
+  mountTimer = null
+  if (rafId != null) { cancelAnimationFrame(rafId); rafId = null }
 })
 
 /* 星期/日期 */
@@ -277,7 +360,7 @@ function toggleExpand(id) {
       </div>
 
       <!-- 贯通式列表 -->
-      <div ref="listRef" class="nc-list scrollable">
+      <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
         <!-- 灵动岛活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个） -->
         <template v-for="act in activeActivities" :key="act.id">
           <div class="nc-swipe-card-wrapper nc-activity-wrapper">
@@ -449,7 +532,6 @@ function toggleExpand(id) {
             <div
               class="nc-card"
               :class="{ expanded: expandedId === n.id, 'is-swiping': isSwipingCard && activeCardId === n.id }"
-              :style="{ transform: `translateX(${swipeOffsets[n.id] || 0}px)` }"
               @pointerdown="onCardPointerDown($event, n.id)"
               @pointermove="onCardPointerMove($event, n.id)"
               @pointerup="onCardPointerUp($event, n.id)"
