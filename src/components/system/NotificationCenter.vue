@@ -264,8 +264,12 @@ function updateStacking() {
   const items = []
   for (let i = 0; i < wrappers.length; i++) {
     const w = wrappers[i]
+    const card = w.querySelector('.nc-card')
     items.push({
-      card: w.querySelector('.nc-card'),
+      card,
+      content: card ? card.querySelector('.nc-card-body') : null,
+      icon: card ? card.querySelector('.notif-icon') : null,
+      chevron: card ? card.querySelector('.nc-card-chevron') : null,
       id: w.dataset.id,
       offsetTop: w.offsetTop,
       offsetHeight: w.offsetHeight
@@ -289,17 +293,32 @@ function updateStacking() {
         const scale = Math.max(0.82, 1 - stackIndex * 0.05)
         const visualY = stackIndex <= 1 ? stackIndex * 12 : (12 + (stackIndex - 1) * 8)
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
-        card.style.opacity = Math.max(0.45, 1 - stackIndex * 0.16)
+        card.style.opacity = '1'
+        card.style.filter = stackIndex > 0.05 ? `brightness(${Math.max(0.72, 1 - stackIndex * 0.08)})` : ''
         card.style.pointerEvents = 'auto'
+
+        // 堆叠在后方的卡片文字与图标渐隐（iOS 经典堆叠机制：底层卡片只保留圆角底板轮廓，不露内部文字内容）
+        const contentOpacity = Math.max(0, 1 - stackIndex * 2.2)
+        if (item.content) item.content.style.opacity = contentOpacity < 0.99 ? contentOpacity : ''
+        if (item.icon) item.icon.style.opacity = contentOpacity < 0.99 ? contentOpacity : ''
+        if (item.chevron) item.chevron.style.opacity = contentOpacity < 0.99 ? contentOpacity : ''
       } else {
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 32}px, 0) scale(0.8)`
         card.style.opacity = 0
+        card.style.filter = ''
         card.style.pointerEvents = 'none'
+        if (item.content) item.content.style.opacity = 0
+        if (item.icon) item.icon.style.opacity = 0
+        if (item.chevron) item.chevron.style.opacity = 0
       }
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
+      card.style.filter = ''
       card.style.pointerEvents = ''
+      if (item.content) item.content.style.opacity = ''
+      if (item.icon) item.icon.style.opacity = ''
+      if (item.chevron) item.chevron.style.opacity = ''
     }
   }
 }
@@ -932,7 +951,7 @@ watch(expandedId, async () => {
   gap: 12px;
   padding: 13px 14px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(30, 30, 36, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: none;
   cursor: pointer;
