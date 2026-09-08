@@ -8,6 +8,7 @@ import SettingsApp from './settings/SettingsApp.vue'
 import CalendarApp from './calendar/CalendarApp.vue'
 import CameraApp from './camera/CameraApp.vue'
 import VoiceMemosApp from './voicememos/VoiceMemosApp.vue'
+import ClockApp from './clock/ClockApp.vue'
 
 export const appComponents = {
   phone: PhoneApp,
@@ -15,5 +16,6 @@ export const appComponents = {
   settings: SettingsApp,
   calendar: CalendarApp,
   camera: CameraApp,
-  voicememos: VoiceMemosApp
+  voicememos: VoiceMemosApp,
+  clock: ClockApp
 }
