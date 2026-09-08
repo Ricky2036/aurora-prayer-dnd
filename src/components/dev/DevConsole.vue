@@ -555,31 +555,33 @@ function onCopyFineTune() {
             </div>
           </div>
 
-          <!-- 隐私指示 + 双卡显示（合并一行） -->
-          <div class="pc-card pc-card-single">
-            <div class="pc-card-row">
-              <label class="pc-inline-toggle">
+          <!-- 隐私指示 + 双卡显示（一行两块底板） -->
+          <div class="pc-card-duo">
+            <div class="pc-card pc-card-single">
+              <div class="pc-card-header">
                 <span class="pc-card-title">隐私指示</span>
-                <span class="pc-switch-wrap">
+                <label class="pc-switch-wrap">
                   <input
                     type="checkbox"
                     :checked="control.showPrivacyIndicators"
                     @change="control.setShowPrivacyIndicators($event.target.checked)"
                   />
                   <div class="pc-switch"></div>
-                </span>
-              </label>
-              <label class="pc-inline-toggle">
+                </label>
+              </div>
+            </div>
+            <div class="pc-card pc-card-single">
+              <div class="pc-card-header">
                 <span class="pc-card-title">双卡显示</span>
-                <span class="pc-switch-wrap">
+                <label class="pc-switch-wrap">
                   <input
                     type="checkbox"
                     :checked="control.showDualSim"
                     @change="control.setShowDualSim($event.target.checked)"
                   />
                   <div class="pc-switch"></div>
-                </span>
-              </label>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -907,31 +909,33 @@ function onCopyFineTune() {
                     </div>
                   </div>
 
-                  <!-- 隐私指示 + 双卡显示（合并一行） -->
-                  <div class="pc-card pc-card-single">
-                    <div class="pc-card-row">
-                      <label class="pc-inline-toggle">
+                  <!-- 隐私指示 + 双卡显示（一行两块底板） -->
+                  <div class="pc-card-duo">
+                    <div class="pc-card pc-card-single">
+                      <div class="pc-card-header">
                         <span class="pc-card-title">隐私指示</span>
-                        <span class="pc-switch-wrap">
+                        <label class="pc-switch-wrap">
                           <input
                             type="checkbox"
                             :checked="control.showPrivacyIndicators"
                             @change="control.setShowPrivacyIndicators($event.target.checked)"
                           />
                           <div class="pc-switch"></div>
-                        </span>
-                      </label>
-                      <label class="pc-inline-toggle">
+                        </label>
+                      </div>
+                    </div>
+                    <div class="pc-card pc-card-single">
+                      <div class="pc-card-header">
                         <span class="pc-card-title">双卡显示</span>
-                        <span class="pc-switch-wrap">
+                        <label class="pc-switch-wrap">
                           <input
                             type="checkbox"
                             :checked="control.showDualSim"
                             @change="control.setShowDualSim($event.target.checked)"
                           />
                           <div class="pc-switch"></div>
-                        </span>
-                      </label>
+                        </label>
+                      </div>
                     </div>
                   </div>
 
@@ -1106,7 +1110,7 @@ function onCopyFineTune() {
   margin-bottom: 9px;
 }
 
-/* 只有标题一行的卡片（隐私指示+双卡合并行 / 微调图标尺寸收起态）：
+/* 只有标题一行的卡片（隐私指示/双卡显示单行底板 / 微调图标尺寸收起态）：
    通用卡片 padding 是 11px 13px 13px（上小下大，为多行内容留呼吸感），
    单行卡片改用对称的 12px，标题+开关正好落在卡片垂直中心（卡片总高不变） */
 .pc-card.pc-card-single {
@@ -1117,20 +1121,17 @@ function onCopyFineTune() {
   margin-bottom: 0;
 }
 
-/* 一行放两个「标题 + 开关」：左组靠左、右组靠右，中间留空做分组（亲密性） */
-.pc-card-row {
+/* 一行放两块底板（隐私指示 / 双卡显示）：
+   两块各占一半（flex 1:1，min-width 0 防止长标题把格子撑歪），
+   高度 stretch 对齐，间距 10 与其它卡片之间的间距同档 */
+.pc-card-duo {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: stretch;
+  gap: 10px;
 }
-
-.pc-inline-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  user-select: none;
+.pc-card-duo > .pc-card {
+  flex: 1 1 0;
+  min-width: 0;
 }
 /* 微调面板展开态：面板自带 margin/padding-top 间距，标题与面板之间保持原有的 0 间隙 */
 .pc-card.pc-card-expanded .pc-card-header {
