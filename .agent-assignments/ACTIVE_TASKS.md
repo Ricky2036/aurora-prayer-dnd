@@ -6,6 +6,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | --- | --- | --- | --- | --- | --- | --- |
 | Merged | Codex | Notification Center module (Transferred to Antigravity) | `codex/lane` | None (handed off & merged) | `232b5bc` | `ea7ae15` |
 | Merged | Workbuddy | Control Center module | `workbuddy/lane` | `src/components/system/ControlCenter.vue`; `src/components/system/cc/**`; `src/stores/controlStore.js`; `src/components/dev/ControlCenterFineTunePanel.vue`; Control Center-specific scripts/tests | `232b5bc` | `06c6007` |
-| Merged | Antigravity | Refine Dynamic Bar & Notification Settings Layout | `antigravity/lane` plus integration worktree | `src/components/apps/**`; `src/components/phone/ScreenView.vue`; `src/components/system/NotificationCenter.vue`; `src/components/system/LockScreen.vue`; `src/composables/useActiveActivities.js`; `src/stores/i18nStore.js`; app-specific stores/assets/tests; integration-only shared registration files | `232b5bc` | `8c2be76` |
+| Merged | Antigravity | Avoid Dynamic Island StatusBar Icons Occlusion | `antigravity/lane` plus integration worktree | `src/components/phone/StatusBar.vue`; `src/composables/useActiveActivities.js`; `tests/statusBar.test.js`; app-specific stores/assets/tests; integration-only shared registration files | `232b5bc` | `071143d` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
