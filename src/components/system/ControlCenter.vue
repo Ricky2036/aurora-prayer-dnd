@@ -321,10 +321,47 @@ const baseItems = [
   return { ...i, w, h }
 })
 
+/* HiOS 17 预设：完全自定义的磁贴清单 + 顺序，
+   packLayout 按数组顺序紧凑填入 4 列网格，逐行复刻截图里的排版：
+   第 1-2 行：媒体卡(2x2) + 数据卡(2x1) + Wi-Fi 胶囊(2x1)
+   第 3 行  ：飞行(1x1) + 蓝牙(1x1) + 亮度音量滑块(2x2)
+   第 4 行  ：热点胶囊(2x1) + 滑块续 + 滑块续
+   第 5 行  ：设备中心(2x1) + 响铃 2x1 展开(2x1)
+   第 6-8 行：手电筒/定位/旋转锁/勿扰 / 钱包/省电/录屏/扫一扫 / 深色/自动旋转/极速互传/快速分享 */
+const HIOS17_ITEMS = [
+  { id: 'mediaPlayer', type: 'widget', size: '2x2' },
+  { id: 'data', type: 'widget', size: '2x1' },
+  { id: 'wifi', type: 'widget', size: '2x1' },
+  { id: 'airplane', type: 'toggle', size: '1x1' },
+  { id: 'bluetooth', type: 'toggle', size: '1x1' },
+  { id: 'mediaControls', type: 'widget', size: '2x2' },
+  { id: 'hotspot', type: 'toggle', size: '2x1' },
+  { id: 'joyConnect', type: 'widget', size: '2x1' },
+  { id: 'sound', type: 'toggle', size: '2x1' },
+  { id: 'flashlight', type: 'toggle', size: '1x1' },
+  { id: 'location', type: 'toggle', size: '1x1' },
+  { id: 'rotationLock', type: 'toggle', size: '1x1' },
+  { id: 'dnd', type: 'toggle', size: '1x1' },
+  { id: 'calculator', type: 'toggle', size: '1x1' },
+  { id: 'batterySaver', type: 'toggle', size: '1x1' },
+  { id: 'screenRecord', type: 'toggle', size: '1x1' },
+  { id: 'scan', type: 'toggle', size: '1x1' },
+  { id: 'darkMode', type: 'toggle', size: '1x1' },
+  { id: 'autoRotate', type: 'toggle', size: '1x1' },
+  { id: 'share', type: 'toggle', size: '1x1' },
+  { id: 'cast', type: 'toggle', size: '1x1' }
+].map((i) => {
+  const [w, h] = i.size.split('x').map(Number)
+  return { ...i, w, h }
+})
+
 /* 按当前「默认布局」机型过滤掉别家独有的磁贴：
    baseItems 是全量清单，PRESET_EXCLUSIVE_IDS 里的条目只有命中该机型的 only 才留下 */
 const presetItems = computed(() => {
   const preset = LAYOUT_PRESETS.find((p) => p.id === control.layoutPreset) || LAYOUT_PRESETS[0]
+  // HiOS 17 走完全自定义的磁贴清单（顺序与尺寸由 HIOS17_ITEMS 决定，
+  //   packLayout 按数组顺序紧凑填入 4 列网格，恰好复刻截图里的排版）
+  if (preset.id === 'hios17') return HIOS17_ITEMS
   const only = new Set(preset.only)
   return baseItems.filter((i) => !PRESET_EXCLUSIVE_IDS.includes(i.id) || only.has(i.id))
 })
