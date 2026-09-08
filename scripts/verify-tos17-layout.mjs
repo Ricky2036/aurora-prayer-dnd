@@ -57,6 +57,19 @@ for (const [id, cfg] of Object.entries(cases)) {
   check(`tOS17 ${id}: 磁贴总数 = ${cfg.total}`, ids.length === cfg.total, `actual=${ids.length}`)
 }
 
+// ---- 收尾三个磁贴：所有默认布局统一为 快速分享 / 扫一扫 / 钱包 ----
+const TAIL = ['cast', 'scan', 'calculator']
+for (const id of ['camon', 'note', 'gt', 'hios17', 'note17', 'gt17']) {
+  await setPreset(id)
+  const ids = await readCells()
+  const tail = ids.slice(-3)
+  check(
+    `${id}: 收尾三个 = 快速分享/扫一扫/钱包`,
+    JSON.stringify(tail) === JSON.stringify(TAIL),
+    `actual=${tail.join('/')}`
+  )
+}
+
 await page.screenshot({ path: 'shots/tos17-cc.png' })
 console.log('\n截图: shots/tos17-cc.png')
 console.log(errs.length ? '\n控制台错误: ' + errs.join('; ') : '\n无控制台错误')

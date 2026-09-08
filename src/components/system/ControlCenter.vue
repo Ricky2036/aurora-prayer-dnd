@@ -310,8 +310,10 @@ const DEFAULT_TOGGLE_IDS = [
   'bluetooth', 'hotspot', 'airplane', 'location',
   'screenshot', 'darkMode', 'dnd', 'rotationLock',
   'screenRecord', 'batterySaver', 'autoRotate', 'share',
-  'cast', 'boost', 'calculator', 'scan',
-  'motionComfort', 'liquidCooling', 'shoulderKey'
+  'boost', 'motionComfort', 'liquidCooling', 'shoulderKey',
+  /* 收尾三个固定为 快速分享 / 扫一扫 / 钱包 —— 所有默认布局统一（Ricky 2026-09-08）。
+     注意要放在机型独占项之后，否则 GT 的液冷/肩键会插到末尾把它们挤掉。 */
+  'cast', 'scan', 'calculator'
   // 'jbl' 已下线：见上面 TOGGLES 里的 jbl 注释（两个地方要一起改）
 ]
 
@@ -337,10 +339,10 @@ const baseItems = [
    第 3 行  ：飞行(1x1) + 蓝牙(1x1) + 亮度音量滑块(2x2)
    第 4 行  ：热点胶囊(2x1) + 滑块续 + 滑块续
    第 5 行  ：设备中心(2x1) + 响铃 2x1 展开(2x1)
-   第 6-8 行：手电筒/定位/旋转锁/勿扰 / 钱包/省电/录屏/扫一扫 / 截屏/灯效/极速互传/快速分享
+   第 6-8 行：手电筒/定位/旋转锁/勿扰 / 省电/录屏/截屏/灯效 / 极速互传/快速分享/扫一扫/钱包
    tOS17 相对 tOS16 CAMON 的差异（Ricky 2026-09-08）：去掉 深色主题(darkMode) /
    红外遥控(autoRotate)，加回 tOS16 有而这里缺的 截屏(screenshot) / 灯效(boost)。
-   两者尺寸都是 1x1 且占原 darkMode/autoRotate 的格子，所以网格排版不变。 */
+   收尾三个同样固定为 快速分享/扫一扫/钱包，与其它默认布局统一。 */
 const HIOS17_ITEMS = [
   { id: 'mediaPlayer', type: 'widget', size: '2x2' },
   { id: 'data', type: 'widget', size: '2x1' },
@@ -355,14 +357,15 @@ const HIOS17_ITEMS = [
   { id: 'location', type: 'toggle', size: '1x1' },
   { id: 'rotationLock', type: 'toggle', size: '1x1' },
   { id: 'dnd', type: 'toggle', size: '1x1' },
-  { id: 'calculator', type: 'toggle', size: '1x1' },
   { id: 'batterySaver', type: 'toggle', size: '1x1' },
   { id: 'screenRecord', type: 'toggle', size: '1x1' },
-  { id: 'scan', type: 'toggle', size: '1x1' },
   { id: 'screenshot', type: 'toggle', size: '1x1' },
   { id: 'boost', type: 'toggle', size: '1x1' },
   { id: 'share', type: 'toggle', size: '1x1' },
-  { id: 'cast', type: 'toggle', size: '1x1' }
+  /* 收尾三个：与其它默认布局统一 */
+  { id: 'cast', type: 'toggle', size: '1x1' },
+  { id: 'scan', type: 'toggle', size: '1x1' },
+  { id: 'calculator', type: 'toggle', size: '1x1' }
 ].map((i) => {
   const [w, h] = i.size.split('x').map(Number)
   return { ...i, w, h }
