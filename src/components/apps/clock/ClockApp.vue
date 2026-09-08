@@ -104,9 +104,8 @@ useBackHandler(() => {
         @click="activeTab = t.id"
       >
         <div class="tab-icon-wrap">
-          <span class="active-icon-badge" :class="{ 'is-active': activeTab === t.id }"></span>
           <svg class="tab-icon" width="22" height="22" viewBox="0 0 24 24">
-            <path :d="t.icon" :fill="activeTab === t.id ? '#000000' : '#ffffff'" />
+            <path :d="t.icon" :fill="activeTab === t.id ? '#ff9500' : '#ffffff'" />
           </svg>
         </div>
         <span class="tab-label">{{ t.name }}</span>
@@ -151,23 +150,23 @@ useBackHandler(() => {
   overflow: hidden;
 }
 
-/* 底部悬浮导航 Dock（参考参考视频/设计图） */
+/* 底部悬浮导航 Dock（精准匹配图2设计规范与比例） */
 .clock-floating-nav {
   position: absolute;
-  bottom: calc(var(--safe-bottom, 20px) + 8px);
-  left: 18px;
-  right: 18px;
-  height: 64px;
-  background: rgba(30, 30, 32, 0.88);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-radius: 32px;
+  bottom: calc(var(--safe-bottom, 20px) + 2px);
+  left: 14px;
+  right: 14px;
+  height: 52px;
+  background: rgba(30, 30, 32, 0.92);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-radius: 26px;
   border: 0.5px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
+  padding: 3px;
   box-sizing: border-box;
   z-index: 25;
   user-select: none;
@@ -176,10 +175,10 @@ useBackHandler(() => {
 /* 动态滑动的高亮块容器 */
 .nav-sliding-highlight {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 4px;
-  width: calc((100% - 8px) / 5);
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -189,14 +188,13 @@ useBackHandler(() => {
   will-change: transform;
 }
 
-/* 高亮灰色胶囊底块（参考视频高亮块） */
+/* 高亮灰色胶囊底块（参考图2，占满当前Tab单元） */
 .highlight-pill {
-  width: 92%;
-  max-width: 58px;
-  height: 52px;
-  border-radius: 26px;
+  width: 100%;
+  height: 100%;
+  border-radius: 23px;
   background: rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
 }
 
 .tab-item {
@@ -207,7 +205,7 @@ useBackHandler(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   cursor: pointer;
   z-index: 2;
   -webkit-tap-highlight-color: transparent;
@@ -215,29 +213,11 @@ useBackHandler(() => {
 
 .tab-icon-wrap {
   position: relative;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* 激活项的圆形亮橙色底托 */
-.active-icon-badge {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  border-radius: 13px;
-  background: #ff9500;
-  transform: scale(0.6);
-  opacity: 0;
-  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
-  z-index: 1;
-}
-
-.active-icon-badge.is-active {
-  transform: scale(1);
-  opacity: 1;
 }
 
 .tab-icon {
@@ -247,12 +227,13 @@ useBackHandler(() => {
 }
 
 .tab-label {
-  font-size: 10px;
+  font-size: 9.5px;
   color: #8e8e93;
   font-weight: 500;
   letter-spacing: -0.1px;
   transition: color 0.2s ease;
   margin-top: 1px;
+  line-height: 1;
 }
 
 .tab-item.active .tab-label {

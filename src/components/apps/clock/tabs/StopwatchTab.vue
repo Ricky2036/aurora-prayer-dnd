@@ -191,14 +191,16 @@ const formattedCurrentLapTime = computed(() => {
   color: #fff;
 }
 
-/* 底部操作栏 */
+/* 底部操作栏（在悬浮Tab上方整齐排列，绝对不重叠） */
 .stopwatch-control-footer {
-  height: 150px;
-  padding: 0 40px 88px;
+  height: 100px;
+  padding: 0 36px 14px;
+  margin-bottom: calc(var(--safe-bottom, 20px) + 54px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .ctrl-round-btn {

@@ -252,7 +252,7 @@ const displayCountdownText = computed(() => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0 20px;
+  padding: 0 20px 20px;
   overflow: hidden;
 }
 
@@ -261,7 +261,7 @@ const displayCountdownText = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 28px;
 }
 
 .time-wheels-container {
@@ -347,8 +347,8 @@ const displayCountdownText = computed(() => {
 
 .countdown-circle-wrap {
   position: relative;
-  width: 280px;
-  height: 280px;
+  width: 270px;
+  height: 270px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -371,14 +371,16 @@ const displayCountdownText = computed(() => {
   letter-spacing: -0.5px;
 }
 
-/* 底部操作栏 */
+/* 底部操作栏（在悬浮Tab上方整齐排列，绝对不重叠） */
 .timer-control-footer {
-  height: 150px;
-  padding: 0 40px 88px;
+  height: 100px;
+  padding: 0 36px 14px;
+  margin-bottom: calc(var(--safe-bottom, 20px) + 54px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .ctrl-round-btn {
