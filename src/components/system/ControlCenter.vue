@@ -27,6 +27,9 @@ const i18n = useI18nStore()
 const overlay = computed(() => system.overlays.controlCenter)
 const visible = computed(() => overlay.value.status !== 'closed')
 
+// 状态栏指示器：勿扰/热点/静音/振动 启用后，在控制中心状态行也点亮（与开关按钮同源 LIcon）
+const dndOn = computed(() => control.dnd || control.doNotDisturb)
+
 const layerStyle = computed(() => ({
   transform: `translateY(${(overlay.value.progress - 1) * 100}%)`,
   visibility: visible.value ? 'visible' : 'hidden',
@@ -914,6 +917,10 @@ const glassRing = computed(() =>
               <span class="cc-carrier">{{ i18n.ccLabel('carrier1') }}</span>
             </div>
             <div class="cc-status-right">
+              <LIcon v-if="dndOn" name="moon" :size="13" class="cc-ind" />
+              <LIcon v-if="control.hotspot" name="radio" :size="13" class="cc-ind" />
+              <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="13" class="cc-ind" />
+              <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="13" class="cc-ind" />
               <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
               <span class="cc-battery-pct">91%</span>
               <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
@@ -1510,6 +1517,11 @@ const glassRing = computed(() =>
   display: flex;
   align-items: center;
   gap: 5px;
+}
+.cc-ind {
+  flex: 0 0 auto;
+  /* 与右侧 Wi-Fi/电量图标保持同色同高，视觉上属于同一状态行 */
+  color: rgba(255, 255, 255, 0.95);
 }
 .cc-battery-pct {
   font: 600 13px/1 var(--font-stack);
