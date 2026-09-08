@@ -162,7 +162,7 @@ export const useClockStore = defineStore('clock', {
     activeTab: 'alarm',
 
     // 灵动岛展开状态
-    islandExpanded: true,
+    islandExpanded: false,
 
     // 设置项
     settings: {
