@@ -29,7 +29,6 @@ export const useNotificationsStore = defineStore('notifications', {
     },
     /** 检查指定活动是否允许上灵动岛展示 */
     isIslandEnabled: (s) => (key) => {
-      if (!s.islandSettings.master) return false
       return s.islandSettings[key] !== false
     }
   },
