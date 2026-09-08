@@ -568,11 +568,11 @@ function handleClosePrayer(e) {
   transform: scale(0.95);
 }
 
-/* 展开态尺寸：经典礼拜模式大圆角矩形 (高度80px，圆角22px，大气开阔) */
+/* 展开态尺寸：经典礼拜模式大圆角矩形 (高度80px，圆角32px，更圆润大气) */
 .island-card.is-expanded {
   width: 100%;
   height: 80px;
-  border-radius: 22px;
+  border-radius: 32px;
   padding: 0 16px 0 18px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
@@ -593,17 +593,20 @@ function handleClosePrayer(e) {
 .compact-layer {
   padding: 0 10px;
   justify-content: space-between;
-  transition: opacity 0.2s cubic-bezier(0.32, 0.72, 0, 1), transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* 收起态时：等待卡片缩至小尺寸（延迟 0.15s）后才淡入，避免缩小初期内容重叠 */
 .is-compact .compact-layer {
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+  transition: opacity 0.18s cubic-bezier(0.32, 0.72, 0, 1) 0.15s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* 展开时：以极快速度淡出（0.10s），立刻让出视野 */
 .is-expanded .compact-layer {
   opacity: 0;
-  transform: scale(0.8);
+  transform: scale(0.85);
   pointer-events: none;
+  transition: opacity 0.10s ease-out, transform 0.20s ease-out;
 }
 
 .cc-left {
@@ -658,17 +661,22 @@ function handleClosePrayer(e) {
 .expanded-layer {
   padding: 0 16px 0 18px;
   justify-content: space-between;
-  transition: opacity 0.26s cubic-bezier(0.32, 0.72, 0, 1) 0.08s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  white-space: nowrap;
+  overflow: hidden;
 }
+/* 展开时：延迟 0.12s 待卡片骨架展开到一定宽度后再平滑淡入，避免过窄挤爆换行 */
 .is-expanded .expanded-layer {
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+  transition: opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1) 0.12s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* 收起时：立即极速淡出（0.10s），完全杜绝文字挤压与与胶囊重叠的闪烁 */
 .is-compact .expanded-layer {
   opacity: 0;
-  transform: scale(0.85);
+  transform: scale(0.92);
   pointer-events: none;
+  transition: opacity 0.10s ease-out, transform 0.22s ease-out;
 }
 
 /* ================= 展开态副卡片（多活动时独立呈现，尺寸同为主卡片） ================= */
@@ -676,7 +684,7 @@ function handleClosePrayer(e) {
   margin-top: 10px;
   width: 100%;
   height: 80px;
-  border-radius: 22px;
+  border-radius: 32px;
   background: #000000;
   color: #ffffff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
@@ -687,23 +695,69 @@ function handleClosePrayer(e) {
   box-sizing: border-box;
   cursor: pointer;
   pointer-events: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  will-change: transform, opacity, border-radius;
 }
 
 .island-secondary-card:active {
   filter: brightness(1.12);
 }
 
-/* 副卡片平滑滑入滑出过渡 */
+/* 副卡片平滑滑入滑出过渡：与主卡片完全同步从摄像头萌发与收回摄像头 */
 .subcard-slide-enter-active {
-  transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1) 0.08s, transform 0.36s cubic-bezier(0.32, 0.72, 0, 1) 0.08s;
+  transform-origin: center center;
+  transition:
+    transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform, opacity, border-radius;
 }
+
 .subcard-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  position: absolute;
+  top: 90px;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  transform-origin: center center;
+  transition:
+    transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1) 0.05s,
+    border-radius 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform, opacity, border-radius;
 }
+
+/* 萌发与收回位移：副卡片中心在 130px，摄像头中心在 15px，垂直位移 -115px，缩放至 124px*30px 胶囊大小 */
 .subcard-slide-enter-from,
 .subcard-slide-leave-to {
   opacity: 0;
-  transform: translateY(-20px) scale(0.92);
+  transform: translateY(-115px) scale(0.36, 0.375);
+  border-radius: 15px;
+}
+
+.subcard-slide-enter-to,
+.subcard-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1, 1);
+  border-radius: 32px;
+}
+
+/* 副卡片内部元素在收起时立即快速淡出（100ms），绝不闪屏 */
+.subcard-slide-leave-active .ilc-left,
+.subcard-slide-leave-active .ilc-actions {
+  opacity: 0;
+  transition: opacity 0.10s ease-out;
+}
+
+/* 副卡片内部元素在展开时在卡片展开到一定程度后再淡入（120ms后） */
+.subcard-slide-enter-active .ilc-left,
+.subcard-slide-enter-active .ilc-actions {
+  transition: opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1) 0.12s;
+}
+.subcard-slide-enter-from .ilc-left,
+.subcard-slide-enter-from .ilc-actions {
+  opacity: 0;
 }
 
 /* ================= 展开卡片内部公共视觉规范 ================= */
