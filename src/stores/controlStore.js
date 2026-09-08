@@ -83,7 +83,7 @@ export const ITEM_LABELS = {
   rotationLock: '旋转锁定',
   screenRecord: '录屏',
   batterySaver: '省电模式',
-  autoRotate: '自动旋转',
+  autoRotate: '红外遥控',
   // cast 位现在挂的是「快速分享」图标，share 位原来叫快速分享，改名极速互传避免两个同名
   share: '极速互传',
   cast: '快速分享',
@@ -103,17 +103,23 @@ export const ITEM_LABELS = {
  * 基准几何：格子 62、间距 14、4 列 → 网格宽 290、360 屏两侧留白各 35。
  * 图标/底板/格子/间距全部由这一个倍率驱动，不再单独调图标 ——
  * 分开调会导致图标相对底板漂移（底板居中是按 12+38+12=62 算的）。 */
-/* ---- 默认布局预设：三个机型的默认宫格差异 ----
+/* ---- 默认布局预设：机型 + 系统版本（tOS16 / tOS17）的默认宫格差异 ----
  * only 里的磁贴只有该机型才有，其余磁贴三机型通用（CAMON 没有独占项）。
  * id 与 ControlCenter 的 baseItems / TOGGLES 对齐：
  *   joyHeart = 心率血氧胶囊，jbl = JBL 开关，liquidCooling = 液冷散热，shoulderKey = 肩键
  * 注意：jbl 已按需求从默认布局下线（Ricky 2026-09-08），所以它既不在这里的 only 里，
- *   也不在 ControlCenter 的 DEFAULT_TOGGLE_IDS 里 —— 只删一处会让它泄漏到别的机型，别踩。 */
+ *   也不在 ControlCenter 的 DEFAULT_TOGGLE_IDS 里 —— 只删一处会让它泄漏到别的机型，别踩。
+ * series：'16' = tOS16（顶行），'17' = tOS17（底行，用于与 tOS16 对比）。
+ * removed：在「基础布局」之上额外剔除的开关（tOS17 相对 tOS16 去掉的开关）。
+ *   当前 NOTE/GT 的 tOS17 版相对 tOS16 去掉：深色模式(darkMode) / 红外遥控(autoRotate) /
+ *   晕动舒缓(motionComfort)。CAMON 的 tOS17 沿用 HiOS 17 的固定清单（HIOS17_ITEMS）。 */
 export const LAYOUT_PRESETS = [
-  { id: 'camon', label: 'CAMON', only: [] },
-  { id: 'note', label: 'NOTE', only: ['joyHeart'] },
-  { id: 'gt', label: 'GT', only: ['liquidCooling', 'shoulderKey'] },
-  { id: 'hios17', label: 'HiOS 17', only: [] }
+  { id: 'camon', label: 'CAMON', series: '16', only: [] },
+  { id: 'note', label: 'NOTE', series: '16', only: ['joyHeart'] },
+  { id: 'gt', label: 'GT', series: '16', only: ['liquidCooling', 'shoulderKey'] },
+  { id: 'hios17', label: 'HiOS 17', series: '17', only: [] },
+  { id: 'note17', label: 'NOTE 17', series: '17', only: ['joyHeart'], removed: ['darkMode', 'autoRotate', 'motionComfort'] },
+  { id: 'gt17', label: 'GT 17', series: '17', only: ['liquidCooling', 'shoulderKey'], removed: ['darkMode', 'autoRotate', 'motionComfort'] }
 ]
 /** 所有「机型独有」磁贴：通用布局里要把它们全部排除 */
 export const PRESET_EXCLUSIVE_IDS = LAYOUT_PRESETS.flatMap((p) => p.only)

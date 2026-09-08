@@ -59,6 +59,12 @@ const presetIndex = computed(() =>
   Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset))
 )
 
+/** tOS16 预设（顶行）与 tOS17 预设（底行，用于与 tOS16 对比）。
+ *  按 preset.series 分流；series 缺省时归入 tOS16，避免新预设掉出控件。 */
+const tos16Presets = computed(() => LAYOUT_PRESETS.filter((p) => (p.series || '16') === '16'))
+const tos17Presets = computed(() => LAYOUT_PRESETS.filter((p) => p.series === '17'))
+const rowIndex = (list) => Math.max(0, list.findIndex((p) => p.id === control.layoutPreset))
+
 /* ================= Tab 切换状态 ================= */
 const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 const initialTab = (urlParams?.get('overlay') === 'controlCenter' || urlParams?.get('finetune') === '1' || urlParams?.get('tab') === 'control') ? 'control' : 'system'
@@ -509,18 +515,43 @@ function onCopyFineTune() {
           <!-- 默认布局（机型） -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <span class="pc-card-title">默认布局</span>
+              <span class="pc-card-title">默认布局 · tOS16</span>
             </div>
             <div class="pc-seg">
               <div
                 class="pc-seg-thumb-3"
                 :style="{
-                  width: `calc(${100 / LAYOUT_PRESETS.length}% - ${6 / LAYOUT_PRESETS.length}px)`,
-                  transform: `translateX(${Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset)) * 100}%)`
+                  width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
+                  transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
                 }"
               ></div>
               <button
-                v-for="p in LAYOUT_PRESETS"
+                v-for="p in tos16Presets"
+                :key="p.id"
+                class="pc-seg-btn"
+                :class="{ on: control.layoutPreset === p.id }"
+                @click="control.setLayoutPreset(p.id)"
+              >
+                {{ p.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- tOS17 对比行：与上方 tOS16 一一对照 -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">tOS17 对比</span>
+            </div>
+            <div class="pc-seg">
+              <div
+                class="pc-seg-thumb-3"
+                :style="{
+                  width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
+                  transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
+                }"
+              ></div>
+              <button
+                v-for="p in tos17Presets"
                 :key="p.id"
                 class="pc-seg-btn"
                 :class="{ on: control.layoutPreset === p.id }"
@@ -866,15 +897,43 @@ function onCopyFineTune() {
                   <!-- 默认布局（机型） -->
                   <div class="pc-card">
                     <div class="pc-card-header">
-                      <span class="pc-card-title">默认布局</span>
+                      <span class="pc-card-title">默认布局 · tOS16</span>
                     </div>
                     <div class="pc-seg">
                       <div
                         class="pc-seg-thumb-3"
-                        :style="{ transform: `translateX(${presetIndex * 100}%)` }"
+                        :style="{
+                          width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
+                          transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
+                        }"
                       ></div>
                       <button
-                        v-for="p in LAYOUT_PRESETS"
+                        v-for="p in tos16Presets"
+                        :key="p.id"
+                        class="pc-seg-btn"
+                        :class="{ on: control.layoutPreset === p.id }"
+                        @click="control.setLayoutPreset(p.id)"
+                      >
+                        {{ p.label }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- tOS17 对比行 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">tOS17 对比</span>
+                    </div>
+                    <div class="pc-seg">
+                      <div
+                        class="pc-seg-thumb-3"
+                        :style="{
+                          width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
+                          transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
+                        }"
+                      ></div>
+                      <button
+                        v-for="p in tos17Presets"
                         :key="p.id"
                         class="pc-seg-btn"
                         :class="{ on: control.layoutPreset === p.id }"

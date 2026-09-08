@@ -14,7 +14,7 @@ import zlib from 'zlib'
 const SAVE_DEFAULTS_ROUTE = '/__api/save-defaults'
 const SAVE_DEFAULTS_TARGET = 'src/stores/controlStore.js'
 const MAX_SAVE_BODY_BYTES = 64 * 1024
-const DEV_SERVER_PORT = 5173
+const DEV_SERVER_PORT = 5555
 
 /* 与 controlStore.setIconSize(8~64) / setBgSize(16~100) 的 clamp 区间严格一致 */
 const SAVE_SIZE_RANGES = { iconSize: [8, 64], bgSize: [16, 100] }
@@ -351,7 +351,7 @@ export default defineConfig({
   base: './',
   server: {
     host: '127.0.0.1',
-    port: 5173,
+    port: 5555,
     // 端口被占用时不要悄悄换端口：换端口后 Playwright 脚本和 Ricky 书签里的
     // 链接会全部失效，直接报错反而更容易定位
     strictPort: true

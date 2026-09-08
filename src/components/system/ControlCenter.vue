@@ -373,7 +373,14 @@ const presetItems = computed(() => {
   //   packLayout 按数组顺序紧凑填入 4 列网格，恰好复刻截图里的排版）
   if (preset.id === 'hios17') return HIOS17_ITEMS
   const only = new Set(preset.only)
-  return baseItems.filter((i) => !PRESET_EXCLUSIVE_IDS.includes(i.id) || only.has(i.id))
+  let items = baseItems.filter((i) => !PRESET_EXCLUSIVE_IDS.includes(i.id) || only.has(i.id))
+  // tOS17 系列在「基础布局」之上额外剔除指定开关（如 NOTE/GT 的 17 版去掉
+  // 深色模式 / 红外遥控 / 晕动舒缓）。removed 缺省则不过滤。
+  if (preset.removed && preset.removed.length) {
+    const removed = new Set(preset.removed)
+    items = items.filter((i) => !removed.has(i.id))
+  }
+  return items
 })
 
 const layout = ref(packLayout(presetItems.value))
