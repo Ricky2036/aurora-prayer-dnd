@@ -2,7 +2,7 @@
 
 Branch: `antigravity/lane`
 
-Development port: `5175`
+Development port: `1234`
 
 Current module ownership:
 
