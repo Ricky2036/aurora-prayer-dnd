@@ -23,38 +23,31 @@ await page.waitForTimeout(400)
 
 async function report(tag) {
   const data = await page.evaluate(() => {
-    const rows = [...document.querySelectorAll('.pc-card-row')]
-    if (!rows.length) return { rows: 0 }
-    const row = rows[0]
-    const groups = [...row.querySelectorAll('.pc-inline-toggle')].map((g) => {
-      const r = g.getBoundingClientRect()
+    const duos = [...document.querySelectorAll('.pc-card-duo')]
+    if (!duos.length) return { rows: 0 }
+    const cards = [...duos[0].querySelectorAll(':scope > .pc-card')].map((c) => {
+      const r = c.getBoundingClientRect()
+      const title = c.querySelector('.pc-card-title')?.textContent.trim() || ''
       return {
-        text: g.textContent.trim(),
+        text: title,
         x: Math.round(r.x),
-        y: Math.round(r.y),
-        cx: Math.round(r.x + r.width / 2),
+        w: Math.round(r.width),
+        h: Math.round(r.height),
         cy: Math.round(r.y + r.height / 2),
-        on: !!g.querySelector('input')?.checked
+        on: !!c.querySelector('input')?.checked
       }
     })
-    const cardRect = row.closest('.pc-card').getBoundingClientRect()
-    return {
-      rows: rows.length,
-      groups,
-      cardH: Math.round(cardRect.height),
-      cardCy: Math.round(cardRect.y + cardRect.height / 2)
-    }
+    return { rows: duos.length, cards, gap: cards.length === 2 ? Math.round(cards[1].x - (cards[0].x + cards[0].w)) : null }
   })
-  console.log(`\n[${tag}] .pc-card-row 数量 = ${data.rows}`)
+  console.log(`\n[${tag}] .pc-card-duo 数量 = ${data.rows}`)
   if (!data.rows) return data
-  data.groups.forEach((g) => console.log(`  「${g.text}」 x=${g.x} cy=${g.cy} on=${g.on}`))
-  if (data.groups.length === 2) {
-    const [a, b] = data.groups
-    const sameRow = Math.abs(a.cy - b.cy) <= 2
-    const cardCenterOk = Math.abs(a.cy - data.cardCy) <= 2 && Math.abs(b.cy - data.cardCy) <= 2
-    console.log(`  同一行: ${sameRow ? 'PASS' : `FAIL (Δcy=${a.cy - b.cy})`}`)
-    console.log(`  卡片内垂直居中: ${cardCenterOk ? 'PASS' : 'FAIL'}（卡片高 ${data.cardH}）`)
-    console.log(`  左右分布: ${a.x < b.x ? 'PASS' : 'FAIL'}`)
+  data.cards.forEach((c) => console.log(`  「${c.text}」 x=${c.x} w=${c.w} h=${c.h} cy=${c.cy} on=${c.on}`))
+  if (data.cards.length === 2) {
+    const [a, b] = data.cards
+    console.log(`  同一行: ${Math.abs(a.cy - b.cy) <= 2 ? 'PASS' : `FAIL (Δcy=${a.cy - b.cy})`}`)
+    console.log(`  等宽: ${Math.abs(a.w - b.w) <= 1 ? 'PASS' : `FAIL (${a.w} vs ${b.w})`}`)
+    console.log(`  等高: ${Math.abs(a.h - b.h) <= 1 ? 'PASS' : `FAIL (${a.h} vs ${b.h})`}`)
+    console.log(`  间距: ${data.gap}px`)
   }
   return data
 }
@@ -62,9 +55,9 @@ async function report(tag) {
 await report('初始')
 
 // 点击两个开关，确认还能用
-await page.locator('.pc-inline-toggle').nth(0).click()
+await page.locator('.pc-card-duo .pc-switch-wrap').nth(0).click()
 await page.waitForTimeout(200)
-await page.locator('.pc-inline-toggle').nth(1).click()
+await page.locator('.pc-card-duo .pc-switch-wrap').nth(1).click()
 await page.waitForTimeout(300)
 await report('点击后')
 
