@@ -1,6 +1,6 @@
 /* 校验本次三处改动：
  * 1) 单卡：主屏状态栏(.status-bar) 与 CC 单卡状态行(.cc-status-single) 都显示蓝牙
- * 2) Wi-Fi 关闭后状态栏 Wi-Fi 图标不消失（StatusIcons 禁用透明度 0.5，而非 0.25）
+ * 2) Wi-Fi 关闭后状态栏 Wi-Fi 图标整颗隐藏（不显示，而非置灰；Ricky 2026-09-08：关闭就不显示）
  * 3) 双卡：按桌面优先级分段均衡分布——第1行(低优先级 vibrate/mute) 与 第2行(高优先级 hotspot/bluetooth/dnd)，
  *    两段内部各自按优先级升序，整体与桌面状态栏排序规则一致（阈值 30/40 使两行图标数 2:3 更均衡）
  * 用法: node scripts/verify-status-bluetooth.mjs [port] */
@@ -135,18 +135,19 @@ const sbBt = await page.evaluate(() => {
 })
 check('主屏状态栏 显示蓝牙图标', sbBt.found, `sb-ind 数量=${sbBt.count}`)
 
-/* ---------- D. Wi-Fi 关闭后图标不消失（opacity=0.5） ---------- */
-const wifiOpacity = await page.evaluate(async () => {
+/* ---------- D. Wi-Fi 关闭后整颗隐藏（不显示，而非置灰） ---------- */
+const wifiCount = await page.evaluate(async () => {
   const c = window.__control
+  c.wifi = true
+  await new Promise((r) => setTimeout(r, 250))
+  const onCount = document.querySelectorAll('.status-bar .sb-icon').length
   c.wifi = false
   await new Promise((r) => setTimeout(r, 250))
-  // 主屏状态栏 StatusIcons 顺序: signal, wifi, battery → wifi 是第 2 个 .sb-icon
-  const svgs = [...document.querySelectorAll('.status-bar .sb-icon')]
-  return svgs.map((s) => s.getAttribute('opacity'))
+  const offCount = document.querySelectorAll('.status-bar .sb-icon').length
+  return { onCount, offCount }
 })
-// 关闭 Wi-Fi 后，wifi 那颗 svg 的 opacity 应为 0.5（而非旧版的 0.25 / 0）
-const hasHalf = wifiOpacity.some((o) => o === '0.5')
-check('Wi-Fi 关闭 → 状态栏 Wi-Fi 图标 opacity=0.5（未消失）', hasHalf, `opacities=${JSON.stringify(wifiOpacity)}`)
+check('Wi-Fi 开启 → 状态栏含 Wi-Fi 图标(3颗)', wifiCount.onCount === 3, `onCount=${wifiCount.onCount}`)
+check('Wi-Fi 关闭 → 状态栏隐藏 Wi-Fi 图标(剩2颗,不显示)', wifiCount.offCount === 2, `offCount=${wifiCount.offCount}`)
 
 await page.screenshot({ path: 'shots/55-status-bluetooth-wifi-off.png' })
 await browser.close()
