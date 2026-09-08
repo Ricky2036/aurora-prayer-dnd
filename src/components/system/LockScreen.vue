@@ -9,6 +9,7 @@ import { useI18nStore } from '../../stores/i18nStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { usePrayerStore } from '../../stores/prayerStore'
+import { useControlStore } from '../../stores/controlStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
@@ -37,6 +38,7 @@ const i18n = useI18nStore()
 const recorder = useRecorderStore()
 const clock = useClockStore()
 const prayer = usePrayerStore()
+const control = useControlStore()
 const { activeActivities } = useActiveActivities()
 
 const rootRef = ref(null)
@@ -311,14 +313,19 @@ function onCardPointerMove(e, id) {
 }
 
 let justSwipedId = null
+const swipedTransitionId = ref(null)
 
 function onCardPointerUp(e, id) {
   if (activeCardId !== id) return
   if (isSwipingCard) {
     justSwipedId = id
+    swipedTransitionId.value = id
     setTimeout(() => {
       if (justSwipedId === id) justSwipedId = null
     }, 250)
+    setTimeout(() => {
+      if (swipedTransitionId.value === id) swipedTransitionId.value = null
+    }, 280)
 
     const currentOffset = swipeOffsets.value[id] || 0
     // 阈值：向左超过 45px 则吸附到 -118px（显示设置与删除图标），否则收回
@@ -342,6 +349,31 @@ function onCardPointerUp(e, id) {
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
+}
+
+/** 滑动操作按钮弹性物理与位移动画计算 */
+function getActionBtnStyle(id, type) {
+  const offset = swipeOffsets.value[id] || 0
+  if (offset >= 0) {
+    return {
+      opacity: 0,
+      transform: 'scale(0.6)',
+      pointerEvents: 'none'
+    }
+  }
+  const dist = Math.abs(offset)
+  const isSettings = type === 'settings'
+  const p = Math.min(1, dist / 118)
+  const extra = Math.max(0, (dist - 118) * 0.003)
+  const scale = (0.65 + 0.35 * p + extra).toFixed(3)
+  const opacity = Math.min(1, dist / 35).toFixed(2)
+  const shiftX = Math.max(0, (dist - 118) * (isSettings ? 0.22 : 0.12))
+  const isCurrentlySwiping = isSwipingCard && activeCardId === id
+  return {
+    opacity,
+    transform: `scale(${scale}) translateX(${-shiftX}px)`,
+    transition: isCurrentlySwiping ? 'none' : 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease'
+  }
 }
 
 const isIslandModalVisible = ref(false)
@@ -665,10 +697,20 @@ function notifStyle(i) {
           >
             <!-- 底层滑动操作按钮 -->
             <div class="ls-swipe-actions" :class="{ 'is-active': (swipeOffsets[act.id] || 0) < -2 }">
-              <button class="ls-action-btn ls-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+              <button
+                class="ls-action-btn ls-btn-settings"
+                :style="getActionBtnStyle(act.id, 'settings')"
+                @click.stop="onJumpSettings"
+                :title="i18n.t('islandSettings')"
+              >
                 <LIcon name="headerSettings" :size="20" />
               </button>
-              <button class="ls-action-btn ls-btn-delete" @click.stop="onRequestDeleteActivity(act)" :title="i18n.t('delete')">
+              <button
+                class="ls-action-btn ls-btn-delete"
+                :style="getActionBtnStyle(act.id, 'delete')"
+                @click.stop="onRequestDeleteActivity(act)"
+                :title="i18n.t('delete')"
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 6h18"/>
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -682,7 +724,13 @@ function notifStyle(i) {
             <!-- 表层卡片主体（横滑） -->
             <div
               class="ls-card-front ls-activity-card"
-              :class="[`is-${act.type}`, { 'is-swiping': isSwipingCard && activeCardId === act.id }]"
+              :class="[
+                `is-${act.type}`,
+                {
+                  'is-swiping': isSwipingCard && activeCardId === act.id,
+                  'has-swipe-transition': !isSwipingCard && swipedTransitionId === act.id
+                }
+              ]"
               :style="{ transform: `translateX(${swipeOffsets[act.id] || 0}px)` }"
               @pointerdown="onCardPointerDown($event, act.id)"
               @pointermove="onCardPointerMove($event, act.id)"
@@ -799,7 +847,11 @@ function notifStyle(i) {
         </template>
 
         <!-- 音乐播放器卡片 -->
-        <MusicPlayerCard :style="{ transform: `translateY(${currentPlayerY}px)`, transition: transitionStyle, zIndex: 200 }" @click="handleExpand" />
+        <MusicPlayerCard
+          v-if="control.mediaActive"
+          :style="{ transform: `translateY(${currentPlayerY}px)`, transition: transitionStyle, zIndex: 200 }"
+          @click="handleExpand"
+        />
 
         <!-- 通知队列（卡片支持横滑呼出灵动岛设置与删除按钮） -->
         <div
@@ -810,10 +862,20 @@ function notifStyle(i) {
         >
           <!-- 底层滑动操作按钮 -->
           <div class="ls-swipe-actions" :class="{ 'is-active': (swipeOffsets[item.id] || 0) < -2 }">
-            <button class="ls-action-btn ls-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+            <button
+              class="ls-action-btn ls-btn-settings"
+              :style="getActionBtnStyle(item.id, 'settings')"
+              @click.stop="onJumpSettings"
+              :title="i18n.t('islandSettings')"
+            >
               <LIcon name="headerSettings" :size="20" />
             </button>
-            <button class="ls-action-btn ls-btn-delete" @click.stop="onDeleteCard(item)" :title="i18n.t('delete')">
+            <button
+              class="ls-action-btn ls-btn-delete"
+              :style="getActionBtnStyle(item.id, 'delete')"
+              @click.stop="onDeleteCard(item)"
+              :title="i18n.t('delete')"
+            >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 6h18"/>
                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -827,7 +889,10 @@ function notifStyle(i) {
           <!-- 表层卡片主体（横滑） -->
           <div
             class="ls-card-front"
-            :class="{ 'is-swiping': isSwipingCard && activeCardId === item.id }"
+            :class="{
+              'is-swiping': isSwipingCard && activeCardId === item.id,
+              'has-swipe-transition': !isSwipingCard && swipedTransitionId === item.id
+            }"
             :style="{ transform: `translateX(${swipeOffsets[item.id] || 0}px)` }"
             @pointerdown="onCardPointerDown($event, item.id)"
             @pointermove="onCardPointerMove($event, item.id)"
@@ -1002,7 +1067,7 @@ function notifStyle(i) {
 }
 
 .ls-action-btn {
-  border: none;
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
   width: 44px;
   height: 44px;
   min-width: 44px;
@@ -1014,15 +1079,18 @@ function notifStyle(i) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.15s ease;
   padding: 0;
   box-sizing: border-box;
+  will-change: transform, opacity;
 }
 .ls-action-btn:active {
   transform: scale(0.92);
-  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.48);
 }
 .ls-action-btn svg,
 .ls-action-btn :deep(svg) {
@@ -1031,12 +1099,10 @@ function notifStyle(i) {
 }
 
 .ls-btn-settings {
-  background: rgba(80, 80, 86, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  color: #1c1c1e;
 }
 .ls-btn-delete {
-  background: #ff3b30;
+  color: #ff3b30;
 }
 
 /* 表层滑块卡片 */
@@ -1059,8 +1125,13 @@ function notifStyle(i) {
   touch-action: pan-y;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.ls-card-front.is-swiping {
+.ls-card-front.is-swiping,
+.ls-activity-card.is-swiping {
   transition: none !important;
+}
+.ls-card-front.has-swipe-transition,
+.ls-activity-card.has-swipe-transition {
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 .ls-card-front:active {
   background: rgba(255, 255, 255, 0.82);

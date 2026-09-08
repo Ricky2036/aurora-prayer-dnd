@@ -17,7 +17,7 @@ const system = useSystemStore()
 const recorder = useRecorderStore()
 const clockStore = useClockStore()
 const prayerStore = usePrayerStore()
-const { activeActivities } = useActiveActivities()
+const { activeActivities, isMediaActive } = useActiveActivities()
 
 /** 当正在录音且不在录音应用内（灵动岛已激活显示）时，或者锁屏层时，隐藏状态栏原始时间 */
 const hideTime = computed(() => {
@@ -26,7 +26,7 @@ const hideTime = computed(() => {
 
 /** 判断是否有灵动岛处于活跃展示状态 */
 const hasIsland = computed(() => {
-  return system.baseLayer !== 'lock' && !system.anyOverlayOpen() && activeActivities.value.length > 0
+  return system.baseLayer !== 'lock' && !system.anyOverlayOpen() && (activeActivities.value.length > 0 || isMediaActive.value)
 })
 
 /** 判断灵动岛是否处于大卡片展开状态 */
@@ -65,7 +65,7 @@ const hidden = ref({})
 /* 原生图标在极度拥挤时的隐藏控制（信号/Wi-Fi） */
 const hiddenStatusIcons = ref({ signal: false, wifi: false })
 const sbRightRef = ref(null)
-const HIDE_MARGIN = 6 // 右缘留的安全间距(px)
+const HIDE_MARGIN = 2 // 右缘留的安全间距(px)
 
 /** 障碍物（灵动岛胶囊或居中打孔摄像头）右边界在屏幕坐标系下的 x（含安全间距） */
 function obstacleRightEdge() {
@@ -226,7 +226,7 @@ watch(isIslandExpanded, (expanded) => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 6.5px 30px 0;
+  padding: 6.5px 18px 0;
   z-index: var(--z-status-bar);
   font: 600 15px/1 var(--font-stack);
   font-variant-numeric: tabular-nums;
@@ -248,12 +248,12 @@ watch(isIslandExpanded, (expanded) => {
   height: 32px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4.5px;
 }
 .sb-indicators {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4.5px;
   flex: 0 0 auto;
 }
 .sb-ind {

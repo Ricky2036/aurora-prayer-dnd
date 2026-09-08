@@ -1,12 +1,12 @@
 <script setup>
-import { ref } from 'vue'
-import albumArt from '../../assets/img/album-1.jpg'
+import { useControlStore } from '../../stores/controlStore'
+import albumCover from '../../assets/icons/album_cover.png'
 
-const isPlaying = ref(true)
+const control = useControlStore()
 
 function togglePlay(e) {
   e.stopPropagation()
-  isPlaying.value = !isPlaying.value
+  control.toggleMediaPlaying()
 }
 </script>
 
@@ -14,13 +14,13 @@ function togglePlay(e) {
   <div class="ls-player">
     <div class="lp-top">
       <div class="lp-art">
-        <img :src="albumArt" alt="Blinding Lights" />
+        <img :src="albumCover" :alt="control.mediaTitle" />
       </div>
       <div class="lp-info">
-        <span class="lp-title">Blinding Lights</span>
-        <span class="lp-artist">The Weeknd</span>
+        <span class="lp-title">{{ control.mediaTitle }}</span>
+        <span class="lp-artist">{{ control.mediaArtist }}</span>
       </div>
-      <div class="lp-wave" :class="{ paused: !isPlaying }">
+      <div class="lp-wave" :class="{ paused: !control.mediaPlaying }">
         <i></i><i></i><i></i><i></i>
       </div>
     </div>
@@ -34,7 +34,7 @@ function togglePlay(e) {
       <div class="lp-main">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
         <div class="lp-play" @click="togglePlay">
-          <svg v-if="isPlaying" width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+          <svg v-if="control.mediaPlaying" width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
           <svg v-else width="34" height="34" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>

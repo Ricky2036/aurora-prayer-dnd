@@ -5,6 +5,7 @@ import { usePrayerStore } from '../stores/prayerStore'
 import { useSystemStore } from '../stores/systemStore'
 import { useI18nStore } from '../stores/i18nStore'
 import { useNotificationsStore } from '../stores/notificationsStore'
+import { useControlStore } from '../stores/controlStore'
 
 /**
  * 集中管理所有处于活动状态的灵动岛 Live Activity
@@ -17,6 +18,7 @@ export function useActiveActivities() {
   const system = useSystemStore()
   const i18n = useI18nStore()
   const notificationsStore = useNotificationsStore()
+  const control = useControlStore()
 
   prayerStore.startTicker()
 
@@ -34,6 +36,10 @@ export function useActiveActivities() {
 
   const isPrayerActive = computed(() => {
     return notificationsStore.isIslandEnabled('prayer') && Boolean(prayerStore.currentIslandPrayer)
+  })
+
+  const isMediaActive = computed(() => {
+    return notificationsStore.isIslandEnabled('media') && Boolean(control.mediaActive)
   })
 
   const formattedPrayerCountdown = computed(() => {
@@ -106,6 +112,7 @@ export function useActiveActivities() {
     isTimerActive,
     isStopwatchActive,
     isPrayerActive,
+    isMediaActive,
     formattedPrayerCountdown,
     prayerSubtitle,
     activeActivities

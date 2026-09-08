@@ -1,13 +1,15 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
+import { useControlStore } from '../../stores/controlStore'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import albumCover from '../../assets/icons/album_cover.png'
 
 const prayerStore = usePrayerStore()
 const recorderStore = useRecorderStore()
@@ -15,10 +17,13 @@ const clockStore = useClockStore()
 const system = useSystemStore()
 const i18n = useI18nStore()
 const notificationsStore = useNotificationsStore()
+const control = useControlStore()
+const mediaIslandExpanded = ref(false)
 
 if (typeof window !== 'undefined') {
   window.__clock = clockStore
   window.__prayer = prayerStore
+  window.__control = control
 }
 
 /* 各独立活动项活跃判断（录音中/计时中/秒表中，且当前不在对应 App 内部，且灵动岛开关开启） */
@@ -38,22 +43,28 @@ const isPrayerActive = computed(() => {
   return notificationsStore.isIslandEnabled('prayer') && Boolean(prayerStore.currentIslandPrayer)
 })
 
+const isMediaActive = computed(() => {
+  return notificationsStore.isIslandEnabled('media') && Boolean(control.mediaActive)
+})
+
 /* 是否有任意灵动岛活动 */
 const hasAnyIsland = computed(() => {
   return (
     isRecorderActive.value ||
     isTimerActive.value ||
     isStopwatchActive.value ||
-    isPrayerActive.value
+    isPrayerActive.value ||
+    isMediaActive.value
   )
 })
 
-/* 活跃项列表，按优先级排序：Timer > Stopwatch > Recorder > Prayer */
+/* 活跃项列表，按优先级排序：Timer > Stopwatch > Recorder > Media > Prayer */
 const activeList = computed(() => {
   const list = []
   if (isTimerActive.value) list.push('timer')
   if (isStopwatchActive.value) list.push('stopwatch')
   if (isRecorderActive.value) list.push('recorder')
+  if (isMediaActive.value) list.push('media')
   if (isPrayerActive.value) list.push('prayer')
   return list
 })
@@ -68,13 +79,15 @@ const isExpanded = computed({
     return (
       (isTimerActive.value || isStopwatchActive.value ? clockStore.islandExpanded : false) ||
       (isRecorderActive.value ? recorderStore.islandExpanded : false) ||
-      (isPrayerActive.value ? prayerStore.islandExpanded : false)
+      (isPrayerActive.value ? prayerStore.islandExpanded : false) ||
+      (isMediaActive.value ? mediaIslandExpanded.value : false)
     )
   },
   set(val) {
     clockStore.islandExpanded = val
     recorderStore.islandExpanded = val
     prayerStore.islandExpanded = val
+    mediaIslandExpanded.value = val
   }
 })
 
@@ -218,12 +231,16 @@ function handleClosePrayer(e) {
           <svg v-else-if="primaryActiveItem === 'prayer'" width="13" height="13" viewBox="0 0 24 24">
             <path :d="GLYPHS.moon" fill="#00C853" />
           </svg>
+          <img v-else-if="primaryActiveItem === 'media'" :src="albumCover" class="media-mini-cover" alt="Cover" />
         </div>
 
         <div class="cc-camera-slot"></div>
 
         <div class="cc-right">
-          <span class="cc-time">{{ compactCapsuleTime }}</span>
+          <span v-if="primaryActiveItem === 'media'" class="media-mini-wave" :class="{ paused: !control.mediaPlaying }">
+            <i></i><i></i><i></i><i></i>
+          </span>
+          <span v-else class="cc-time">{{ compactCapsuleTime }}</span>
         </div>
       </div>
 
@@ -395,6 +412,38 @@ function handleClosePrayer(e) {
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path :d="CLOCK_ICONS.close" fill="#fff" />
               </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 主项：音乐 -->
+        <template v-else-if="primaryActiveItem === 'media'">
+          <div class="ilc-left ilc-media-left">
+            <img :src="albumCover" class="ilc-media-cover" alt="Cover" />
+            <div class="ilc-time-col">
+              <span class="ilc-media-title">{{ control.mediaTitle }}</span>
+              <span class="ilc-sub-label">{{ control.mediaArtist }}</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions ilc-media-actions">
+            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="上一首">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="control.toggleMediaPlaying()"
+              title="暂停/开始"
+            >
+              <svg v-if="control.mediaPlaying" width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="下一首">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
             </button>
           </div>
         </template>
@@ -580,6 +629,38 @@ function handleClosePrayer(e) {
               <svg width="18" height="18" viewBox="0 0 24 24">
                 <path :d="CLOCK_ICONS.close" fill="#fff" />
               </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 副项：音乐 -->
+        <template v-else-if="item === 'media'">
+          <div class="ilc-left ilc-media-left">
+            <img :src="albumCover" class="ilc-media-cover" alt="Cover" />
+            <div class="ilc-time-col">
+              <span class="ilc-media-title">{{ control.mediaTitle }}</span>
+              <span class="ilc-sub-label">{{ control.mediaArtist }}</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions ilc-media-actions">
+            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="上一首">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="control.toggleMediaPlaying()"
+              title="暂停/开始"
+            >
+              <svg v-if="control.mediaPlaying" width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+            <button class="ilc-btn btn-media-ctrl" @click.stop="" title="下一首">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
             </button>
           </div>
         </template>
@@ -993,5 +1074,75 @@ function handleClosePrayer(e) {
   height: 16px;
   border-radius: 4px;
   background: #ffffff;
+}
+
+/* 微型音乐胶囊图层 */
+.media-mini-cover {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex: none;
+}
+.media-mini-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 12px;
+  width: 14px;
+}
+.media-mini-wave i {
+  width: 2px;
+  background: #30d158;
+  border-radius: 999px;
+  animation: miniWave 0.8s ease-in-out infinite;
+}
+.media-mini-wave i:nth-child(2) { animation-duration: 0.9s; animation-delay: 0.2s; }
+.media-mini-wave i:nth-child(3) { animation-duration: 0.7s; animation-delay: 0.4s; }
+.media-mini-wave i:nth-child(4) { animation-duration: 1.0s; animation-delay: 0.1s; }
+.media-mini-wave.paused i {
+  animation-play-state: paused;
+  height: 3px !important;
+}
+
+@keyframes miniWave {
+  0%, 100% { height: 25%; opacity: 0.8; }
+  50% { height: 100%; opacity: 1; }
+}
+
+/* 展开态音乐卡片样式 */
+.ilc-media-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.ilc-media-cover {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.ilc-media-title {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ilc-media-actions {
+  gap: 6px;
+}
+.btn-media-ctrl {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+.btn-media-ctrl:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 </style>

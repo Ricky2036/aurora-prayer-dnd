@@ -15,6 +15,7 @@ import { useI18nStore } from '../../stores/i18nStore'
 import { useRecorderStore } from '../../stores/recorderStore'
 import { useClockStore } from '../../stores/clockStore'
 import { usePrayerStore } from '../../stores/prayerStore'
+import { useControlStore } from '../../stores/controlStore'
 import { useActiveActivities } from '../../composables/useActiveActivities'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
@@ -32,6 +33,7 @@ const notifications = useNotificationsStore()
 const recorder = useRecorderStore()
 const clock = useClockStore()
 const prayer = usePrayerStore()
+const control = useControlStore()
 const { activeActivities } = useActiveActivities()
 const { timeShort, now } = useClock()
 
@@ -238,6 +240,31 @@ function onDeleteCard(id) {
   const next = { ...swipeOffsets.value }
   delete next[id]
   swipeOffsets.value = next
+}
+
+/** 滑动操作按钮弹性物理与位移动画计算 */
+function getActionBtnStyle(id, type) {
+  const offset = swipeOffsets.value[id] || 0
+  if (offset >= 0) {
+    return {
+      opacity: 0,
+      transform: 'scale(0.6)',
+      pointerEvents: 'none'
+    }
+  }
+  const dist = Math.abs(offset)
+  const isSettings = type === 'settings'
+  const p = Math.min(1, dist / 118)
+  const extra = Math.max(0, (dist - 118) * 0.003)
+  const scale = (0.65 + 0.35 * p + extra).toFixed(3)
+  const opacity = Math.min(1, dist / 35).toFixed(2)
+  const shiftX = Math.max(0, (dist - 118) * (isSettings ? 0.22 : 0.12))
+  const isCurrentlySwiping = isSwipingCard && activeCardId === id
+  return {
+    opacity,
+    transform: `scale(${scale}) translateX(${-shiftX}px)`,
+    transition: isCurrentlySwiping ? 'none' : 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease'
+  }
 }
 
 function onJumpSettings() {
@@ -475,10 +502,20 @@ watch(expandedId, async () => {
           <div class="nc-swipe-card-wrapper nc-activity-wrapper">
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[act.id] || 0) < -2 }">
-              <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+              <button
+                class="nc-action-btn nc-btn-settings"
+                :style="getActionBtnStyle(act.id, 'settings')"
+                @click.stop="onJumpSettings"
+                :title="i18n.t('islandSettings')"
+              >
                 <LIcon name="headerSettings" :size="20" />
               </button>
-              <button class="nc-action-btn nc-btn-delete" @click.stop="onRequestDeleteActivity(act)" :title="i18n.t('delete')">
+              <button
+                class="nc-action-btn nc-btn-delete"
+                :style="getActionBtnStyle(act.id, 'delete')"
+                @click.stop="onRequestDeleteActivity(act)"
+                :title="i18n.t('delete')"
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 6h18"/>
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -492,7 +529,13 @@ watch(expandedId, async () => {
             <!-- 表层活动卡片主体 -->
             <div
               class="nc-activity-card"
-              :class="[`is-${act.type}`, { 'is-swiping': isSwipingCard && activeCardId === act.id }]"
+              :class="[
+                `is-${act.type}`,
+                {
+                  'is-swiping': isSwipingCard && activeCardId === act.id,
+                  'has-swipe-transition': !isSwipingCard && swipedTransitionId === act.id
+                }
+              ]"
               :style="{ transform: `translateX(${swipeOffsets[act.id] || 0}px)` }"
               @pointerdown="onCardPointerDown($event, act.id)"
               @pointermove="onCardPointerMove($event, act.id)"
@@ -609,7 +652,7 @@ watch(expandedId, async () => {
         </template>
 
         <!-- 音乐播放器卡片 -->
-        <MusicPlayerCard class="nc-player-instance" />
+        <MusicPlayerCard v-if="control.mediaActive" class="nc-player-instance" />
 
         <!-- 通知列表 -->
         <template v-if="notifications.list.length">
@@ -623,10 +666,20 @@ watch(expandedId, async () => {
           >
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[n.id] || 0) < -2 }">
-              <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+              <button
+                class="nc-action-btn nc-btn-settings"
+                :style="getActionBtnStyle(n.id, 'settings')"
+                @click.stop="onJumpSettings"
+                :title="i18n.t('islandSettings')"
+              >
                 <LIcon name="headerSettings" :size="20" />
               </button>
-              <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard(n.id)" :title="i18n.t('delete')">
+              <button
+                class="nc-action-btn nc-btn-delete"
+                :style="getActionBtnStyle(n.id, 'delete')"
+                @click.stop="onDeleteCard(n.id)"
+                :title="i18n.t('delete')"
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 6h18"/>
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -963,7 +1016,7 @@ watch(expandedId, async () => {
 }
 
 .nc-action-btn {
-  border: none;
+  border: 0.5px solid rgba(255, 255, 255, 0.28);
   width: 44px;
   height: 44px;
   min-width: 44px;
@@ -975,15 +1028,18 @@ watch(expandedId, async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.15s ease;
   padding: 0;
   box-sizing: border-box;
+  will-change: transform, opacity;
 }
 .nc-action-btn:active {
   transform: scale(0.92);
-  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.38);
 }
 .nc-action-btn svg,
 .nc-action-btn :deep(svg) {
@@ -992,12 +1048,10 @@ watch(expandedId, async () => {
 }
 
 .nc-btn-settings {
-  background: rgba(80, 80, 86, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  color: #1c1c1e;
 }
 .nc-btn-delete {
-  background: #ff3b30;
+  color: #ff3b30;
 }
 
 /* ---- 通知卡片 ---- */
@@ -1035,8 +1089,9 @@ watch(expandedId, async () => {
 .nc-recorder-card.is-swiping {
   transition: none !important;
 }
-.nc-card.has-swipe-transition {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+.nc-card.has-swipe-transition,
+.nc-activity-card.has-swipe-transition {
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 .nc-card:hover { background: rgba(255, 255, 255, 0.18); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
