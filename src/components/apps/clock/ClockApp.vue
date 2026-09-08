@@ -118,25 +118,30 @@ useBackHandler(() => {
   overflow: hidden;
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", sans-serif;
+  padding-top: var(--safe-top, 44px);
+  box-sizing: border-box;
 }
 
 .clock-main-view {
   flex: 1;
-  height: calc(100% - 64px);
   position: relative;
   overflow: hidden;
 }
 
 /* 底部 TabBar */
 .clock-tab-bar {
-  height: 64px;
+  flex: none;
+  height: calc(var(--safe-bottom, 24px) + 52px);
+  padding-bottom: var(--safe-bottom, 24px);
+  padding-top: 4px;
   background: rgba(18, 18, 20, 0.95);
   backdrop-filter: blur(20px);
   border-top: 0.5px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 8px 6px;
+  padding-left: 8px;
+  padding-right: 8px;
   box-sizing: border-box;
   flex-shrink: 0;
   z-index: 20;
