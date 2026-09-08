@@ -4,6 +4,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Status | Agent | Task | Branch | Exclusive files/directories | Base commit | Handoff commit |
 | --- | --- | --- | --- | --- | --- | --- |
-| Available | — | — | — | — | `004b325` | — |
+| Available | — | — | — | — | `d865131` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
