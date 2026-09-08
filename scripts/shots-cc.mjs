@@ -38,7 +38,7 @@ await page.screenshot({ path: OUT + '41-cc-airplane-on.png' })
 await page.locator('.cc-cell[data-id="airplane"]').click() // 关回去
 
 // 3. 编辑模式
-await page.locator('.cc-header .cc-icon-btn').nth(1).click()
+await page.locator('.cc-header .cc-header-btn').nth(0).click()
 await page.waitForTimeout(500)
 await page.screenshot({ path: OUT + '42-cc-editing.png' })
 
@@ -54,8 +54,8 @@ await page.mouse.up()
 await page.waitForTimeout(600)
 await page.screenshot({ path: OUT + '44-cc-after-drop.png' })
 
-// 退出编辑模式
-await page.locator('.cc-edit-group .cc-icon-btn').nth(1).click()
+// 退出编辑模式（编辑模式顶栏是 SVG 按钮：第 3 个 cc-header-svg-btn 是 checkmark）
+await page.locator('.cc-header-svg-btn').nth(2).click()
 await page.waitForTimeout(400)
 
 // 5. 上滑关闭控制中心
