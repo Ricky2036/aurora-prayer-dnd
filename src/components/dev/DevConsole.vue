@@ -555,32 +555,30 @@ function onCopyFineTune() {
             </div>
           </div>
 
-          <!-- 隐私指示 -->
+          <!-- 隐私指示 + 双卡显示（合并一行） -->
           <div class="pc-card pc-card-single">
-            <div class="pc-card-header">
-              <span class="pc-card-title">隐私指示</span>
-              <label class="pc-switch-wrap">
-                <input
-                  type="checkbox"
-                  :checked="control.showPrivacyIndicators"
-                  @change="control.setShowPrivacyIndicators($event.target.checked)"
-                />
-                <div class="pc-switch"></div>
+            <div class="pc-card-row">
+              <label class="pc-inline-toggle">
+                <span class="pc-card-title">隐私指示</span>
+                <span class="pc-switch-wrap">
+                  <input
+                    type="checkbox"
+                    :checked="control.showPrivacyIndicators"
+                    @change="control.setShowPrivacyIndicators($event.target.checked)"
+                  />
+                  <div class="pc-switch"></div>
+                </span>
               </label>
-            </div>
-          </div>
-
-          <!-- 双卡显示 -->
-          <div class="pc-card pc-card-single">
-            <div class="pc-card-header">
-              <span class="pc-card-title">双卡显示</span>
-              <label class="pc-switch-wrap">
-                <input
-                  type="checkbox"
-                  :checked="control.showDualSim"
-                  @change="control.setShowDualSim($event.target.checked)"
-                />
-                <div class="pc-switch"></div>
+              <label class="pc-inline-toggle">
+                <span class="pc-card-title">双卡显示</span>
+                <span class="pc-switch-wrap">
+                  <input
+                    type="checkbox"
+                    :checked="control.showDualSim"
+                    @change="control.setShowDualSim($event.target.checked)"
+                  />
+                  <div class="pc-switch"></div>
+                </span>
               </label>
             </div>
           </div>
@@ -909,32 +907,30 @@ function onCopyFineTune() {
                     </div>
                   </div>
 
-                  <!-- 隐私指示 -->
+                  <!-- 隐私指示 + 双卡显示（合并一行） -->
                   <div class="pc-card pc-card-single">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">隐私指示</span>
-                      <label class="pc-switch-wrap">
-                        <input
-                          type="checkbox"
-                          :checked="control.showPrivacyIndicators"
-                          @change="control.setShowPrivacyIndicators($event.target.checked)"
-                        />
-                        <div class="pc-switch"></div>
+                    <div class="pc-card-row">
+                      <label class="pc-inline-toggle">
+                        <span class="pc-card-title">隐私指示</span>
+                        <span class="pc-switch-wrap">
+                          <input
+                            type="checkbox"
+                            :checked="control.showPrivacyIndicators"
+                            @change="control.setShowPrivacyIndicators($event.target.checked)"
+                          />
+                          <div class="pc-switch"></div>
+                        </span>
                       </label>
-                    </div>
-                  </div>
-
-                  <!-- 双卡显示 -->
-                  <div class="pc-card pc-card-single">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">双卡显示</span>
-                      <label class="pc-switch-wrap">
-                        <input
-                          type="checkbox"
-                          :checked="control.showDualSim"
-                          @change="control.setShowDualSim($event.target.checked)"
-                        />
-                        <div class="pc-switch"></div>
+                      <label class="pc-inline-toggle">
+                        <span class="pc-card-title">双卡显示</span>
+                        <span class="pc-switch-wrap">
+                          <input
+                            type="checkbox"
+                            :checked="control.showDualSim"
+                            @change="control.setShowDualSim($event.target.checked)"
+                          />
+                          <div class="pc-switch"></div>
+                        </span>
                       </label>
                     </div>
                   </div>
@@ -1110,7 +1106,7 @@ function onCopyFineTune() {
   margin-bottom: 9px;
 }
 
-/* 只有标题一行的卡片（隐私指示器 / 微调图标尺寸收起态）：
+/* 只有标题一行的卡片（隐私指示+双卡合并行 / 微调图标尺寸收起态）：
    通用卡片 padding 是 11px 13px 13px（上小下大，为多行内容留呼吸感），
    单行卡片改用对称的 12px，标题+开关正好落在卡片垂直中心（卡片总高不变） */
 .pc-card.pc-card-single {
@@ -1119,6 +1115,22 @@ function onCopyFineTune() {
 }
 .pc-card.pc-card-single .pc-card-header {
   margin-bottom: 0;
+}
+
+/* 一行放两个「标题 + 开关」：左组靠左、右组靠右，中间留空做分组（亲密性） */
+.pc-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pc-inline-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
 }
 /* 微调面板展开态：面板自带 margin/padding-top 间距，标题与面板之间保持原有的 0 间隙 */
 .pc-card.pc-card-expanded .pc-card-header {
