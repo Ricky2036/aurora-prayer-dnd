@@ -303,7 +303,8 @@ const emit = defineEmits(['back-to-settings'])
           <span class="ns-page-title">{{ i18n.t('nsDynamicBar') }}</span>
         </div>
 
-        <div class="ns-section mt4">
+        <div class="ns-group-label">{{ i18n.t('nsDynamicBarGroupMaster') }}</div>
+        <div class="ns-section">
           <div class="ns-row last">
             <div class="ns-row-text">
               <span class="ns-row-title">{{ i18n.t('nsDynamicBar') }}</span>
@@ -314,36 +315,57 @@ const emit = defineEmits(['back-to-settings'])
         </div>
 
         <template v-if="notificationsStore.islandSettings.master">
-          <div class="ns-group-label">{{ i18n.t('nsRemindWays') }}</div>
+          <!-- 系统录音 -->
+          <div class="ns-group-label">{{ i18n.t('nsDynamicBarGroupRecorder') }}</div>
           <div class="ns-section">
-            <div class="ns-row">
+            <div class="ns-row last">
               <div class="ns-row-text">
                 <span class="ns-row-title">{{ i18n.t('nsDynamicBarRecorder') }}</span>
                 <span class="ns-row-sub">{{ i18n.t('nsDynamicBarRecorderSub') }}</span>
               </div>
               <ToggleSwitch v-model="notificationsStore.islandSettings.recorder" />
             </div>
-            <div class="ns-row">
+          </div>
+
+          <!-- 计时器 -->
+          <div class="ns-group-label">{{ i18n.t('nsDynamicBarGroupTimer') }}</div>
+          <div class="ns-section">
+            <div class="ns-row last">
               <div class="ns-row-text">
                 <span class="ns-row-title">{{ i18n.t('nsDynamicBarTimer') }}</span>
                 <span class="ns-row-sub">{{ i18n.t('nsDynamicBarTimerSub') }}</span>
               </div>
               <ToggleSwitch v-model="notificationsStore.islandSettings.timer" />
             </div>
-            <div class="ns-row">
+          </div>
+
+          <!-- 秒表 -->
+          <div class="ns-group-label">{{ i18n.t('nsDynamicBarGroupStopwatch') }}</div>
+          <div class="ns-section">
+            <div class="ns-row last">
               <div class="ns-row-text">
                 <span class="ns-row-title">{{ i18n.t('nsDynamicBarStopwatch') }}</span>
                 <span class="ns-row-sub">{{ i18n.t('nsDynamicBarStopwatchSub') }}</span>
               </div>
               <ToggleSwitch v-model="notificationsStore.islandSettings.stopwatch" />
             </div>
-            <div class="ns-row">
+          </div>
+
+          <!-- 礼拜助手 -->
+          <div class="ns-group-label">{{ i18n.t('nsDynamicBarGroupPrayer') }}</div>
+          <div class="ns-section">
+            <div class="ns-row last">
               <div class="ns-row-text">
                 <span class="ns-row-title">{{ i18n.t('nsDynamicBarPrayer') }}</span>
                 <span class="ns-row-sub">{{ i18n.t('nsDynamicBarPrayerSub') }}</span>
               </div>
               <ToggleSwitch v-model="notificationsStore.islandSettings.prayer" />
             </div>
+          </div>
+
+          <!-- 媒体播控 -->
+          <div class="ns-group-label">{{ i18n.t('nsDynamicBarGroupMedia') }}</div>
+          <div class="ns-section">
             <div class="ns-row last">
               <div class="ns-row-text">
                 <span class="ns-row-title">{{ i18n.t('nsDynamicBarMedia') }}</span>

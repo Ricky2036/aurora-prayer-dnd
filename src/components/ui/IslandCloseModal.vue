@@ -31,22 +31,22 @@ function onBackdropClick(e) {
       @touchend.stop
     >
       <div class="island-modal-card" @click.stop>
-        <div class="island-modal-header">
-          <div class="island-modal-title">
-            {{ i18n.t('islandClosePromptTitle') }}
-          </div>
-          <div class="island-modal-desc">
-            {{ i18n.t('islandClosePromptDesc') }}
-          </div>
+        <div class="island-modal-title">
+          {{ i18n.t('islandClosePromptTitle') }}
+        </div>
+        <div class="island-modal-desc">
+          {{ i18n.t('islandClosePromptDesc') }}
         </div>
 
         <div class="island-modal-actions">
-          <button class="modal-btn btn-only-once" @click="emit('close-once')">
-            {{ i18n.t('islandCloseOnlyOnce') }}
-          </button>
-          <button class="modal-btn btn-permanent" @click="emit('close-permanent')">
-            {{ i18n.t('islandClosePermanent') }}
-          </button>
+          <div class="modal-btn-row">
+            <button class="modal-btn btn-only-once" @click="emit('close-once')">
+              {{ i18n.t('islandCloseOnlyOnce') }}
+            </button>
+            <button class="modal-btn btn-permanent" @click="emit('close-permanent')">
+              {{ i18n.t('islandClosePermanent') }}
+            </button>
+          </div>
           <button class="modal-btn btn-cancel" @click="emit('cancel')">
             {{ i18n.t('islandCloseCancel') }}
           </button>
@@ -62,106 +62,131 @@ function onBackdropClick(e) {
   inset: 0;
   z-index: 9999;
   background: rgba(0, 0, 0, 0.42);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 24px;
+  padding: 0 16px 24px;
   box-sizing: border-box;
 }
 
 .island-modal-card {
-  width: min(310px, 100%);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 440px;
+  border-radius: 32px;
+  background: #FFFFFF;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.24);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  padding: 32px 24px 20px;
+  box-sizing: border-box;
   user-select: none;
 }
 
-.island-modal-header {
-  padding: 22px 20px 16px;
-  text-align: center;
-}
-
 .island-modal-title {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: 17px;
-  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 21px;
+  font-weight: 700;
   color: #111111;
   line-height: 1.35;
+  text-align: center;
   letter-spacing: -0.2px;
+  margin-bottom: 14px;
 }
 
 .island-modal-desc {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 15.5px;
   font-weight: 400;
-  color: rgba(60, 60, 67, 0.75);
-  line-height: 1.45;
-  margin-top: 8px;
+  color: #191919;
+  line-height: 1.55;
+  text-align: center;
+  margin-bottom: 26px;
+  padding: 0 4px;
 }
 
 .island-modal-actions {
   display: flex;
   flex-direction: column;
-  border-top: 0.5px solid rgba(60, 60, 67, 0.2);
+  gap: 10px;
+}
+
+.modal-btn-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
 }
 
 .modal-btn {
-  width: 100%;
-  height: 48px;
   border: none;
-  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   cursor: pointer;
-  border-bottom: 0.5px solid rgba(60, 60, 67, 0.2);
-  transition: background 0.15s ease;
   box-sizing: border-box;
-}
-
-.modal-btn:last-child {
-  border-bottom: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
 }
 
 .modal-btn:active {
-  background: rgba(0, 0, 0, 0.08);
+  transform: scale(0.98);
 }
 
 .btn-only-once {
-  color: #007aff;
-  font-weight: 500;
-}
-
-.btn-permanent {
-  color: #ff3b30;
+  flex: 1;
+  height: 52px;
+  border-radius: 26px;
+  background: #EFEFEF;
+  color: #191919;
+  font-size: 16.5px;
   font-weight: 600;
 }
 
-.btn-cancel {
-  color: rgba(60, 60, 67, 0.65);
-  font-weight: 400;
+.btn-only-once:active {
+  background: #E2E2E2;
 }
 
-/* 进出场动画 */
+.btn-permanent {
+  flex: 1;
+  height: 52px;
+  border-radius: 26px;
+  background: #EFEFEF;
+  color: #F53F3F;
+  font-size: 16.5px;
+  font-weight: 600;
+}
+
+.btn-permanent:active {
+  background: #FCE8E8;
+}
+
+.btn-cancel {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px;
+  background: #F7F8FA;
+  color: #86909C;
+  font-size: 15.5px;
+  font-weight: 500;
+}
+
+.btn-cancel:active {
+  background: #EAEBED;
+}
+
+/* 进出场动画（从底部滑入 / 滑出） */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
-  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-fade-enter-active .island-modal-card,
 .modal-fade-leave-active .island-modal-card {
-  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  transition: transform 0.26s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
 }
 
 .modal-fade-enter-from,
@@ -170,12 +195,12 @@ function onBackdropClick(e) {
 }
 
 .modal-fade-enter-from .island-modal-card {
-  transform: scale(0.9);
+  transform: translateY(40px);
   opacity: 0;
 }
 
 .modal-fade-leave-to .island-modal-card {
-  transform: scale(0.92);
+  transform: translateY(40px);
   opacity: 0;
 }
 </style>
