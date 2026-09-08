@@ -256,8 +256,8 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 只有当卡片触及屏幕最底部时才开始堆叠
-  const bottomThreshold = containerHeight - 10
+  // 只有当卡片触及视口真正的最底部时才开始堆叠（允许通知与底部清除按钮重叠）
+  const bottomThreshold = containerHeight - 16
   const scrollTop = container.scrollTop
 
   // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
@@ -644,11 +644,12 @@ watch(expandedId, async () => {
   font: 500 15px/1.3 var(--font-stack);
 }
 
-/* 贯通式列表：全屏边缘贴合，卡片滑动至屏幕边缘直接被视口裁切，顶部无弧形黑边 */
+/* 贯通式列表：全屏边缘贴合，卡片滑动至屏幕边缘直接被视口裁切，允许与底部删除按钮重叠 */
 .nc-list {
+  position: relative;
   flex: 1;
   margin: 4px 0 0;
-  padding: 6px 14px 130px;
+  padding: 6px 14px 40px;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: clip;
