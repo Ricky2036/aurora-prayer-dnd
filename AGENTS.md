@@ -25,9 +25,9 @@ If the directory name does not match one of these values, stop and ask which rol
 7. Do not push `main`, force-push, or rewrite published history.
 8. Run the checks listed in your role file before handoff.
 9. Use the development port assigned to your role with `--strictPort`:
-   - `2026-08-02-23-04-06` (integration / `main`): `3000`
-   - `tos-antigravity`: `1234`
-   - `tos-workbuddy`: `5678`
+   - `2026-08-02-23-04-06` (integration / `main`): `9999`
+   - `tos-antigravity`: `1111`
+   - `tos-workbuddy`: `6666`
    - `tos-codex`: `8888`
 10. If a task conflicts with these defaults, the written task assignment wins only for the files it names.
 
