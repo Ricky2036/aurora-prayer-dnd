@@ -34,6 +34,11 @@ const TABS = [
   { id: 'stopwatch', name: '秒表', icon: CLOCK_ICONS.stopwatch }
 ]
 
+const activeTabIndex = computed(() => {
+  const idx = TABS.findIndex((t) => t.id === activeTab.value)
+  return idx >= 0 ? idx : 0
+})
+
 function openSubpage(name) {
   subpage.value = name
 }
@@ -78,8 +83,19 @@ useBackHandler(() => {
       />
     </div>
 
-    <!-- 底部 TabBar（带胶囊药丸高亮选中动效） -->
-    <nav class="clock-tab-bar">
+    <!-- 底部悬浮导航（带高亮块无缝平滑切换动效） -->
+    <nav class="clock-floating-nav">
+      <!-- 动态滑动的高亮块底托 -->
+      <div
+        class="nav-sliding-highlight"
+        :style="{
+          transform: `translateX(${activeTabIndex * 100}%)`
+        }"
+      >
+        <div class="highlight-pill"></div>
+      </div>
+
+      <!-- 5 个 Tab 项 -->
       <div
         v-for="t in TABS"
         :key="t.id"
@@ -87,9 +103,10 @@ useBackHandler(() => {
         :class="{ active: activeTab === t.id }"
         @click="activeTab = t.id"
       >
-        <div class="tab-pill">
+        <div class="tab-icon-wrap">
+          <span class="active-icon-badge" :class="{ 'is-active': activeTab === t.id }"></span>
           <svg class="tab-icon" width="22" height="22" viewBox="0 0 24 24">
-            <path :d="t.icon" :fill="activeTab === t.id ? '#000' : '#8e8e93'" />
+            <path :d="t.icon" :fill="activeTab === t.id ? '#000000' : '#ffffff'" />
           </svg>
         </div>
         <span class="tab-label">{{ t.name }}</span>
@@ -134,57 +151,113 @@ useBackHandler(() => {
   overflow: hidden;
 }
 
-/* 底部 TabBar */
-.clock-tab-bar {
-  flex: none;
-  height: calc(var(--safe-bottom, 24px) + 52px);
-  padding-bottom: var(--safe-bottom, 24px);
-  padding-top: 4px;
-  background: rgba(18, 18, 20, 0.95);
-  backdrop-filter: blur(20px);
-  border-top: 0.5px solid rgba(255, 255, 255, 0.08);
+/* 底部悬浮导航 Dock（参考参考视频/设计图） */
+.clock-floating-nav {
+  position: absolute;
+  bottom: calc(var(--safe-bottom, 20px) + 8px);
+  left: 18px;
+  right: 18px;
+  height: 64px;
+  background: rgba(30, 30, 32, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-radius: 32px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  padding-left: 8px;
-  padding-right: 8px;
+  justify-content: space-between;
+  padding: 0 4px;
   box-sizing: border-box;
-  flex-shrink: 0;
-  z-index: 20;
+  z-index: 25;
+  user-select: none;
 }
 
-.tab-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  cursor: pointer;
-  flex: 1;
-}
-
-.tab-pill {
-  width: 44px;
-  height: 28px;
-  border-radius: 14px;
+/* 动态滑动的高亮块容器 */
+.nav-sliding-highlight {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 4px;
+  width: calc((100% - 8px) / 5);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s ease;
+  pointer-events: none;
+  /* 高亮块无缝流体切换动效 */
+  transition: transform 0.32s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform;
 }
 
-.tab-item.active .tab-pill {
+/* 高亮灰色胶囊底块（参考视频高亮块） */
+.highlight-pill {
+  width: 92%;
+  max-width: 58px;
+  height: 52px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
+.tab-item {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tab-icon-wrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 激活项的圆形亮橙色底托 */
+.active-icon-badge {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
   background: #ff9500;
+  transform: scale(0.6);
+  opacity: 0;
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  z-index: 1;
+}
+
+.active-icon-badge.is-active {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.tab-icon {
+  position: relative;
+  z-index: 2;
+  transition: fill 0.2s ease;
 }
 
 .tab-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #8e8e93;
+  font-weight: 500;
+  letter-spacing: -0.1px;
   transition: color 0.2s ease;
+  margin-top: 1px;
 }
 
 .tab-item.active .tab-label {
   color: #ff9500;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* 二级页面遮罩与滑入动画 */

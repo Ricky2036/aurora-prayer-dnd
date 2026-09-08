@@ -14,6 +14,11 @@ const clockStore = useClockStore()
 const system = useSystemStore()
 const i18n = useI18nStore()
 
+if (typeof window !== 'undefined') {
+  window.__clock = clockStore
+  window.__prayer = prayerStore
+}
+
 /* 各独立活动项活跃判断（录音中/计时中/秒表中，且当前不在对应 App 内部） */
 const isRecorderActive = computed(() => {
   return recorderStore.isRecording && system.activeAppId !== 'voicememos'
@@ -51,9 +56,9 @@ const activeList = computed(() => {
   return list
 })
 
-/* 主卡片（承载与顶部胶囊连续形变的卡片）与副卡片（多活动时向下展开的卡片） */
+/* 主卡片与副卡片列表：最多支持 4 项活动同时展示 */
 const primaryActiveItem = computed(() => activeList.value[0] || null)
-const secondaryActiveItem = computed(() => activeList.value[1] || null)
+const subActiveItems = computed(() => activeList.value.slice(1, 4))
 
 /* 展开态：由各 store 的 islandExpanded 共同驱动 */
 const isExpanded = computed({
@@ -120,35 +125,39 @@ const compactCapsuleTime = computed(() => {
   return ''
 })
 
-/* 点击主胶囊或展开卡片 */
+/* 点击卡片主体跳转至对应 App */
+function handleCardClick(item) {
+  if (item === 'timer') {
+    openClockTab('timer')
+  } else if (item === 'stopwatch') {
+    openClockTab('stopwatch')
+  } else if (item === 'recorder') {
+    openRecorderApp()
+  } else if (item === 'prayer') {
+    openClockTab('muslim')
+  }
+}
+
+/* 点击主胶囊或主卡片 */
 function handlePrimaryCardClick() {
   if (!isExpanded.value) {
     isExpanded.value = true
   } else {
-    // 展开状态下点击卡片主体进入对应 App
-    if (primaryActiveItem.value === 'timer') {
-      openClockTab('timer')
-    } else if (primaryActiveItem.value === 'stopwatch') {
-      openClockTab('stopwatch')
-    } else if (primaryActiveItem.value === 'recorder') {
-      openRecorderApp()
-    } else if (primaryActiveItem.value === 'prayer') {
-      openClockTab('muslim')
-    }
+    handleCardClick(primaryActiveItem.value)
   }
 }
 
-/* 点击副卡片 */
-function handleSecondaryCardClick() {
-  if (secondaryActiveItem.value === 'timer') {
-    openClockTab('timer')
-  } else if (secondaryActiveItem.value === 'stopwatch') {
-    openClockTab('stopwatch')
-  } else if (secondaryActiveItem.value === 'recorder') {
-    openRecorderApp()
-  } else if (secondaryActiveItem.value === 'prayer') {
-    openClockTab('muslim')
-  }
+/* 多副卡片平滑入场与出场位移计算，精确对准摄像头孔位 */
+function onSubcardBeforeEnter(el) {
+  const index = Array.from(el.parentNode?.children || []).indexOf(el)
+  const estimatedTop = 90 + Math.max(0, index) * 90
+  el.style.setProperty('--fly-up', `${-(estimatedTop + 25)}px`)
+}
+
+function onSubcardBeforeLeave(el) {
+  const top = el.offsetTop
+  el.style.top = `${top}px`
+  el.style.setProperty('--fly-up', `${-(top + 25)}px`)
 }
 
 /* 点击背景遮罩收起 */
@@ -393,15 +402,21 @@ function handleClosePrayer(e) {
       </div>
     </div>
 
-    <!-- 2. 副灵动岛卡片：当存在多个活动项（如定时器+秒表）时展开平滑滑出，尺寸完全一致为 80px 圆角矩形 -->
-    <Transition name="subcard-slide">
+    <!-- 2. 副灵动岛卡片列表：支持最多同时展示 4 项，展开时平滑向下滑出，间距 10px -->
+    <TransitionGroup
+      name="subcard-slide"
+      @before-enter="onSubcardBeforeEnter"
+      @before-leave="onSubcardBeforeLeave"
+    >
       <div
-        v-if="isExpanded && secondaryActiveItem"
+        v-if="isExpanded"
+        v-for="item in subActiveItems"
+        :key="item"
         class="island-secondary-card"
-        @click="handleSecondaryCardClick"
+        @click="handleCardClick(item)"
       >
         <!-- 副项：秒表 -->
-        <template v-if="secondaryActiveItem === 'stopwatch'">
+        <template v-if="item === 'stopwatch'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-stopwatch">
               <svg width="22" height="22" viewBox="0 0 24 24">
@@ -463,7 +478,7 @@ function handleClosePrayer(e) {
         </template>
 
         <!-- 副项：定时器 -->
-        <template v-else-if="secondaryActiveItem === 'timer'">
+        <template v-else-if="item === 'timer'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-timer">
               <svg width="22" height="22" viewBox="0 0 24 24">
@@ -512,8 +527,33 @@ function handleClosePrayer(e) {
           </div>
         </template>
 
+        <!-- 副项：录音 -->
+        <template v-else-if="item === 'recorder'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-recorder">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff453a">
+                <path d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4z"/>
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
+              <span class="ilc-sub-label">正在录音</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-stop-record"
+              @click.stop="handleStopRecording"
+              title="停止录音"
+            >
+              <div class="btn-stop-square"></div>
+            </button>
+          </div>
+        </template>
+
         <!-- 副项：礼拜 -->
-        <template v-else-if="secondaryActiveItem === 'prayer'">
+        <template v-else-if="item === 'prayer'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-prayer">
               <svg width="22" height="22" viewBox="0 0 24 24">
@@ -539,7 +579,7 @@ function handleClosePrayer(e) {
           </div>
         </template>
       </div>
-    </Transition>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -747,7 +787,6 @@ function handleClosePrayer(e) {
 
 .subcard-slide-leave-active {
   position: absolute;
-  top: 90px;
   left: 0;
   width: 100%;
   pointer-events: none;
@@ -759,11 +798,11 @@ function handleClosePrayer(e) {
   will-change: transform, opacity, border-radius;
 }
 
-/* 萌发与收回位移：副卡片中心在 130px，摄像头中心在 15px，垂直位移 -115px，缩放至 124px*30px 胶囊大小 */
+/* 萌发与收回位移：动态基于 --fly-up 飞入/飞出摄像头孔，缩放至 124px*30px 胶囊大小 */
 .subcard-slide-enter-from,
 .subcard-slide-leave-to {
   opacity: 0;
-  transform: translateY(-115px) scale(0.36, 0.375);
+  transform: translateY(var(--fly-up, -115px)) scale(0.36, 0.375);
   border-radius: 15px;
 }
 
