@@ -86,6 +86,15 @@ const clock = useClockStore()
   color: #fff;
   display: flex;
   flex-direction: column;
+  padding-top: var(--safe-top, 44px);
+  box-sizing: border-box;
+}
+
+:deep(.toggle-switch.on) {
+  background: #ff9500 !important;
+}
+:deep(.toggle-switch) {
+  background: #38383a;
 }
 
 .subpage-header {

@@ -17,13 +17,24 @@ const dateDesc = computed(() => {
 // 计算世界城市时间与时差
 function getCityData(c) {
   const now = new Date()
-  // 本地时区偏移（通常为 +8）
-  const localOffset = 8
-  const diffHours = c.offset - localOffset
-  const cityTime = new Date(now.getTime() + diffHours * 3600 * 1000)
+  let formattedTime = '00:00'
+  try {
+    const formatter = new Intl.DateTimeFormat('zh-CN', {
+      timeZone: c.timezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+    formattedTime = formatter.format(now)
+  } catch (e) {
+    const utcHours = now.getUTCHours()
+    const targetH = (utcHours + c.offset + 24) % 24
+    formattedTime = `${String(targetH).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`
+  }
 
-  const hours = String(cityTime.getUTCHours() + c.offset).padStart(2, '0')
-  const mins = String(cityTime.getUTCMinutes()).padStart(2, '0')
+  // 计算时差
+  const localOffset = 8 // 默认北京时间 +8
+  const diffHours = c.offset - localOffset
 
   let diffText = '本地时间'
   if (diffHours < 0) {
@@ -34,7 +45,7 @@ function getCityData(c) {
 
   return {
     ...c,
-    formattedTime: `${hours}:${mins}`,
+    formattedTime,
     diffText
   }
 }

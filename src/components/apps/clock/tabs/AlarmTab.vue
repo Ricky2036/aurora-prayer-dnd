@@ -164,6 +164,13 @@ function handleAddAlarm() {
   overflow: hidden;
 }
 
+:deep(.toggle-switch.on) {
+  background: #ff9500 !important;
+}
+:deep(.toggle-switch) {
+  background: #38383a;
+}
+
 .tab-header {
   height: 56px;
   padding: 0 20px;
