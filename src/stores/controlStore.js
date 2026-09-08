@@ -106,10 +106,12 @@ export const ITEM_LABELS = {
 /* ---- 默认布局预设：三个机型的默认宫格差异 ----
  * only 里的磁贴只有该机型才有，其余磁贴三机型通用（CAMON 没有独占项）。
  * id 与 ControlCenter 的 baseItems / TOGGLES 对齐：
- *   joyHeart = 心率血氧胶囊，jbl = JBL 开关，liquidCooling = 液冷散热，shoulderKey = 肩键 */
+ *   joyHeart = 心率血氧胶囊，jbl = JBL 开关，liquidCooling = 液冷散热，shoulderKey = 肩键
+ * 注意：jbl 已按需求从默认布局下线（Ricky 2026-09-08），所以它既不在这里的 only 里，
+ *   也不在 ControlCenter 的 DEFAULT_TOGGLE_IDS 里 —— 只删一处会让它泄漏到别的机型，别踩。 */
 export const LAYOUT_PRESETS = [
   { id: 'camon', label: 'CAMON', only: [] },
-  { id: 'note', label: 'NOTE', only: ['joyHeart', 'jbl'] },
+  { id: 'note', label: 'NOTE', only: ['joyHeart'] },
   { id: 'gt', label: 'GT', only: ['liquidCooling', 'shoulderKey'] }
 ]
 /** 所有「机型独有」磁贴：通用布局里要把它们全部排除 */
