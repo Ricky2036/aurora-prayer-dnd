@@ -1,5 +1,5 @@
 import { chromium } from 'playwright'
-const PORT = process.argv[2] || '5678'
+const PORT = process.argv[2] || '5555'
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Users/jingzhan.chen/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
@@ -47,8 +47,10 @@ const expected = {
   batterySaver: { r: 7, c: 2, w: 1, h: 1 },
   screenRecord: { r: 7, c: 3, w: 1, h: 1 },
   scan: { r: 7, c: 4, w: 1, h: 1 },
-  darkMode: { r: 8, c: 1, w: 1, h: 1 },
-  autoRotate: { r: 8, c: 2, w: 1, h: 1 },
+  // tOS17 差异（Ricky 2026-09-08）：深色主题 / 红外遥控 下线，
+  // 原格位由 截屏 / 灯效 接替（尺寸同为 1x1，排版不变）
+  screenshot: { r: 8, c: 1, w: 1, h: 1 },
+  boost: { r: 8, c: 2, w: 1, h: 1 },
   share: { r: 8, c: 3, w: 1, h: 1 },
   cast: { r: 8, c: 4, w: 1, h: 1 }
 }

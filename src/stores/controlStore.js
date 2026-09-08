@@ -92,7 +92,7 @@ export const ITEM_LABELS = {
   flashlight_off: '手电筒 (关闭)',
   calculator: '钱包',
   scan: '扫一扫',
-  boost: '加速',
+  boost: '灯效',
   motionComfort: '晕动舒缓',
   liquidCooling: '液冷散热',
   shoulderKey: '肩键',
@@ -110,16 +110,20 @@ export const ITEM_LABELS = {
  * 注意：jbl 已按需求从默认布局下线（Ricky 2026-09-08），所以它既不在这里的 only 里，
  *   也不在 ControlCenter 的 DEFAULT_TOGGLE_IDS 里 —— 只删一处会让它泄漏到别的机型，别踩。
  * series：'16' = tOS16（顶行），'17' = tOS17（底行，用于与 tOS16 对比）。
+ * shortLabel：控制台按钮上显示的机型名 —— 两行都只显示 CAMON/NOTE/GT，
+ *   版本靠行首的「tOS 16 / tOS 17」文案区分，所以按钮本身不带 17 后缀。
  * removed：在「基础布局」之上额外剔除的开关（tOS17 相对 tOS16 去掉的开关）。
  *   当前 NOTE/GT 的 tOS17 版相对 tOS16 去掉：深色模式(darkMode) / 红外遥控(autoRotate) /
- *   晕动舒缓(motionComfort)。CAMON 的 tOS17 沿用 HiOS 17 的固定清单（HIOS17_ITEMS）。 */
+ *   晕动舒缓(motionComfort)。
+ *   CAMON 的 tOS17 走 HIOS17_ITEMS 固定清单：去掉 深色主题(darkMode) / 红外遥控(autoRotate)，
+ *   加回 tOS16 有而它缺的 截屏(screenshot) / 灯效(boost)（Ricky 2026-09-08）。 */
 export const LAYOUT_PRESETS = [
-  { id: 'camon', label: 'CAMON', series: '16', only: [] },
-  { id: 'note', label: 'NOTE', series: '16', only: ['joyHeart'] },
-  { id: 'gt', label: 'GT', series: '16', only: ['liquidCooling', 'shoulderKey'] },
-  { id: 'hios17', label: 'HiOS 17', series: '17', only: [] },
-  { id: 'note17', label: 'NOTE 17', series: '17', only: ['joyHeart'], removed: ['darkMode', 'autoRotate', 'motionComfort'] },
-  { id: 'gt17', label: 'GT 17', series: '17', only: ['liquidCooling', 'shoulderKey'], removed: ['darkMode', 'autoRotate', 'motionComfort'] }
+  { id: 'camon', label: 'CAMON', shortLabel: 'CAMON', series: '16', only: [] },
+  { id: 'note', label: 'NOTE', shortLabel: 'NOTE', series: '16', only: ['joyHeart'] },
+  { id: 'gt', label: 'GT', shortLabel: 'GT', series: '16', only: ['liquidCooling', 'shoulderKey'] },
+  { id: 'hios17', label: 'CAMON 17', shortLabel: 'CAMON', series: '17', only: [] },
+  { id: 'note17', label: 'NOTE 17', shortLabel: 'NOTE', series: '17', only: ['joyHeart'], removed: ['darkMode', 'autoRotate', 'motionComfort'] },
+  { id: 'gt17', label: 'GT 17', shortLabel: 'GT', series: '17', only: ['liquidCooling', 'shoulderKey'], removed: ['darkMode', 'autoRotate', 'motionComfort'] }
 ]
 /** 所有「机型独有」磁贴：通用布局里要把它们全部排除 */
 export const PRESET_EXCLUSIVE_IDS = LAYOUT_PRESETS.flatMap((p) => p.only)

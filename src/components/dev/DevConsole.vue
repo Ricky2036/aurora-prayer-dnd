@@ -512,53 +512,54 @@ function onCopyFineTune() {
 
         <!-- 3. 控制中心 Tab -->
         <section v-else-if="activeTab === 'control'" key="control" class="pc-tab-panel">
-          <!-- 默认布局（机型） -->
+          <!-- 默认布局：tOS16 / tOS17 两行对照，同一张卡片内 -->
           <div class="pc-card">
             <div class="pc-card-header">
-              <span class="pc-card-title">默认布局 · tOS16</span>
+              <span class="pc-card-title">默认布局</span>
             </div>
-            <div class="pc-seg">
-              <div
-                class="pc-seg-thumb-3"
-                :style="{
-                  width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
-                  transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
-                }"
-              ></div>
-              <button
-                v-for="p in tos16Presets"
-                :key="p.id"
-                class="pc-seg-btn"
-                :class="{ on: control.layoutPreset === p.id }"
-                @click="control.setLayoutPreset(p.id)"
-              >
-                {{ p.label }}
-              </button>
-            </div>
-          </div>
-
-          <!-- tOS17 对比行：与上方 tOS16 一一对照 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">tOS17 对比</span>
-            </div>
-            <div class="pc-seg">
-              <div
-                class="pc-seg-thumb-3"
-                :style="{
-                  width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
-                  transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
-                }"
-              ></div>
-              <button
-                v-for="p in tos17Presets"
-                :key="p.id"
-                class="pc-seg-btn"
-                :class="{ on: control.layoutPreset === p.id }"
-                @click="control.setLayoutPreset(p.id)"
-              >
-                {{ p.label }}
-              </button>
+            <div class="pc-preset-rows">
+              <div class="pc-preset-row">
+                <span class="pc-preset-tag">tOS 16</span>
+                <div class="pc-seg">
+                  <div
+                    class="pc-seg-thumb-3"
+                    :style="{
+                      width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
+                      transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
+                    }"
+                  ></div>
+                  <button
+                    v-for="p in tos16Presets"
+                    :key="p.id"
+                    class="pc-seg-btn"
+                    :class="{ on: control.layoutPreset === p.id }"
+                    @click="control.setLayoutPreset(p.id)"
+                  >
+                    {{ p.shortLabel || p.label }}
+                  </button>
+                </div>
+              </div>
+              <div class="pc-preset-row">
+                <span class="pc-preset-tag">tOS 17</span>
+                <div class="pc-seg">
+                  <div
+                    class="pc-seg-thumb-3"
+                    :style="{
+                      width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
+                      transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
+                    }"
+                  ></div>
+                  <button
+                    v-for="p in tos17Presets"
+                    :key="p.id"
+                    class="pc-seg-btn"
+                    :class="{ on: control.layoutPreset === p.id }"
+                    @click="control.setLayoutPreset(p.id)"
+                  >
+                    {{ p.shortLabel || p.label }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -894,53 +895,54 @@ function onCopyFineTune() {
 
                 <!-- 3. 控制中心 Tab -->
                 <section v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
-                  <!-- 默认布局（机型） -->
+                  <!-- 默认布局：tOS16 / tOS17 两行对照，同一张卡片内 -->
                   <div class="pc-card">
                     <div class="pc-card-header">
-                      <span class="pc-card-title">默认布局 · tOS16</span>
+                      <span class="pc-card-title">默认布局</span>
                     </div>
-                    <div class="pc-seg">
-                      <div
-                        class="pc-seg-thumb-3"
-                        :style="{
-                          width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
-                          transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
-                        }"
-                      ></div>
-                      <button
-                        v-for="p in tos16Presets"
-                        :key="p.id"
-                        class="pc-seg-btn"
-                        :class="{ on: control.layoutPreset === p.id }"
-                        @click="control.setLayoutPreset(p.id)"
-                      >
-                        {{ p.label }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- tOS17 对比行 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">tOS17 对比</span>
-                    </div>
-                    <div class="pc-seg">
-                      <div
-                        class="pc-seg-thumb-3"
-                        :style="{
-                          width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
-                          transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
-                        }"
-                      ></div>
-                      <button
-                        v-for="p in tos17Presets"
-                        :key="p.id"
-                        class="pc-seg-btn"
-                        :class="{ on: control.layoutPreset === p.id }"
-                        @click="control.setLayoutPreset(p.id)"
-                      >
-                        {{ p.label }}
-                      </button>
+                    <div class="pc-preset-rows">
+                      <div class="pc-preset-row">
+                        <span class="pc-preset-tag">tOS 16</span>
+                        <div class="pc-seg">
+                          <div
+                            class="pc-seg-thumb-3"
+                            :style="{
+                              width: `calc(${100 / tos16Presets.length}% - ${6 / tos16Presets.length}px)`,
+                              transform: `translateX(${rowIndex(tos16Presets) * 100}%)`
+                            }"
+                          ></div>
+                          <button
+                            v-for="p in tos16Presets"
+                            :key="p.id"
+                            class="pc-seg-btn"
+                            :class="{ on: control.layoutPreset === p.id }"
+                            @click="control.setLayoutPreset(p.id)"
+                          >
+                            {{ p.shortLabel || p.label }}
+                          </button>
+                        </div>
+                      </div>
+                      <div class="pc-preset-row">
+                        <span class="pc-preset-tag">tOS 17</span>
+                        <div class="pc-seg">
+                          <div
+                            class="pc-seg-thumb-3"
+                            :style="{
+                              width: `calc(${100 / tos17Presets.length}% - ${6 / tos17Presets.length}px)`,
+                              transform: `translateX(${rowIndex(tos17Presets) * 100}%)`
+                            }"
+                          ></div>
+                          <button
+                            v-for="p in tos17Presets"
+                            :key="p.id"
+                            class="pc-seg-btn"
+                            :class="{ on: control.layoutPreset === p.id }"
+                            @click="control.setLayoutPreset(p.id)"
+                          >
+                            {{ p.shortLabel || p.label }}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1251,6 +1253,33 @@ function onCopyFineTune() {
 .pc-state-tag.is-on .pc-dot {
   background: #10b981;
   box-shadow: 0 0 8px #10b981;
+}
+
+/* 默认布局：tOS16 / tOS17 两行对照（同一张卡片内） */
+.pc-preset-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pc-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pc-preset-tag {
+  flex: 0 0 54px;
+  width: 54px;
+  font: 600 11px/1 var(--font-stack);
+  color: #8b8b93;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.pc-preset-row .pc-seg {
+  flex: 1;
+  min-width: 0;
 }
 
 /* 分段选择器 */

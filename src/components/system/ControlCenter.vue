@@ -337,7 +337,10 @@ const baseItems = [
    第 3 行  ：飞行(1x1) + 蓝牙(1x1) + 亮度音量滑块(2x2)
    第 4 行  ：热点胶囊(2x1) + 滑块续 + 滑块续
    第 5 行  ：设备中心(2x1) + 响铃 2x1 展开(2x1)
-   第 6-8 行：手电筒/定位/旋转锁/勿扰 / 钱包/省电/录屏/扫一扫 / 深色/自动旋转/极速互传/快速分享 */
+   第 6-8 行：手电筒/定位/旋转锁/勿扰 / 钱包/省电/录屏/扫一扫 / 截屏/灯效/极速互传/快速分享
+   tOS17 相对 tOS16 CAMON 的差异（Ricky 2026-09-08）：去掉 深色主题(darkMode) /
+   红外遥控(autoRotate)，加回 tOS16 有而这里缺的 截屏(screenshot) / 灯效(boost)。
+   两者尺寸都是 1x1 且占原 darkMode/autoRotate 的格子，所以网格排版不变。 */
 const HIOS17_ITEMS = [
   { id: 'mediaPlayer', type: 'widget', size: '2x2' },
   { id: 'data', type: 'widget', size: '2x1' },
@@ -356,8 +359,8 @@ const HIOS17_ITEMS = [
   { id: 'batterySaver', type: 'toggle', size: '1x1' },
   { id: 'screenRecord', type: 'toggle', size: '1x1' },
   { id: 'scan', type: 'toggle', size: '1x1' },
-  { id: 'darkMode', type: 'toggle', size: '1x1' },
-  { id: 'autoRotate', type: 'toggle', size: '1x1' },
+  { id: 'screenshot', type: 'toggle', size: '1x1' },
+  { id: 'boost', type: 'toggle', size: '1x1' },
   { id: 'share', type: 'toggle', size: '1x1' },
   { id: 'cast', type: 'toggle', size: '1x1' }
 ].map((i) => {

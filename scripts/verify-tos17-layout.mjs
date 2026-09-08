@@ -12,6 +12,10 @@ await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle' })
 await page.waitForTimeout(500)
 
 const REMOVED = ['darkMode', 'autoRotate', 'motionComfort'] // 深色模式 / 红外遥控 / 晕动舒缓
+// CAMON 17（hios17）走 HIOS17_ITEMS：只去掉深色主题 + 红外遥控，
+// 并加回 tOS16 CAMON 有而它缺的 截屏(screenshot) / 灯效(boost)
+const CAMON17_REMOVED = ['darkMode', 'autoRotate']
+const CAMON17_ADDED = ['screenshot', 'boost']
 let allOk = true
 const check = (name, cond, detail) => { if (!cond) allOk = false; console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`) }
 
@@ -32,21 +36,23 @@ async function setPreset(id) {
 await openCC()
 
 // ---- tOS16 回归：NOTE / GT 仍应包含被 tOS17 删除的 3 个开关 ----
-for (const id of ['note', 'gt']) {
+for (const id of ['camon', 'note', 'gt']) {
   await setPreset(id)
   const ids = await readCells()
   for (const r of REMOVED) check(`tOS16 ${id}: 仍含 ${r}`, ids.includes(r), `total=${ids.length}`)
 }
 
-// ---- tOS17：NOTE 17 / GT 17 必须剔除 3 个开关，并保留各自独占项 ----
+// ---- tOS17：NOTE 17 / GT 17 必须剔除 3 个开关；CAMON 17 去掉 2 个并加回截屏/灯效 ----
 const cases = {
-  note17: { exclusive: ['joyHeart'], total: 22 },
-  gt17: { exclusive: ['liquidCooling', 'shoulderKey'], total: 23 }
+  hios17: { removed: CAMON17_REMOVED, added: CAMON17_ADDED, exclusive: [], total: 21 },
+  note17: { removed: REMOVED, exclusive: ['joyHeart'], total: 22 },
+  gt17: { removed: REMOVED, exclusive: ['liquidCooling', 'shoulderKey'], total: 23 }
 }
 for (const [id, cfg] of Object.entries(cases)) {
   await setPreset(id)
   const ids = await readCells()
-  for (const r of REMOVED) check(`tOS17 ${id}: 不含 ${r}`, !ids.includes(r), `total=${ids.length}`)
+  for (const r of cfg.removed) check(`tOS17 ${id}: 不含 ${r}`, !ids.includes(r), `total=${ids.length}`)
+  for (const a of cfg.added || []) check(`tOS17 ${id}: 含加回的 ${a}`, ids.includes(a), `total=${ids.length}`)
   for (const e of cfg.exclusive) check(`tOS17 ${id}: 含独占项 ${e}`, ids.includes(e))
   check(`tOS17 ${id}: 磁贴总数 = ${cfg.total}`, ids.length === cfg.total, `actual=${ids.length}`)
 }
