@@ -958,7 +958,7 @@ const glassRing = computed(() =>
               <LIcon v-if="control.hotspot" name="radio" :size="18" :stroke-width="2.5" class="cc-ind" />
               <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="cc-ind" />
               <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="cc-ind" />
-              <LIcon v-if="control.bluetooth" name="bluetooth" :size="18" :stroke-width="2.5" class="cc-ind" />
+              <LIcon v-if="control.bluetooth" name="bluetooth" :size="16" :stroke-width="2.4" class="cc-ind" />
               <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
               <span class="cc-battery-pct">91%</span>
               <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
@@ -990,7 +990,7 @@ const glassRing = computed(() =>
               <div class="cc-status-right cc-status-sub-icons">
                 <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="cc-ind" />
                 <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="cc-ind" />
-                <LIcon v-if="control.bluetooth" name="bluetooth" :size="18" :stroke-width="2.5" class="cc-ind" />
+                <LIcon v-if="control.bluetooth" name="bluetooth" :size="16" :stroke-width="2.4" class="cc-ind" />
               </div>
             </div>
           </div>
