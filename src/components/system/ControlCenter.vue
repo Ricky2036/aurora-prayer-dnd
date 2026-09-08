@@ -934,27 +934,16 @@ const glassRing = computed(() =>
                 <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
               </div>
             </div>
-            <!-- 第 2 行: 卡2 信号 + 中国移动 / NFC + 蓝牙 + 静音 -->
+            <!-- 第 2 行: 卡2 信号 + 中国移动 / 蓝牙 -->
             <div class="cc-status-row">
               <div class="cc-status-left">
                 <StatusIcons color="#fff" :show-wifi="false" :show-signal="true" :show-battery="false" />
                 <span class="cc-carrier">{{ i18n.ccLabel('carrier2') }}</span>
               </div>
+              <!-- 只保留蓝牙，且必须复用蓝牙按钮那颗图标（lucide.js 的 bluetooth），
+                   不要用 stroke 版手写 SVG —— 14px 下会糊成一坨变形的线 -->
               <div class="cc-status-right cc-status-sub-icons">
-                <!-- NFC 图标 -->
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M6 8.5a6.5 6.5 0 1 1 12 0v7a6.5 6.5 0 1 1-12 0v-5a4.5 4.5 0 1 1 8 0v5a2.5 2.5 0 1 1-4 0v-4"/>
-                </svg>
-                <!-- 蓝牙图标 -->
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m7 7 10 10-5 5V2l5 5L7 17"/>
-                </svg>
-                <!-- 静音图标 -->
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 5 6 9H2v6h4l5 4V5z"/>
-                  <line x1="23" y1="9" x2="17" y2="15"/>
-                  <line x1="17" y1="9" x2="23" y2="15"/>
-                </svg>
+                <LIcon name="bluetooth" :size="14" />
               </div>
             </div>
           </div>
@@ -1044,7 +1033,8 @@ const glassRing = computed(() =>
               <LIcon name="arrowDownUp" :size="control.getIconSize('data')" />
             </div>
             <div class="cc-pill-text">
-              <span class="cc-pill-title">Orange</span>
+              <!-- 运营商名走 i18n（zh 中国电信 / en China Telecom / bn），别再硬编码 -->
+              <span class="cc-pill-title">{{ i18n.ccLabel('carrier1') }}</span>
               <span class="cc-pill-sub">{{ control.cellular ? '102 MB' : i18n.t('turnOff') }}</span>
             </div>
           </div>
