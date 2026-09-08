@@ -301,7 +301,7 @@ const emit = defineEmits(['back-to-settings'])
         </div>
 
         <!-- 卡片左上方小标题：系统应用 -->
-        <div class="ns-group-label">{{ i18n.t('nsSystemApps') }}</div>
+        <div class="ns-group-label">{{ (i18n.t('nsSystemApps') && i18n.t('nsSystemApps') !== 'nsSystemApps') ? i18n.t('nsSystemApps') : '系统应用' }}</div>
 
         <!-- 所有开关集中放置在一张大卡片中（去掉副文本，保持极简单行排版） -->
         <div class="ns-section">
@@ -367,10 +367,6 @@ const emit = defineEmits(['back-to-settings'])
             </div>
             <ToggleSwitch v-model="notificationsStore.islandSettings.media" />
           </div>
-        </div>
-
-        <div class="ns-card-footer">
-          {{ i18n.t('nsDynamicBarSub') }}
         </div>
       </div>
 
@@ -547,7 +543,7 @@ const emit = defineEmits(['back-to-settings'])
 .ns-section {
   margin: 0 16px 18px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.05);
   padding: 4px 0;

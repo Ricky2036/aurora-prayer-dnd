@@ -69,26 +69,33 @@ const HIDE_MARGIN = 6 // 右缘留的安全间距(px)
 
 /** 障碍物（灵动岛胶囊或居中打孔摄像头）右边界在屏幕坐标系下的 x（含安全间距） */
 function obstacleRightEdge() {
-  // 1. 优先判断是否有灵动岛胶囊显示
+  const scr = document.querySelector('.screen')
+  // 1. 优先判断是否有灵动岛处于活跃状态：指示器避让的是紧凑胶囊边界（宽124px居中）
   if (hasIsland.value) {
-    const island = document.querySelector('.island-card')
-    if (island) {
-      const rect = island.getBoundingClientRect()
-      if (rect.width > 0 && rect.height > 0) {
-        return rect.right + HIDE_MARGIN
-      }
-    }
-    // 兜底：如果 DOM 尚未渲染完成，按紧凑胶囊标准几何计算 (124px 居中)
-    const scr = document.querySelector('.screen')
     if (scr) {
       const scrRect = scr.getBoundingClientRect()
       return scrRect.left + scrRect.width / 2 + 62 + HIDE_MARGIN
     }
+    const island = document.querySelector('.island-card')
+    if (island) {
+      const rect = island.getBoundingClientRect()
+      // 仅在明确收起态时取实际 right，避免展开态全宽污染测量
+      if (!island.classList.contains('is-expanded') && rect.width <= 140 && rect.width > 0) {
+        return rect.right + HIDE_MARGIN
+      }
+    }
+    return 272 + HIDE_MARGIN
   }
   // 2. 无灵动岛时以居中摄像头打孔右边界为基准
   const ph = document.querySelector('.punch-hole')
-  if (!ph) return null
-  return ph.getBoundingClientRect().right + HIDE_MARGIN
+  if (ph) {
+    return ph.getBoundingClientRect().right + HIDE_MARGIN
+  }
+  if (scr) {
+    const scrRect = scr.getBoundingClientRect()
+    return scrRect.left + scrRect.width / 2 + 7.5 + HIDE_MARGIN
+  }
+  return null
 }
 
 /** 反复测量右簇左缘，越界就隐藏最低优先级指示器，直到不重叠或无可隐藏 */
@@ -148,7 +155,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize)
 })
 
-// 任何影响指示器显隐或灵动岛状态的变化都重算
+// 任何影响指示器显隐或灵动岛活动状态的变化都重算
 watch(
   [
     dndOn,
@@ -159,16 +166,22 @@ watch(
     () => control.cellular,
     () => control.airplane,
     hasIsland,
-    isIslandExpanded,
     () => activeActivities.value.length
   ],
   () => {
     recompute()
-    // 动画阶段持续适配
-    setTimeout(() => fit(), 100)
-    setTimeout(() => fit(), 400)
+    setTimeout(() => recompute(), 100)
   }
 )
+
+// 灵动岛展开/收起切换时：展开态状态栏全透；收回胶囊态时彻底刷新避让状态，恢复可用指示器
+watch(isIslandExpanded, (expanded) => {
+  recompute()
+  if (!expanded) {
+    setTimeout(() => recompute(), 200)
+    setTimeout(() => recompute(), 450)
+  }
+})
 </script>
 
 <template>
