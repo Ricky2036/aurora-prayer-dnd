@@ -352,6 +352,35 @@ function onCopyFineTune() {
             </div>
           </div>
 
+          <!-- 系统导航切换 -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">系统导航</span>
+            </div>
+            <div class="pc-seg">
+              <div
+                class="pc-seg-thumb"
+                :style="{
+                  transform: system.navigationMode === 'gesture' ? 'translateX(0)' : 'translateX(100%)'
+                }"
+              ></div>
+              <button
+                class="pc-seg-btn"
+                :class="{ on: system.navigationMode === 'gesture' }"
+                @click="system.setNavigationMode('gesture')"
+              >
+                手势导航
+              </button>
+              <button
+                class="pc-seg-btn"
+                :class="{ on: system.navigationMode === 'threeButton' }"
+                @click="system.setNavigationMode('threeButton')"
+              >
+                三键导航
+              </button>
+            </div>
+          </div>
+
           <!-- 屏幕状态控制与全屏 -->
           <div class="pc-card">
             <div class="pc-card-header">
@@ -359,20 +388,14 @@ function onCopyFineTune() {
             </div>
             <div class="pc-btn-group-2">
               <button class="pc-btn pc-btn-secondary" @click="toggleFullscreen">
-                <svg v-if="!isFullscreen" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                </svg>
-                <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-                </svg>
-                {{ isFullscreen ? '退出全屏' : '进入全屏' }}
+                全屏
               </button>
               <button
                 class="pc-btn pc-btn-toggle"
                 :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
                 @click="system.screenOn ? system.powerOff() : system.powerOn()"
               >
-                {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
+                {{ system.screenOn ? '灭屏' : '亮屏' }}
               </button>
             </div>
           </div>
@@ -547,6 +570,21 @@ function onCopyFineTune() {
             </div>
           </div>
 
+          <!-- 双卡显示 -->
+          <div class="pc-card pc-card-single">
+            <div class="pc-card-header">
+              <span class="pc-card-title">双卡显示</span>
+              <label class="pc-switch-wrap">
+                <input
+                  type="checkbox"
+                  :checked="control.showDualSim"
+                  @change="control.setShowDualSim($event.target.checked)"
+                />
+                <div class="pc-switch"></div>
+              </label>
+            </div>
+          </div>
+
           <!-- 微调图标尺寸 (放置在最下方，开关打开后卡片内展开完整面板) -->
           <div class="pc-card" :class="control.fineTuningMode ? 'pc-card-expanded' : 'pc-card-single'">
             <div class="pc-card-header">
@@ -560,8 +598,10 @@ function onCopyFineTune() {
                 <div class="pc-switch"></div>
               </label>
             </div>
-            <!-- 开关开启时展开微调控制面板 -->
-            <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
+            <!-- 开关开启时展开微调控制面板（无缝过渡动效） -->
+            <Transition name="finetune-expand">
+              <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
+            </Transition>
           </div>
         </section>
       </Transition>
@@ -666,6 +706,35 @@ function onCopyFineTune() {
                     </div>
                   </div>
 
+                  <!-- 系统导航切换 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">系统导航</span>
+                    </div>
+                    <div class="pc-seg">
+                      <div
+                        class="pc-seg-thumb"
+                        :style="{
+                          transform: system.navigationMode === 'gesture' ? 'translateX(0)' : 'translateX(100%)'
+                        }"
+                      ></div>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: system.navigationMode === 'gesture' }"
+                        @click="system.setNavigationMode('gesture')"
+                      >
+                        手势导航
+                      </button>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: system.navigationMode === 'threeButton' }"
+                        @click="system.setNavigationMode('threeButton')"
+                      >
+                        三键导航
+                      </button>
+                    </div>
+                  </div>
+
                   <!-- 屏幕状态控制与全屏 -->
                   <div class="pc-card">
                     <div class="pc-card-header">
@@ -673,20 +742,14 @@ function onCopyFineTune() {
                     </div>
                     <div class="pc-btn-group-2">
                       <button class="pc-btn pc-btn-secondary" @click="toggleFullscreen">
-                        <svg v-if="!isFullscreen" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
-                          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                        </svg>
-                        <svg v-else width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
-                          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-                        </svg>
-                        {{ isFullscreen ? '退出全屏' : '进入全屏' }}
+                        全屏
                       </button>
                       <button
                         class="pc-btn pc-btn-toggle"
                         :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
                         @click="system.screenOn ? system.powerOff() : system.powerOn()"
                       >
-                        {{ system.screenOn ? '熄灭屏幕' : '点亮屏幕' }}
+                        {{ system.screenOn ? '灭屏' : '亮屏' }}
                       </button>
                     </div>
                   </div>
@@ -847,8 +910,8 @@ function onCopyFineTune() {
                   </div>
 
                   <!-- 隐私指示 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header" style="margin-bottom: 0;">
+                  <div class="pc-card pc-card-single">
+                    <div class="pc-card-header">
                       <span class="pc-card-title">隐私指示</span>
                       <label class="pc-switch-wrap">
                         <input
@@ -861,9 +924,24 @@ function onCopyFineTune() {
                     </div>
                   </div>
 
+                  <!-- 双卡显示 -->
+                  <div class="pc-card pc-card-single">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">双卡显示</span>
+                      <label class="pc-switch-wrap">
+                        <input
+                          type="checkbox"
+                          :checked="control.showDualSim"
+                          @change="control.setShowDualSim($event.target.checked)"
+                        />
+                        <div class="pc-switch"></div>
+                      </label>
+                    </div>
+                  </div>
+
                   <!-- 微调图标尺寸 (放置在最下方，开关打开后卡片内展开完整面板) -->
-                  <div class="pc-card">
-                    <div class="pc-card-header" :style="{ marginBottom: control.fineTuningMode ? '0' : '0' }">
+                  <div class="pc-card" :class="control.fineTuningMode ? 'pc-card-expanded' : 'pc-card-single'">
+                    <div class="pc-card-header">
                       <span class="pc-card-title">图标尺寸</span>
                       <label class="pc-switch-wrap">
                         <input
@@ -874,8 +952,10 @@ function onCopyFineTune() {
                         <div class="pc-switch"></div>
                       </label>
                     </div>
-                    <!-- 开关开启时展开微调控制面板 -->
-                    <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
+                    <!-- 开关开启时展开微调控制面板（无缝过渡动效） -->
+                    <Transition name="finetune-expand">
+                      <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
+                    </Transition>
                   </div>
                 </section>
               </Transition>
@@ -1043,6 +1123,29 @@ function onCopyFineTune() {
 /* 微调面板展开态：面板自带 margin/padding-top 间距，标题与面板之间保持原有的 0 间隙 */
 .pc-card.pc-card-expanded .pc-card-header {
   margin-bottom: 0;
+}
+
+/* 图标尺寸展开面板无缝过渡动效 */
+.finetune-expand-enter-active,
+.finetune-expand-leave-active {
+  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  overflow: hidden;
+}
+
+.finetune-expand-enter-from,
+.finetune-expand-leave-to {
+  opacity: 0;
+  max-height: 0px;
+  transform: translateY(-8px);
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.finetune-expand-enter-to,
+.finetune-expand-leave-from {
+  opacity: 1;
+  max-height: 500px;
+  transform: translateY(0);
 }
 
 .pc-card-title {

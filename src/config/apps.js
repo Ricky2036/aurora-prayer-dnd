@@ -66,7 +66,7 @@ export const APPS = [
   {
     id: 'voicememos',
     name: '语音备忘录',
-    depth: 'placeholder',
+    depth: 'core',
     heroBackground: 'linear-gradient(180deg,#F65A62 0%,#E82636 100%)',
     image: '/icons/voicememos.png',
     page: 0

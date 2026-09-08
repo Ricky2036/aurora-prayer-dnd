@@ -6,6 +6,7 @@ import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { useSystemStore } from '../../stores/systemStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useI18nStore } from '../../stores/i18nStore'
+import { useRecorderStore } from '../../stores/recorderStore'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
 import { clamp } from '../../utils/math'
@@ -21,11 +22,13 @@ import albumArt from '../../assets/img/album-2.jpg'
  * 上滑解锁：非交互区上滑触发（与展开手势隔离）。
  */
 import MusicPlayerCard from './MusicPlayerCard.vue'
+import LIcon from '../ui/LIcon.vue'
 
 const { timeShort, dateLong } = useClock()
 const system = useSystemStore()
 const notifications = useNotificationsStore()
 const i18n = useI18nStore()
+const recorder = useRecorderStore()
 
 const rootRef = ref(null)
 const UNLOCK_SPAN = 460
@@ -76,24 +79,48 @@ const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
 const PLAYER_START_Y = computed(() => BASE_Y.value - PLAYER_HEIGHT - PLAYER_NOTIF_GAP)
-const PLAYER_COLLAPSED_Y = computed(() => screenHeight.value - PLAYER_HEIGHT - 105)
+const RECORDER_CARD_HEIGHT = 90
+const RECORDER_GAP = 10
+
+// 播放器在折叠态的 Y 坐标：若正在录音，录音卡片默认展开显示在播放器上方（或播放器整体上移为录音卡片留出空间）
+const PLAYER_COLLAPSED_Y = computed(() => {
+  const base = screenHeight.value - PLAYER_HEIGHT - 105
+  return recorder.isRecording ? base : base
+})
+
+// 录音卡片在折叠态的 Y 坐标：直接位于播放器卡片上方
+const RECORDER_COLLAPSED_Y = computed(() => {
+  return PLAYER_COLLAPSED_Y.value - RECORDER_CARD_HEIGHT - RECORDER_GAP
+})
+
+// 录音卡片在展开态的 Y 坐标：直接紧贴在音乐播放器上方（或随其一同平滑滚动）
+const RECORDER_START_Y = computed(() => {
+  return PLAYER_START_Y.value - RECORDER_CARD_HEIGHT - RECORDER_GAP
+})
+
 const DATE_TOP = 55
 const DATE_HEIGHT = 28
 const CLOCK_TOP = DATE_TOP + DATE_HEIGHT - 6 // 77
 const TOP_GAP = 16
-const CLOCK_INITIAL_HEIGHT = computed(() => Math.max(140, PLAYER_START_Y.value - CLOCK_TOP - TOP_GAP))
+// 正在录音时，顶部可用空间需考虑录音卡片高度
+const TOP_WIDGET_START_Y = computed(() => recorder.isRecording ? RECORDER_START_Y.value : PLAYER_START_Y.value)
+const CLOCK_INITIAL_HEIGHT = computed(() => Math.max(140, TOP_WIDGET_START_Y.value - CLOCK_TOP - TOP_GAP))
 const CLOCK_MIN_HEIGHT = 140
 const SAFE_GAP = TOP_GAP
-const HIT_DISTANCE = computed(() => Math.max(0, PLAYER_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP))
+const HIT_DISTANCE = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP))
 const EXPAND_SCROLL_Y = computed(() => CLOCK_INITIAL_HEIGHT.value - CLOCK_MIN_HEIGHT)
 const STRETCH_FACTOR = 0.15
 const COLLAPSE_THRESHOLD = -26
 
-/* 锁屏只展示最新 6 条（与 TSX 一致），通知中心展示全部 */
+/* 锁屏只展示最新 6 条通知（与 TSX 一致） */
 const lockNotifs = computed(() => notifications.list.slice(0, 6))
+/* 普通通知列表（录音卡片作为独立默认展开卡片，类似音乐播放器） */
+const lockItems = computed(() => {
+  return lockNotifs.value.map(n => ({ id: n.id, isRecorder: false, raw: n }))
+})
 /* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
-const notifCountLabel = computed(() => i18n.t('notifCount')(lockNotifs.value.length))
-const MAX_SCROLL = computed(() => Math.max(0, (lockNotifs.value.length - 1) * NOTIF_SPACING))
+const notifCountLabel = computed(() => i18n.t('notifCount')(lockItems.value.length))
+const MAX_SCROLL = computed(() => Math.max(0, (lockItems.value.length - 1) * NOTIF_SPACING))
 
 /* ---------- 滚动状态 ---------- */
 const scrollY = ref(0)
@@ -169,12 +196,13 @@ function handleWheel(e) {
 }
 
 function handleTouchStart(e) {
+  if (isSwipingCard) return
   touchStartY = e.touches[0].clientY
   dragDistance = 0
   isDragging.value = true
 }
 function handleTouchMove(e) {
-  if (!isDragging.value) return
+  if (!isDragging.value || isSwipingCard) return
   const currentY = e.touches[0].clientY
   dragDistance = Math.abs(currentY - touchStartY)
   const deltaY = (touchStartY - currentY) * 1.5
@@ -190,6 +218,140 @@ function handleTouchEnd() {
     scrollY.value = clamp(scrollY.value, 0, MAX_SCROLL.value)
   }
   touchStartY = 0
+}
+
+/* ---------- 卡片横向滑动（左滑露操作按钮） ---------- */
+const swipeOffsets = ref({}) // itemId -> number (0 ~ -156)
+let isSwipingCard = false
+let swipeGestureDecided = false
+let activeCardId = null
+let cardPointerStartX = 0
+let cardPointerStartY = 0
+let cardInitialOffset = 0
+let cardPointerId = null
+let cardPointerTarget = null
+
+function resetOtherCards(exceptId = null) {
+  const newOffsets = {}
+  for (const [k, v] of Object.entries(swipeOffsets.value)) {
+    if (k === exceptId && v !== 0) {
+      newOffsets[k] = v
+    }
+  }
+  swipeOffsets.value = newOffsets
+}
+
+function onCardPointerDown(e, id) {
+  // 普通通知在折叠态禁止横滑，但录音卡片（id === '__recorder__'）始终默认展开展示，允许随时左滑操作
+  if (isCollapsed.value && id !== '__recorder__') return
+  activeCardId = id
+  cardPointerStartX = e.clientX
+  cardPointerStartY = e.clientY
+  cardInitialOffset = swipeOffsets.value[id] || 0
+  swipeGestureDecided = false
+  isSwipingCard = false
+  cardPointerId = e.pointerId
+  cardPointerTarget = e.currentTarget
+}
+
+function onCardPointerMove(e, id) {
+  if (activeCardId !== id || (isCollapsed.value && id !== '__recorder__')) return
+  const dx = e.clientX - cardPointerStartX
+  const dy = e.clientY - cardPointerStartY
+
+  if (!swipeGestureDecided) {
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+      swipeGestureDecided = true
+      if (Math.abs(dx) > Math.abs(dy)) {
+        isSwipingCard = true
+        isDragging.value = false // 禁止垂直拖动
+        try {
+          cardPointerTarget?.setPointerCapture(cardPointerId)
+        } catch (_) {}
+      } else {
+        isSwipingCard = false
+      }
+    }
+  }
+
+  if (isSwipingCard) {
+    // 限制左滑在 -160 ~ 0 之间（带少许阻尼）
+    let nextOffset = cardInitialOffset + dx
+    if (nextOffset > 0) nextOffset = nextOffset * 0.2
+    if (nextOffset < -160) nextOffset = -160 + (nextOffset + 160) * 0.2
+    swipeOffsets.value = {
+      ...swipeOffsets.value,
+      [id]: nextOffset
+    }
+  }
+}
+
+let justSwipedId = null
+
+function onCardPointerUp(e, id) {
+  if (activeCardId !== id) return
+  if (isSwipingCard) {
+    justSwipedId = id
+    setTimeout(() => {
+      if (justSwipedId === id) justSwipedId = null
+    }, 250)
+
+    const currentOffset = swipeOffsets.value[id] || 0
+    // 阈值：向左超过 45px 则吸附到 -118px（显示设置与删除图标），否则收回
+    if (currentOffset < -45) {
+      resetOtherCards(id)
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -118
+      }
+    } else {
+      const next = { ...swipeOffsets.value }
+      delete next[id]
+      swipeOffsets.value = next
+    }
+  }
+  try {
+    cardPointerTarget?.releasePointerCapture(cardPointerId)
+  } catch (_) {}
+  activeCardId = null
+  isSwipingCard = false
+  swipeGestureDecided = false
+  cardPointerTarget = null
+  cardPointerId = null
+}
+
+function onDeleteCard(item) {
+  if (item.isRecorder) {
+    recorder.stopRecording()
+  } else {
+    notifications.remove(item.id)
+  }
+  const next = { ...swipeOffsets.value }
+  delete next[item.id]
+  swipeOffsets.value = next
+}
+
+function onJumpSettings() {
+  notifications.setTargetView('notifications', 'dynamicBar')
+  system.unlock()
+  system.openApp('settings')
+  swipeOffsets.value = {}
+}
+
+function handleCardClick(item) {
+  if (dragDistance > 10 || isSwipingCard) return
+  if (justSwipedId === item.id) {
+    justSwipedId = null
+    return
+  }
+  // 如果处于划开状态，点击卡片主体则先收回
+  if (swipeOffsets.value[item.id]) {
+    const next = { ...swipeOffsets.value }
+    delete next[item.id]
+    swipeOffsets.value = next
+    return
+  }
+  handleExpand()
 }
 
 /* 点击播放器/通知/胶囊：折叠→展开；已展开且未滚远→滚到挤压位 */
@@ -239,8 +401,15 @@ useSwipeGesture(rootRef, {
   }
 })
 
-/* 展开态点击空白 → 收起 */
+/* 点击空白处 → 收起已滑开卡片 &（展开态时）收起锁屏展开列表 */
 function onBackdropTap(e) {
+  // 点击卡片本体、按钮或交互区域内部时不收起滑开状态
+  if (e.target.closest('.ls-card-front, .ls-swipe-actions, .ls-action-btn, .ls-shortcut, .ls-pill')) {
+    return
+  }
+  if (Object.keys(swipeOffsets.value).length > 0) {
+    swipeOffsets.value = {}
+  }
   if (!isCollapsed.value && !e.target.closest('.ls-interact')) {
     isCollapsed.value = true
     scrollY.value = 0
@@ -272,12 +441,20 @@ const squeeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - H
 const clockHeight = computed(() => Math.max(CLOCK_MIN_HEIGHT, CLOCK_INITIAL_HEIGHT.value - squeeze.value))
 const clipTop = computed(() => CLOCK_TOP + clockHeight.value + SAFE_GAP)
 const expandClip = computed(() => scrollY.value <= 0 || isCollapsed.value)
-const playerStretch = computed(() => lockNotifs.value.length * overscroll.value * STRETCH_FACTOR)
+const playerStretch = computed(() => lockItems.value.length * overscroll.value * STRETCH_FACTOR)
 const scrollOffset = computed(() => (scrollY.value < 0 ? scrollY.value : effectiveScrollY.value))
 const currentPlayerY = computed(() =>
   isCollapsed.value ? PLAYER_COLLAPSED_Y.value : PLAYER_START_Y.value - scrollOffset.value - playerStretch.value
 )
-const animating = computed(() => (!isDragging.value && !isWheeling.value && !isSpringing.value) || isCollapsed.value)
+const currentRecorderY = computed(() =>
+  isCollapsed.value ? RECORDER_COLLAPSED_Y.value : RECORDER_START_Y.value - scrollOffset.value - playerStretch.value
+)
+const recorderCardStyle = computed(() => ({
+  transform: `translateY(${currentRecorderY.value}px)`,
+  transition: transitionStyle.value,
+  zIndex: 190
+}))
+const animating = computed(() => (!isDragging.value && !isWheeling.value && !isSpringing.value && !isSwipingCard) || isCollapsed.value)
 const transitionStyle = computed(() =>
   animating.value
     ? 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease-out, clip-path 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)'
@@ -306,7 +483,7 @@ function notifStyle(i) {
   const isStacked = currentY > 0
   const depth = currentY / NOTIF_SPACING
   const clampedDepth = Math.min(depth, 3)
-  const distanceFromBottom = lockNotifs.value.length - 1 - i
+  const distanceFromBottom = lockItems.value.length - 1 - i
   const stretchAmount = distanceFromBottom * overscroll.value * STRETCH_FACTOR
   let yPos, scale, opacity
   if (isCollapsed.value) {
@@ -361,34 +538,118 @@ function notifStyle(i) {
         @touchend.passive="handleTouchEnd"
         @touchcancel.passive="handleTouchEnd"
       >
+        <!-- 正在录音活动卡片：与音乐播放器一样默认展开，支持横滑呼出灵动岛设置与停止按钮 -->
+        <div
+          v-if="recorder.isRecording"
+          class="ls-card-wrapper ls-recorder-standalone"
+          :style="recorderCardStyle"
+        >
+          <!-- 底层滑动操作按钮 -->
+          <div class="ls-swipe-actions" :class="{ 'is-active': (swipeOffsets['__recorder__'] || 0) < -2 }">
+            <button class="ls-action-btn ls-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+              <LIcon name="headerSettings" :size="20" />
+            </button>
+            <button class="ls-action-btn ls-btn-delete" @click.stop="recorder.stopRecording" :title="i18n.t('delete')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 表层卡片主体（横滑） -->
+          <div
+            class="ls-card-front is-recorder"
+            :class="{ 'is-swiping': isSwipingCard && activeCardId === '__recorder__' }"
+            :style="{ transform: `translateX(${swipeOffsets['__recorder__'] || 0}px)` }"
+            @pointerdown="onCardPointerDown($event, '__recorder__')"
+            @pointermove="onCardPointerMove($event, '__recorder__')"
+            @pointerup="onCardPointerUp($event, '__recorder__')"
+            @pointercancel="onCardPointerUp($event, '__recorder__')"
+            @click="handleCardClick({ id: '__recorder__', isRecorder: true })"
+          >
+            <div class="ls-rc-icon-wrap">
+              <div class="ls-rc-audio-bars">
+                <span class="bar bar-1"></span>
+                <span class="bar bar-2"></span>
+                <span class="bar bar-3"></span>
+                <span class="bar bar-main"></span>
+                <span class="bar bar-5"></span>
+                <span class="bar bar-6"></span>
+                <span class="bar bar-7"></span>
+              </div>
+            </div>
+            <div class="ls-rc-info">
+              <div class="ls-rc-time">{{ recorder.formattedTime }}</div>
+              <div class="ls-rc-sub">{{ recorder.isPaused ? '录音已暂停' : (i18n.t('recordingCardTitle') || '录音中...') }}</div>
+            </div>
+            <button class="ls-rc-stop-btn" @click.stop="recorder.stopRecording" title="停止录音">
+              <div class="ls-rc-stop-square"></div>
+            </button>
+          </div>
+        </div>
+
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard :style="{ transform: `translateY(${currentPlayerY}px)`, transition: transitionStyle, zIndex: 200 }" @click="handleExpand" />
 
-        <!-- 通知队列 -->
+        <!-- 通知队列（卡片支持横滑呼出灵动岛设置与删除按钮） -->
         <div
-          v-for="(n, i) in lockNotifs"
-          :key="n.id"
-          class="ls-notif"
+          v-for="(item, i) in lockItems"
+          :key="item.id"
+          class="ls-card-wrapper"
           :style="notifStyle(i)"
-          @click="handleExpand"
         >
-          <NotificationIcon :type="n.iconType" :size="38" />
-          <div class="ls-notif-body">
-            <div class="ls-notif-head">
-              <span class="ls-notif-title">{{ i18n.notifTitle(n.appId) }}</span>
-              <span class="ls-notif-time">{{ formatRelativeTime(n.time, i18n.t) }}</span>
+          <!-- 底层滑动操作按钮 -->
+          <div class="ls-swipe-actions" :class="{ 'is-active': (swipeOffsets[item.id] || 0) < -2 }">
+            <button class="ls-action-btn ls-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+              <LIcon name="headerSettings" :size="20" />
+            </button>
+            <button class="ls-action-btn ls-btn-delete" @click.stop="onDeleteCard(item)" :title="i18n.t('delete')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 表层卡片主体（横滑） -->
+          <div
+            class="ls-card-front"
+            :class="{ 'is-swiping': isSwipingCard && activeCardId === item.id }"
+            :style="{ transform: `translateX(${swipeOffsets[item.id] || 0}px)` }"
+            @pointerdown="onCardPointerDown($event, item.id)"
+            @pointermove="onCardPointerMove($event, item.id)"
+            @pointerup="onCardPointerUp($event, item.id)"
+            @pointercancel="onCardPointerUp($event, item.id)"
+            @click="handleCardClick(item)"
+          >
+            <NotificationIcon :type="item.raw.iconType" :size="38" />
+            <div class="ls-notif-body">
+              <div class="ls-notif-head">
+                <span class="ls-notif-title">{{ i18n.notifTitle(item.raw.appId) }}</span>
+                <span class="ls-notif-time">{{ formatRelativeTime(item.raw.time, i18n.t) }}</span>
+              </div>
+              <p class="ls-notif-desc">{{ i18n.notifBody(item.raw.appId) }}</p>
             </div>
-            <p class="ls-notif-desc">{{ i18n.notifBody(n.appId) }}</p>
           </div>
         </div>
       </div>
 
       <!-- 微缩通知胶囊（折叠态） -->
-      <div v-if="lockNotifs.length" class="ls-pill ls-interact" :style="pillStyle" @click="handleExpand">
+      <div v-if="lockItems.length" class="ls-pill ls-interact" :style="pillStyle" @click="handleExpand">
         <div class="lp-mini">
-          <NotificationIcon :type="lockNotifs[0].iconType" :size="22" />
-          <NotificationIcon :type="lockNotifs[1]?.iconType || 'default'" :size="22" />
-          <NotificationIcon :type="lockNotifs[2]?.iconType || 'default'" :size="22" />
+          <template v-for="(item, idx) in lockItems.slice(0, 3)" :key="item.id">
+            <div v-if="item.isRecorder" class="lp-mini-rec">
+              <span class="rec-dot"></span>
+            </div>
+            <NotificationIcon v-else :type="item.raw.iconType" :size="22" />
+          </template>
         </div>
         <span class="lp-count">{{ notifCountLabel }}</span>
       </div>
@@ -490,13 +751,83 @@ function notifStyle(i) {
 
 /* removed ls-player css */
 
-/* ---- 通知卡片 ---- */
-.ls-notif {
+/* ---- 通知 / 录音卡片包装器与滑动层 ---- */
+.ls-card-wrapper {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 90px;
+  border-radius: 22px;
+  overflow: hidden;
+  will-change: transform, opacity;
+  transform-origin: bottom center;
+}
+
+/* 底层操作按钮区域（默认隐藏，滑动展开时显现） */
+.ls-swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 1;
+  padding-right: 12px;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.ls-swipe-actions.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.ls-action-btn {
+  border: none;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+  padding: 0;
+  box-sizing: border-box;
+}
+.ls-action-btn:active {
+  transform: scale(0.92);
+  opacity: 0.85;
+}
+.ls-action-btn svg,
+.ls-action-btn :deep(svg) {
+  display: block;
+  flex: none;
+}
+
+.ls-btn-settings {
+  background: rgba(80, 80, 86, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.ls-btn-delete {
+  background: #ff3b30;
+}
+
+/* 表层滑块卡片 */
+.ls-card-front {
+  position: absolute;
+  inset: 0;
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
@@ -508,10 +839,117 @@ function notifStyle(i) {
   align-items: center;
   gap: 14px;
   cursor: pointer;
-  will-change: transform, opacity;
-  transform-origin: bottom center;
+  z-index: 2;
+  user-select: none;
+  touch-action: pan-y;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.ls-notif:active { transform: scale(0.98); }
+.ls-card-front.is-swiping {
+  transition: none !important;
+}
+.ls-card-front:active {
+  background: rgba(255, 255, 255, 0.82);
+}
+
+/* 录音活动卡片深色样式（与灵动岛/通知中心保持高雅一致） */
+.ls-card-front.is-recorder {
+  background: rgba(26, 26, 28, 0.88);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* 录音卡片内部元素 */
+.ls-rc-icon-wrap {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ls-rc-audio-bars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 28px;
+}
+.ls-rc-audio-bars .bar {
+  display: inline-block;
+  width: 2.5px;
+  border-radius: 1.5px;
+  background: #ffffff;
+}
+.ls-rc-audio-bars .bar-1 { height: 14px; animation: lsRcAudioPulse 1.2s infinite alternate 0.1s; }
+.ls-rc-audio-bars .bar-2 { height: 8px; animation: lsRcAudioPulse 1.2s infinite alternate 0.3s; }
+.ls-rc-audio-bars .bar-3 { height: 20px; animation: lsRcAudioPulse 1.2s infinite alternate 0.15s; }
+.ls-rc-audio-bars .bar-main {
+  width: 3px;
+  height: 26px;
+  background: #ff5238;
+  animation: lsRcAudioPulseMain 0.9s infinite alternate 0.05s;
+}
+.ls-rc-audio-bars .bar-5 { height: 11px; animation: lsRcAudioPulse 1.2s infinite alternate 0.4s; }
+.ls-rc-audio-bars .bar-6 { height: 6px; animation: lsRcAudioPulse 1.2s infinite alternate 0.2s; }
+.ls-rc-audio-bars .bar-7 { height: 4px; animation: lsRcAudioPulse 1.2s infinite alternate 0.5s; }
+
+@keyframes lsRcAudioPulse {
+  0% { transform: scaleY(0.45); opacity: 0.6; }
+  100% { transform: scaleY(1.15); opacity: 1; }
+}
+@keyframes lsRcAudioPulseMain {
+  0% { transform: scaleY(0.5); }
+  100% { transform: scaleY(1.1); }
+}
+
+.ls-rc-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.ls-rc-time {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.ls-rc-sub {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.68);
+  margin-top: 2px;
+}
+
+.ls-rc-stop-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #eb4436;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+  transition: transform 0.12s ease, background 0.15s ease;
+  box-shadow: 0 4px 14px rgba(235, 68, 54, 0.4);
+}
+.ls-rc-stop-btn:active {
+  transform: scale(0.92);
+}
+.ls-rc-stop-square {
+  width: 15px;
+  height: 15px;
+  border-radius: 3.5px;
+  background: #ffffff;
+}
+
+/* 普通通知卡片内容 */
 .ls-notif-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .ls-notif-head { display: flex; align-items: baseline; margin-bottom: 2px; }
 .ls-notif-title {
@@ -536,6 +974,28 @@ function notifStyle(i) {
   -webkit-box-orient: vertical;
   overflow: hidden;
   padding-right: 8px;
+}
+
+/* 微缩胶囊里的录音红点 */
+.lp-mini-rec {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(235, 68, 54, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff3b30;
+  animation: recDotBlink 1s infinite alternate;
+}
+@keyframes recDotBlink {
+  0% { opacity: 0.5; transform: scale(0.85); }
+  100% { opacity: 1; transform: scale(1.1); }
 }
 
 /* ---- 微缩通知胶囊 ---- */

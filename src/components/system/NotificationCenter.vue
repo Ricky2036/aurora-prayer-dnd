@@ -10,7 +10,9 @@ import { formatRelativeTime } from '../../utils/timeFormat'
 import { clamp } from '../../utils/math'
 import MusicPlayerCard from './MusicPlayerCard.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
+import LIcon from '../ui/LIcon.vue'
 import { useI18nStore } from '../../stores/i18nStore'
+import { useRecorderStore } from '../../stores/recorderStore'
 
 /**
  * 通知中心（移植自 notificationcenter.tsx）：
@@ -21,6 +23,7 @@ import { useI18nStore } from '../../stores/i18nStore'
 const system = useSystemStore()
 const i18n = useI18nStore()
 const notifications = useNotificationsStore()
+const recorder = useRecorderStore()
 const { timeShort, now } = useClock()
 
 const overlay = computed(() => system.overlays.notificationCenter)
@@ -44,11 +47,148 @@ const driver = getDriver('notificationCenter')
 if (driver) useSwipeGesture(rootRef, driver.closeGesture)
 
 function onNcClick(e) {
-  // 点击卡片、播放器、清除按钮等交互元素时不退出
-  if (e.target.closest('.nc-card, .ls-player, .nc-clear-fab, .lp-play, button, a, input, label')) {
+  // 点击卡片本体、操作按钮、播放器、清除按钮等交互元素内部时，不重置滑开状态也不关闭叠层
+  if (e.target.closest('.nc-card, .ls-player, .nc-recorder-card, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, button, a, input, label')) {
     return
   }
+  // 点击空白处时，如果有滑开的卡片，先收回
+  if (Object.keys(swipeOffsets.value).length > 0) {
+    swipeOffsets.value = {}
+  }
   system.requestCloseOverlay('notificationCenter')
+}
+
+/* ---------- 卡片横向滑动（左滑露操作按钮：灵动岛设置 / 删除） ---------- */
+const swipeOffsets = ref({}) // itemId -> number (0 ~ -156)
+let isSwipingCard = false
+let swipeGestureDecided = false
+let activeCardId = null
+let cardPointerStartX = 0
+let cardPointerStartY = 0
+let cardInitialOffset = 0
+let cardPointerId = null
+let cardPointerTarget = null
+
+function resetOtherCards(exceptId = null) {
+  const newOffsets = {}
+  for (const [k, v] of Object.entries(swipeOffsets.value)) {
+    if (k === exceptId && v !== 0) {
+      newOffsets[k] = v
+    }
+  }
+  swipeOffsets.value = newOffsets
+}
+
+function onCardPointerDown(e, id) {
+  activeCardId = id
+  cardPointerStartX = e.clientX
+  cardPointerStartY = e.clientY
+  cardInitialOffset = swipeOffsets.value[id] || 0
+  swipeGestureDecided = false
+  isSwipingCard = false
+  cardPointerId = e.pointerId
+  cardPointerTarget = e.currentTarget
+}
+
+function onCardPointerMove(e, id) {
+  if (activeCardId !== id) return
+  const dx = e.clientX - cardPointerStartX
+  const dy = e.clientY - cardPointerStartY
+
+  if (!swipeGestureDecided) {
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+      swipeGestureDecided = true
+      if (Math.abs(dx) > Math.abs(dy)) {
+        isSwipingCard = true
+        try {
+          cardPointerTarget?.setPointerCapture(cardPointerId)
+        } catch (_) {}
+      } else {
+        isSwipingCard = false
+      }
+    }
+  }
+
+  if (isSwipingCard) {
+    let nextOffset = cardInitialOffset + dx
+    if (nextOffset > 0) nextOffset = nextOffset * 0.2
+    if (nextOffset < -160) nextOffset = -160 + (nextOffset + 160) * 0.2
+    swipeOffsets.value = {
+      ...swipeOffsets.value,
+      [id]: nextOffset
+    }
+  }
+}
+
+let justSwipedId = null
+
+function onCardPointerUp(e, id) {
+  if (activeCardId !== id) return
+  if (isSwipingCard) {
+    justSwipedId = id
+    setTimeout(() => {
+      if (justSwipedId === id) justSwipedId = null
+    }, 250)
+
+    const currentOffset = swipeOffsets.value[id] || 0
+    if (currentOffset < -45) {
+      resetOtherCards(id)
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -118
+      }
+    } else {
+      const next = { ...swipeOffsets.value }
+      delete next[id]
+      swipeOffsets.value = next
+    }
+  }
+  try {
+    cardPointerTarget?.releasePointerCapture(cardPointerId)
+  } catch (_) {}
+  activeCardId = null
+  isSwipingCard = false
+  swipeGestureDecided = false
+  cardPointerTarget = null
+  cardPointerId = null
+}
+
+function onDeleteCard(id) {
+  if (id === '__recorder__') {
+    recorder.stopRecording()
+  } else {
+    notifications.remove(id)
+  }
+  const next = { ...swipeOffsets.value }
+  delete next[id]
+  swipeOffsets.value = next
+}
+
+function onJumpSettings() {
+  notifications.setTargetView('notifications', 'dynamicBar')
+  system.requestCloseOverlay('notificationCenter')
+  system.openApp('settings')
+  swipeOffsets.value = {}
+}
+
+function onRecorderCardClick() {
+  if (isSwipingCard) return
+  if (justSwipedId === '__recorder__') {
+    justSwipedId = null
+    return
+  }
+  if (swipeOffsets.value['__recorder__']) {
+    const next = { ...swipeOffsets.value }
+    delete next['__recorder__']
+    swipeOffsets.value = next
+    return
+  }
+  system.openApp('voicememos')
+}
+
+function handleStopRecording(e) {
+  e.stopPropagation()
+  recorder.stopRecording()
 }
 
 /* ---------- 清除动画 ---------- */
@@ -129,6 +269,17 @@ const monthDay = computed(() => i18n.t('monthDay')(i18n.monthNames[now.value.get
 /* 卡片点击展开描述 */
 const expandedId = ref(null)
 function toggleExpand(id) {
+  if (isSwipingCard) return
+  if (justSwipedId === id) {
+    justSwipedId = null
+    return
+  }
+  if (swipeOffsets.value[id]) {
+    const next = { ...swipeOffsets.value }
+    delete next[id]
+    swipeOffsets.value = next
+    return
+  }
   expandedId.value = expandedId.value === id ? null : id
 }
 </script>
@@ -150,6 +301,61 @@ function toggleExpand(id) {
 
       <!-- 贯通式列表 -->
       <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
+        <!-- 灵动岛录音卡片（录音进行中显示，支持横滑呼出灵动岛设置与停止按钮） -->
+        <div v-if="recorder.isRecording" class="nc-swipe-card-wrapper nc-recorder-wrapper">
+          <!-- 底层滑动操作按钮 -->
+          <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets['__recorder__'] || 0) < -2 }">
+            <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+              <LIcon name="headerSettings" :size="20" />
+            </button>
+            <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard('__recorder__')" :title="i18n.t('delete')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- 表层录音卡片主体 -->
+          <div
+            class="nc-recorder-card"
+            :class="{ 'is-swiping': isSwipingCard && activeCardId === '__recorder__' }"
+            :style="{ transform: `translateX(${swipeOffsets['__recorder__'] || 0}px)` }"
+            @pointerdown="onCardPointerDown($event, '__recorder__')"
+            @pointermove="onCardPointerMove($event, '__recorder__')"
+            @pointerup="onCardPointerUp($event, '__recorder__')"
+            @pointercancel="onCardPointerUp($event, '__recorder__')"
+            @click="onRecorderCardClick"
+          >
+            <!-- 左侧：录音声波频谱柱 -->
+            <div class="nc-rc-left">
+              <div class="nc-rc-audio-bars">
+                <span class="bar bar-1"></span>
+                <span class="bar bar-2"></span>
+                <span class="bar bar-3"></span>
+                <span class="bar bar-main"></span>
+                <span class="bar bar-5"></span>
+                <span class="bar bar-6"></span>
+                <span class="bar bar-7"></span>
+              </div>
+            </div>
+
+            <!-- 中间：大计时器与副标题 -->
+            <div class="nc-rc-info">
+              <div class="nc-rc-time">{{ recorder.formattedTime }}</div>
+              <div class="nc-rc-sub">{{ recorder.isPaused ? '录音已暂停' : '录音中...' }}</div>
+            </div>
+
+            <!-- 右侧：圆形红色停止按钮 -->
+            <button class="nc-rc-stop-btn" @click.stop="handleStopRecording" title="停止录音">
+              <div class="nc-rc-stop-square"></div>
+            </button>
+          </div>
+        </div>
+
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard class="nc-player-instance" />
 
@@ -158,11 +364,37 @@ function toggleExpand(id) {
           <div
             v-for="(n, idx) in notifications.list"
             :key="n.id"
-            class="nc-item-wrapper"
+            class="nc-item-wrapper nc-swipe-card-wrapper"
             :class="{ clearing: isClearing }"
             :style="{ transitionDelay: isClearing ? idx * 40 + 'ms' : '0ms', zIndex: notifications.list.length - idx }"
           >
-            <div class="nc-card" :class="{ expanded: expandedId === n.id }" @click="toggleExpand(n.id)">
+            <!-- 底层滑动操作按钮 -->
+            <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[n.id] || 0) < -2 }">
+              <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+                <LIcon name="headerSettings" :size="20" />
+              </button>
+              <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard(n.id)" :title="i18n.t('delete')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- 表层通知卡片主体 -->
+            <div
+              class="nc-card"
+              :class="{ expanded: expandedId === n.id, 'is-swiping': isSwipingCard && activeCardId === n.id }"
+              :style="{ transform: `translateX(${swipeOffsets[n.id] || 0}px)` }"
+              @pointerdown="onCardPointerDown($event, n.id)"
+              @pointermove="onCardPointerMove($event, n.id)"
+              @pointerup="onCardPointerUp($event, n.id)"
+              @pointercancel="onCardPointerUp($event, n.id)"
+              @click="toggleExpand(n.id)"
+            >
               <NotificationIcon :type="n.iconType" />
               <div class="nc-card-body">
                 <div class="nc-card-head">
@@ -251,11 +483,207 @@ function toggleExpand(id) {
 .nc-list::-webkit-scrollbar { display: none; }
 .nc-list { scrollbar-width: none; }
 
+.nc-recorder-card {
+  flex: none;
+  position: relative;
+  z-index: 6;
+  width: 100%;
+  height: 84px;
+  border-radius: 26px;
+  background: rgba(14, 14, 16, 0.92);
+  backdrop-filter: blur(36px);
+  -webkit-backdrop-filter: blur(36px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 0 18px;
+  cursor: pointer;
+  margin-bottom: 0;
+  user-select: none;
+  touch-action: pan-y;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
+}
+.nc-recorder-card:active {
+  background: rgba(22, 22, 26, 0.95);
+}
+
+.nc-rc-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+.nc-rc-audio-bars {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  height: 32px;
+}
+.nc-rc-audio-bars .bar {
+  display: inline-block;
+  width: 3px;
+  border-radius: 1.5px;
+  background: #ffffff;
+}
+.nc-rc-audio-bars .bar-1 { height: 16px; animation: ncRcAudioPulse 1.2s infinite alternate 0.1s; }
+.nc-rc-audio-bars .bar-2 { height: 10px; animation: ncRcAudioPulse 1.2s infinite alternate 0.3s; }
+.nc-rc-audio-bars .bar-3 { height: 22px; animation: ncRcAudioPulse 1.2s infinite alternate 0.15s; }
+.nc-rc-audio-bars .bar-main {
+  width: 3.5px;
+  height: 30px;
+  background: #ff5238;
+  animation: ncRcAudioPulseMain 0.9s infinite alternate 0.05s;
+}
+.nc-rc-audio-bars .bar-5 { height: 12px; animation: ncRcAudioPulse 1.2s infinite alternate 0.4s; }
+.nc-rc-audio-bars .bar-6 { height: 6px; animation: ncRcAudioPulse 1.2s infinite alternate 0.2s; }
+.nc-rc-audio-bars .bar-7 { height: 4px; animation: ncRcAudioPulse 1.2s infinite alternate 0.5s; }
+
+@keyframes ncRcAudioPulse {
+  0% { transform: scaleY(0.45); opacity: 0.6; }
+  100% { transform: scaleY(1.15); opacity: 1; }
+}
+@keyframes ncRcAudioPulseMain {
+  0% { transform: scaleY(0.5); }
+  100% { transform: scaleY(1.1); }
+}
+
+.nc-rc-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 12px;
+  margin-right: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.nc-rc-time {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.nc-rc-sub {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.68);
+  margin-top: 3px;
+  letter-spacing: -0.1px;
+}
+
+.nc-rc-stop-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #eb4436;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+  transition: transform 0.12s ease, background 0.15s ease;
+  box-shadow: 0 4px 14px rgba(235, 68, 54, 0.4);
+}
+.nc-rc-stop-btn:hover {
+  background: #f05244;
+  transform: scale(1.04);
+}
+.nc-rc-stop-btn:active {
+  transform: scale(0.92);
+}
+.nc-rc-stop-square {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
 .nc-player-instance {
   flex: none;
   position: relative;
   z-index: 5;
   margin-bottom: 3px;
+}
+
+/* ---- 滑动容器与底层操作按钮 ---- */
+.nc-swipe-card-wrapper {
+  flex: none;
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.nc-recorder-wrapper {
+  margin-bottom: 3px;
+  height: 84px;
+}
+
+.nc-swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 1;
+  padding-right: 12px;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.nc-swipe-actions.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nc-action-btn {
+  border: none;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+  padding: 0;
+  box-sizing: border-box;
+}
+.nc-action-btn:active {
+  transform: scale(0.92);
+  opacity: 0.85;
+}
+.nc-action-btn svg,
+.nc-action-btn :deep(svg) {
+  display: block;
+  flex: none;
+}
+
+.nc-btn-settings {
+  background: rgba(80, 80, 86, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.nc-btn-delete {
+  background: #ff3b30;
 }
 
 /* ---- 通知卡片 ---- */
@@ -270,6 +698,10 @@ function toggleExpand(id) {
   opacity: 0;
 }
 .nc-card {
+  position: relative;
+  z-index: 2;
+  user-select: none;
+  touch-action: pan-y;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -281,8 +713,12 @@ function toggleExpand(id) {
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
   transform-origin: top;
+}
+.nc-card.is-swiping,
+.nc-recorder-card.is-swiping {
+  transition: none !important;
 }
 .nc-card:hover { background: rgba(255, 255, 255, 0.12); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }

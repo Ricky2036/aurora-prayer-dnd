@@ -6,7 +6,9 @@ let nextId = 100
 /** 通知中心数据：锁屏摘要 / 通知中心 / 角标三处共享 */
 export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
-    list: seedNotifications()
+    list: seedNotifications(),
+    targetView: null, // 'notifications' | null
+    targetSubView: null // 'dynamicBar' | 'main' | null
   }),
 
   getters: {
@@ -36,6 +38,11 @@ export const useNotificationsStore = defineStore('notifications', {
       if (i !== -1) this.list.splice(i, 1)
     },
 
-    clearAll() { this.list = [] }
+    clearAll() { this.list = [] },
+
+    setTargetView(view, subView = null) {
+      this.targetView = view
+      this.targetSubView = subView
+    }
   }
 })

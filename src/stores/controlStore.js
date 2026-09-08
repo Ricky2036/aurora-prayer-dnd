@@ -206,6 +206,7 @@ export const useControlStore = defineStore('control', {
     dragMode: 'swap',      // 'swap' 绝对坐标沉降 | 'flow' 流式推挤（控制台切换）
     layoutPreset: 'camon', // 'camon' | 'note' | 'gt' —— 默认布局（控制台切换）
     showPrivacyIndicators: false, // 控制中心顶部隐私图标（默认不显示）
+    showDualSim: false,           // 控制中心双卡显示切换（默认单卡，开启显示双卡双行）
 
     /* ---- 像素级微调模式 (Fine-Tuning Mode) ---- */
     fineTuningMode: false,
@@ -246,6 +247,7 @@ export const useControlStore = defineStore('control', {
       if (LAYOUT_PRESETS.some((p) => p.id === id)) this.layoutPreset = id
     },
     setShowPrivacyIndicators(v) { this.showPrivacyIndicators = !!v },
+    setShowDualSim(v) { this.showDualSim = !!v },
     setBrightness(v) { this.brightness = Math.min(1, Math.max(0.25, v)) },
     setVolume(v) { this.volume = Math.min(1, Math.max(0, v)) },
     setSoundItemSize(size) {

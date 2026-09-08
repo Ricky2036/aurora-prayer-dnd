@@ -7,6 +7,7 @@ import { useSwipeGesture } from '../../composables/useSwipeGesture'
 import { screenRef } from '../../utils/screenRef'
 import StatusBar from './StatusBar.vue'
 import HomeIndicator from './HomeIndicator.vue'
+import ThreeButtonNav from './ThreeButtonNav.vue'
 import DynamicIsland from '../system/DynamicIsland.vue'
 import LockScreen from '../system/LockScreen.vue'
 import HomeScreen from '../system/HomeScreen.vue'
@@ -297,9 +298,9 @@ useSwipeGesture(sideEdgeRef, {
 
     <DynamicIsland v-if="!system.anyOverlayOpen() && system.baseLayer !== 'lock'" />
     <StatusBar v-if="!system.anyOverlayOpen()" :light="chromeLight" />
-    <!-- 导航条全局可见：通知中心 / 控制中心打开时也要浮在最上层（z 96 > CC 94 > NC 92），
-         点击 / 上滑可收起当前叠层。下方内容需为它预留 --home-indicator-inset 的安全高度。 -->
-    <HomeIndicator :dark="!chromeLight" />
+    <!-- 底部导航栏：支持手势条 (HomeIndicator) 与三键导航 (ThreeButtonNav) 切换 -->
+    <HomeIndicator v-if="system.navigationMode === 'gesture'" :dark="!chromeLight" />
+    <ThreeButtonNav v-else :dark="!chromeLight" />
   </div>
 </template>
 

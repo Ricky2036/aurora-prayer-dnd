@@ -11,6 +11,7 @@ import SettingsSound from './SettingsSound.vue'
 import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
+import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 import { clamp } from '../../../utils/math'
@@ -23,13 +24,17 @@ import { clamp } from '../../../utils/math'
 const props = defineProps({ app: Object })
 const control = useControlStore()
 const prayerStore = usePrayerStore()
+const notificationsStore = useNotificationsStore()
 const i18n = useI18nStore()
 const { timeShort } = useClock()
 
-/* 内部导航栈：若从礼拜卡片点入，则构建层级 [main, sound, prayer] */
-const initialStack = prayerStore.targetView === 'prayer' ? ['main', 'sound', 'prayer'] : ['main']
+/* 内部导航栈：若从礼拜卡片点入，则构建层级 [main, sound, prayer]；若从通知/灵动岛跳转，则构建 [main, notifications] */
+let initialStack = ['main']
 if (prayerStore.targetView === 'prayer') {
+  initialStack = ['main', 'sound', 'prayer']
   prayerStore.setTargetView('main')
+} else if (notificationsStore.targetView === 'notifications') {
+  initialStack = ['main', 'notifications']
 }
 const stack = ref(initialStack)
 const view = computed(() => stack.value[stack.value.length - 1])
@@ -42,6 +47,16 @@ watch(
       isBack.value = false
       stack.value = ['main', 'sound', 'prayer']
       prayerStore.setTargetView('main')
+    }
+  }
+)
+
+watch(
+  () => notificationsStore.targetView,
+  (newTarget) => {
+    if (newTarget === 'notifications') {
+      isBack.value = false
+      stack.value = ['main', 'notifications']
     }
   }
 )

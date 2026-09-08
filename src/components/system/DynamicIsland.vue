@@ -1,13 +1,38 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted } from 'vue'
 import { usePrayerStore } from '../../stores/prayerStore'
+import { useRecorderStore } from '../../stores/recorderStore'
+import { useSystemStore } from '../../stores/systemStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { GLYPHS } from '../../assets/icons/glyphs'
 
 const prayerStore = usePrayerStore()
+const recorderStore = useRecorderStore()
+const system = useSystemStore()
 const i18n = useI18nStore()
 
-/* 计时器轮询（自动倒数，到期自动退出） */
+/* 是否显示录音灵动岛（录音中且当前不在录音应用内） */
+const showRecorderIsland = computed(() => {
+  return recorderStore.isRecording && system.activeAppId !== 'voicememos'
+})
+
+/* 录音灵动岛展开态 */
+const isRecorderExpanded = computed(() => recorderStore.islandExpanded)
+
+/* 激活的灵动岛类型：'recorder' | 'prayer' | null */
+const activeIslandType = computed(() => {
+  if (showRecorderIsland.value) return 'recorder'
+  if (prayerStore.currentIslandPrayer) return 'prayer'
+  return null
+})
+
+const isExpanded = computed(() => {
+  if (activeIslandType.value === 'recorder') return isRecorderExpanded.value
+  if (activeIslandType.value === 'prayer') return prayerStore.islandExpanded
+  return false
+})
+
+/* 祈祷倒计时轮询 */
 let timer = null
 onMounted(() => {
   timer = setInterval(() => {
@@ -21,8 +46,8 @@ onBeforeUnmount(() => {
   if (timer) clearInterval(timer)
 })
 
-/* 格式化倒计时文本 MM:SS 或 HH:MM:SS */
-const formattedCountdown = computed(() => {
+/* 格式化祈祷倒计时文本 */
+const formattedPrayerCountdown = computed(() => {
   const s = prayerStore.islandCountdownSeconds
   const hrs = Math.floor(s / 3600)
   const mins = Math.floor((s % 3600) / 60)
@@ -33,19 +58,42 @@ const formattedCountdown = computed(() => {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 })
 
-/* 当前多语言辅助文案 */
-const activeSubtitle = computed(() => {
+/* 祈祷多语言副标题 */
+const prayerSubtitle = computed(() => {
   const prayerId = prayerStore.currentIslandPrayer?.id || 'fajr'
   return i18n.islandSub(prayerId)
 })
 
 function handleCardClick() {
-  if (!prayerStore.islandExpanded) {
-    prayerStore.islandExpanded = true
+  if (activeIslandType.value === 'recorder') {
+    if (!recorderStore.islandExpanded) {
+      recorderStore.islandExpanded = true
+    } else {
+      // 展开态点击主体区域打开录音 App
+      system.openApp('voicememos')
+      recorderStore.islandExpanded = false
+    }
+  } else if (activeIslandType.value === 'prayer') {
+    if (!prayerStore.islandExpanded) {
+      prayerStore.islandExpanded = true
+    }
   }
 }
 
-function handleClose(e) {
+function handleCloseBackdrop() {
+  if (activeIslandType.value === 'recorder') {
+    recorderStore.islandExpanded = false
+  } else if (activeIslandType.value === 'prayer') {
+    prayerStore.islandExpanded = false
+  }
+}
+
+function handleStopRecording(e) {
+  e.stopPropagation()
+  recorderStore.stopRecording()
+}
+
+function handleClosePrayer(e) {
   e.stopPropagation()
   prayerStore.closeIsland()
 }
@@ -54,55 +102,106 @@ function handleClose(e) {
 <template>
   <!-- 全局点击空白处收回至胶囊状态遮罩 -->
   <div
-    v-if="prayerStore.currentIslandPrayer && prayerStore.islandExpanded"
+    v-if="activeIslandType && isExpanded"
     class="island-backdrop"
-    @click="prayerStore.islandExpanded = false"
+    @click="handleCloseBackdrop"
   ></div>
 
   <!-- 灵动岛无缝形态过渡容器（同一DOM连续缩放与变形） -->
   <div
-    v-if="prayerStore.currentIslandPrayer"
+    v-if="activeIslandType"
     class="dynamic-island-wrapper"
+    :class="{ 'type-recorder': activeIslandType === 'recorder' }"
   >
     <div
       class="island-card"
-      :class="{ 'is-expanded': prayerStore.islandExpanded, 'is-compact': !prayerStore.islandExpanded }"
+      :class="{
+        'is-expanded': isExpanded,
+        'is-compact': !isExpanded,
+        'recorder-card': activeIslandType === 'recorder'
+      }"
       @click="handleCardClick"
     >
-      <!-- ================= 1. 收起态内容（连续交叉淡入淡出） ================= -->
+      <!-- ================= 1. 收起态内容（胶囊） ================= -->
       <div class="morph-layer compact-layer">
-        <div class="cc-left">
-          <svg width="13" height="13" viewBox="0 0 24 24">
-            <path :d="GLYPHS.moon" fill="#00C853" />
-          </svg>
-        </div>
-        <div class="cc-camera-slot"></div>
-        <div class="cc-right">
-          <span class="cc-time">{{ formattedCountdown }}</span>
-        </div>
+        <!-- 录音胶囊收起态 -->
+        <template v-if="activeIslandType === 'recorder'">
+          <div class="rc-capsule-left">
+            <span class="rc-mini-wave">
+              <i></i><i></i><i></i><i></i><i></i>
+            </span>
+          </div>
+          <div class="cc-camera-slot"></div>
+          <div class="rc-capsule-right">
+            <span class="rc-time">{{ recorderStore.formattedTime }}</span>
+          </div>
+        </template>
+
+        <!-- 祈祷胶囊收起态 -->
+        <template v-else>
+          <div class="cc-left">
+            <svg width="13" height="13" viewBox="0 0 24 24">
+              <path :d="GLYPHS.moon" fill="#00C853" />
+            </svg>
+          </div>
+          <div class="cc-camera-slot"></div>
+          <div class="cc-right">
+            <span class="cc-time">{{ formattedPrayerCountdown }}</span>
+          </div>
+        </template>
       </div>
 
-      <!-- ================= 2. 展开态内容：圆角矩形卡片 ================= -->
-      <div class="morph-layer expanded-layer" @click.stop>
-        <!-- 左侧：勿扰月亮图标 -->
-        <div class="ic-left-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24">
-            <path :d="GLYPHS.moon" fill="#00C853" />
-          </svg>
-        </div>
+      <!-- ================= 2. 展开态内容：大圆角矩形卡片 ================= -->
+      <div class="morph-layer expanded-layer" @click="handleCardClick">
+        <!-- 录音大卡片展开态 (完美还原参考截图) -->
+        <template v-if="activeIslandType === 'recorder'">
+          <!-- 左侧：录音声波频谱柱（橙红主柱 + 白/灰副柱） -->
+          <div class="rc-expanded-left">
+            <div class="rc-audio-bars">
+              <span class="bar bar-1"></span>
+              <span class="bar bar-2"></span>
+              <span class="bar bar-3"></span>
+              <span class="bar bar-main"></span>
+              <span class="bar bar-5"></span>
+              <span class="bar bar-6"></span>
+              <span class="bar bar-7"></span>
+            </div>
+          </div>
 
-        <!-- 中间：倒计时与辅助文案 -->
-        <div class="ic-center-info">
-          <div class="ic-time">{{ formattedCountdown }}</div>
-          <div class="ic-sub">{{ activeSubtitle }}</div>
-        </div>
+          <!-- 中间：大计时器与副标题 -->
+          <div class="rc-expanded-info">
+            <div class="rc-expanded-time">{{ recorderStore.formattedTime }}</div>
+            <div class="rc-expanded-sub">录音中...</div>
+          </div>
 
-        <!-- 右侧：关闭按钮 (点击关闭勿扰) -->
-        <button class="ic-close-btn" @click.stop="handleClose">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M18 6L6 18M6 6l12 12" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
+          <!-- 右侧：圆形红色停止按钮 (外红底内白圆角方块) -->
+          <button class="rc-stop-btn" @click.stop="handleStopRecording" title="停止录音">
+            <div class="rc-stop-square"></div>
+          </button>
+        </template>
+
+        <!-- 祈祷卡片展开态 -->
+        <template v-else>
+          <!-- 左侧：勿扰月亮图标 -->
+          <div class="ic-left-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24">
+              <path :d="GLYPHS.moon" fill="#00C853" />
+            </svg>
+          </div>
+
+          <!-- 中间：倒计时与辅助文案 -->
+          <div class="ic-center-info">
+            <div class="ic-time">{{ formattedPrayerCountdown }}</div>
+            <div class="ic-sub">{{ prayerSubtitle }}</div>
+          </div>
+
+          <!-- 右侧：关闭按钮 -->
+          <button class="ic-close-btn" @click.stop="handleClosePrayer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6l12 12" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </template>
       </div>
     </div>
   </div>
@@ -294,5 +393,172 @@ function handleClose(e) {
 
 .ic-close-btn:active {
   transform: scale(0.92);
+}
+
+/* ================= 录音灵动岛特殊样式 ================= */
+
+/* 胶囊收起态尺寸 */
+.island-card.recorder-card.is-compact {
+  width: 122px;
+  height: 30px;
+  border-radius: 15px;
+  padding: 0 10px;
+}
+
+/* 胶囊左侧：跳动的红色迷你声波 */
+.rc-capsule-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rc-mini-wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 2.2px;
+  height: 14px;
+}
+.rc-mini-wave i {
+  width: 2px;
+  height: 6px;
+  border-radius: 1px;
+  background: #ff453a;
+  animation: rcMiniWave 1s ease-in-out infinite alternate;
+}
+.rc-mini-wave i:nth-child(1) { height: 5px; animation-delay: 0.1s; }
+.rc-mini-wave i:nth-child(2) { height: 11px; animation-delay: 0.35s; }
+.rc-mini-wave i:nth-child(3) { height: 14px; animation-delay: 0.15s; }
+.rc-mini-wave i:nth-child(4) { height: 9px; animation-delay: 0.4s; }
+.rc-mini-wave i:nth-child(5) { height: 6px; animation-delay: 0.2s; }
+
+@keyframes rcMiniWave {
+  0% { transform: scaleY(0.4); opacity: 0.7; }
+  100% { transform: scaleY(1.1); opacity: 1; }
+}
+
+/* 胶囊右侧：时间 */
+.rc-capsule-right {
+  display: flex;
+  align-items: center;
+}
+.rc-time {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.2px;
+}
+
+/* 录音展开大卡片尺寸与圆角 (符合截图) */
+.island-card.recorder-card.is-expanded {
+  width: calc(var(--screen-w, 360px) - 22px);
+  max-width: 356px;
+  height: 84px;
+  border-radius: 26px;
+  background: #000000;
+  padding: 0 16px 0 18px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+}
+
+/* 展开卡片左侧：声波跳动频谱 */
+.rc-expanded-left {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+}
+.rc-audio-bars {
+  display: flex;
+  align-items: center;
+  gap: 3.5px;
+  height: 32px;
+}
+.rc-audio-bars .bar {
+  display: inline-block;
+  width: 3px;
+  border-radius: 1.5px;
+  background: #ffffff;
+  transition: height 0.1s ease;
+}
+.rc-audio-bars .bar-1 { height: 16px; animation: rcAudioPulse 1.2s infinite alternate 0.1s; }
+.rc-audio-bars .bar-2 { height: 10px; animation: rcAudioPulse 1.2s infinite alternate 0.3s; }
+.rc-audio-bars .bar-3 { height: 22px; animation: rcAudioPulse 1.2s infinite alternate 0.15s; }
+.rc-audio-bars .bar-main {
+  width: 3.5px;
+  height: 30px;
+  background: #ff5238; /* 截图中主条为醒目的橙红色 */
+  animation: rcAudioPulseMain 0.9s infinite alternate 0.05s;
+}
+.rc-audio-bars .bar-5 { height: 12px; animation: rcAudioPulse 1.2s infinite alternate 0.4s; }
+.rc-audio-bars .bar-6 { height: 6px; animation: rcAudioPulse 1.2s infinite alternate 0.2s; }
+.rc-audio-bars .bar-7 { height: 4px; animation: rcAudioPulse 1.2s infinite alternate 0.5s; }
+
+@keyframes rcAudioPulse {
+  0% { transform: scaleY(0.45); opacity: 0.6; }
+  100% { transform: scaleY(1.15); opacity: 1; }
+}
+@keyframes rcAudioPulseMain {
+  0% { transform: scaleY(0.5); }
+  100% { transform: scaleY(1.1); }
+}
+
+/* 展开卡片中间：大时间与录音中文案 */
+.rc-expanded-info {
+  flex: 1;
+  min-width: 0;
+  margin-left: 12px;
+  margin-right: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.rc-expanded-time {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.rc-expanded-sub {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.68);
+  margin-top: 3px;
+  letter-spacing: -0.1px;
+}
+
+/* 展开卡片右侧：红色停止圆形按钮 (截图实景 1:1) */
+.rc-stop-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #eb4436; /* 截图同款高亮红色 */
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: none;
+  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 14px rgba(235, 68, 54, 0.4);
+}
+.rc-stop-btn:hover {
+  background: #f05244;
+  transform: scale(1.04);
+}
+.rc-stop-btn:active {
+  transform: scale(0.92);
+}
+/* 停止按钮内部白色圆角方形 */
+.rc-stop-square {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  background: #ffffff;
 }
 </style>

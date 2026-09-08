@@ -11,6 +11,7 @@ export const useSystemStore = defineStore('system', {
     unlockProgress: 0,            // 解锁手势进度 0..1（桌面入场动效联动用）
     homeGestureProgress: 0,       // 应用内底部上滑返回手势进度（AppWindow 缩放预览）
     screenOn: true,               // 亮/灭屏（控制台控制；灭屏=黑屏，亮屏回锁屏）
+    navigationMode: 'gesture',    // 'gesture' (手势导航) | 'threeButton' (三键导航)
     overlays: {
       notificationCenter: { status: 'closed', progress: 0 },
       controlCenter: { status: 'closed', progress: 0 },
@@ -30,6 +31,12 @@ export const useSystemStore = defineStore('system', {
 
     setHomeGestureProgress(p) {
       this.homeGestureProgress = p
+    },
+
+    setNavigationMode(mode) {
+      if (mode === 'gesture' || mode === 'threeButton') {
+        this.navigationMode = mode
+      }
     },
 
     /** 解锁完成：lock → home */

@@ -3,11 +3,18 @@ import { computed } from 'vue'
 import { useClock } from '../../composables/useClock'
 import { useControlStore } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
+import { useRecorderStore } from '../../stores/recorderStore'
 import StatusIcons from '../ui/StatusIcons.vue'
 
 const { timeShort } = useClock()
 const control = useControlStore()
 const system = useSystemStore()
+const recorder = useRecorderStore()
+
+/** 当正在录音且不在录音应用内（灵动岛已激活显示）时，或者锁屏层时，隐藏状态栏原始时间 */
+const hideTime = computed(() => {
+  return system.baseLayer === 'lock' || (recorder.isRecording && system.activeAppId !== 'voicememos')
+})
 
 /** 锁屏/深色壁纸上用白字，应用内浅底用黑字 */
 const props = defineProps({
@@ -17,7 +24,7 @@ const props = defineProps({
 
 <template>
   <div class="status-bar" :style="{ color: light ? '#fff' : '#000' }">
-    <span class="sb-time" :style="{ opacity: system.baseLayer === 'lock' ? 0 : 1 }">{{ timeShort }}</span>
+    <span class="sb-time" :style="{ opacity: hideTime ? 0 : 1 }">{{ timeShort }}</span>
     <div class="sb-right">
       <StatusIcons :color="light ? '#fff' : '#000'" />
     </div>

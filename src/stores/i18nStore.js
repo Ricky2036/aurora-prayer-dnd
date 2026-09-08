@@ -118,7 +118,9 @@ export const CC_LABELS = {
     shoulderKey: '肩键', jbl: 'JBL',
     wifi: '无线网络', data: '蜂窝网络', oneLeap: '设备中心', health: '心率血氧',
     mediaCast: '播放器投播', mediaPlayer: '播放器', mediaControls: '播放控制',
-    joyConnect: 'Joy 连接', joyHeart: 'Joy 心率'
+    joyConnect: 'Joy 连接', joyHeart: 'Joy 心率',
+    // 状态行运营商名（双卡第 1/2 行）。不要硬编码在模板里，否则三语扫描会挂。
+    carrier1: '中国电信', carrier2: '中国移动'
   },
   en: {
     bluetooth: 'Bluetooth', hotspot: 'Hotspot', airplane: 'Airplane Mode', location: 'Location',
@@ -129,7 +131,8 @@ export const CC_LABELS = {
     shoulderKey: 'Shoulder Key', jbl: 'JBL',
     wifi: 'Wi-Fi', data: 'Cellular', oneLeap: 'Device Hub', health: 'Heart & SpO₂',
     mediaCast: 'Player Cast', mediaPlayer: 'Player', mediaControls: 'Playback',
-    joyConnect: 'Joy Connect', joyHeart: 'Joy Heart Rate'
+    joyConnect: 'Joy Connect', joyHeart: 'Joy Heart Rate',
+    carrier1: 'China Telecom', carrier2: 'China Mobile'
   },
   bn: {
     bluetooth: 'ব্লুটুথ', hotspot: 'হটস্পট', airplane: 'বিমান মোড', location: 'অবস্থান',
@@ -140,7 +143,8 @@ export const CC_LABELS = {
     shoulderKey: 'শোল্ডার কি', jbl: 'JBL',
     wifi: 'ওয়াই-ফাই', data: 'সেলুলার', oneLeap: 'ডিভাইস হাব', health: 'হার্ট ও SpO₂',
     mediaCast: 'প্লেয়ার কাস্ট', mediaPlayer: 'প্লেয়ার', mediaControls: 'প্লেব্যাক',
-    joyConnect: 'Joy সংযোগ', joyHeart: 'Joy হার্ট রেট'
+    joyConnect: 'Joy সংযোগ', joyHeart: 'Joy হার্ট রেট',
+    carrier1: 'চায়না টেলিকম', carrier2: 'চায়না মোবাইল'
   }
 }
 
@@ -233,8 +237,11 @@ export const MESSAGES = {
     hoursAgo: (n) => `${n}小时前`,
     yesterday: '昨天',
     daysAgo: (n) => `${n}天前`,
-    monthDay: (m, d) => `${m}月${d}日`,
+    monthDay: (m, d) => `${m}${d}日`,
     clear: '清除',
+    delete: '删除',
+    islandSettings: '灵动岛设置',
+    recordingCardTitle: '录音',
     clearAllNotifs: '清除所有通知',
     noOlderNotifs: '没有更早的通知',
     search: '搜索',
@@ -391,6 +398,11 @@ export const MESSAGES = {
     nsStatusBar: '状态栏',
     nsControlCenter: '控制中心',
     nsDynamicBar: 'Dynamic Bar',
+    nsDynamicBarSub: '在屏幕顶部药丸区域显示实时活动与交互卡片',
+    nsDynamicBarMedia: '媒体播放与录音',
+    nsDynamicBarMediaSub: '后台播放音乐或录音时显示胶囊卡片',
+    nsDynamicBarPrayer: '礼拜与系统状态',
+    nsDynamicBarPrayerSub: '显示礼拜提醒、勿扰模式等系统实时状态',
     nsType: '通知类型',
     nsLockScreenNotif: '锁屏通知',
     nsFloatingNotif: '悬浮通知',
@@ -554,6 +566,9 @@ export const MESSAGES = {
     daysAgo: (n) => `${n}d ago`,
     monthDay: (m, d) => `${m} ${d}`,
     clear: 'Clear',
+    delete: 'Delete',
+    islandSettings: 'Dynamic Bar Settings',
+    recordingCardTitle: 'Voice Memos',
     clearAllNotifs: 'Clear All Notifications',
     noOlderNotifs: 'No Older Notifications',
     search: 'Search',
@@ -710,6 +725,11 @@ export const MESSAGES = {
     nsStatusBar: 'Status Bar',
     nsControlCenter: 'Control Center',
     nsDynamicBar: 'Dynamic Bar',
+    nsDynamicBarSub: 'Display live activities and interactive cards in the pill area',
+    nsDynamicBarMedia: 'Media & Recording',
+    nsDynamicBarMediaSub: 'Show capsule cards when playing audio or recording in background',
+    nsDynamicBarPrayer: 'Prayer & System Status',
+    nsDynamicBarPrayerSub: 'Display prayer reminders and system status live',
     nsType: 'Notification Type',
     nsLockScreenNotif: 'Lock Screen',
     nsFloatingNotif: 'Floating',
@@ -874,6 +894,9 @@ export const MESSAGES = {
     daysAgo: (n) => `${n} দিন আগে`,
     monthDay: (m, d) => `${d} ${m}`,
     clear: 'সাফ',
+    delete: 'মুছুন',
+    islandSettings: 'ডায়নামিক বার সেটিংস',
+    recordingCardTitle: 'রেকর্ডিং',
     clearAllNotifs: 'সব বিজ্ঞপ্তি সাফ করুন',
     noOlderNotifs: 'আর কোনো পুরনো বিজ্ঞপ্তি নেই',
     search: 'অনুসন্ধান',
@@ -1030,6 +1053,11 @@ export const MESSAGES = {
     nsStatusBar: 'স্ট্যাটাস বার',
     nsControlCenter: 'কন্ট্রোল সেন্টার',
     nsDynamicBar: 'Dynamic Bar',
+    nsDynamicBarSub: 'পিল এলাকায় লাইভ কার্যকলাপ এবং ইন্টারেক্টিভ কার্ড প্রদর্শন করুন',
+    nsDynamicBarMedia: 'মিডিয়া ও রেকর্ডিং',
+    nsDynamicBarMediaSub: 'ব্যাকগ্রাউন্ডে অডিও বা রেকর্ডিং চলার সময় ক্যাপসুল কার্ড দেখান',
+    nsDynamicBarPrayer: 'নামাজ ও সিস্টেম স্ট্যাটাস',
+    nsDynamicBarPrayerSub: 'নামাজের রিমাইন্ডার এবং সিস্টেমের অবস্থা লাইভ প্রদর্শন করুন',
     nsType: 'বিজ্ঞপ্তির ধরন',
     nsLockScreenNotif: 'লক স্ক্রিন',
     nsFloatingNotif: 'ফ্লোটিং',

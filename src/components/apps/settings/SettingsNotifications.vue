@@ -5,8 +5,10 @@ import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import AppIcon from '../../ui/AppIcon.vue'
 import { getApp } from '../../../config/apps'
 import { useI18nStore } from '../../../stores/i18nStore'
+import { useNotificationsStore } from '../../../stores/notificationsStore'
 
 const i18n = useI18nStore()
+const notificationsStore = useNotificationsStore()
 
 /** 取「带参数的文案函数」。t() 在 key 缺失时会回退成 key 字符串，
     直接当函数调用会抛错，所以统一在这里兜底成一个安全的空实现 */
@@ -18,14 +20,17 @@ function tFn(key) {
 /**
  * 通知设置页（完整移植自 settingsprototype.tsx）：
  * 主视图（状态栏/控制中心/Dynamic Bar、通知类型三卡片、锁屏隐藏内容/智能提醒/轻打扰、
- * 按发送时间排序、10 个应用开关列表）+ 锁屏通知子页（堆叠/数量样式）+ 悬浮通知子页 + 应用详情子页。
+ * 按发送时间排序、10 个应用开关列表）+ 锁屏通知子页（堆叠/数量样式）+ 悬浮通知子页 + Dynamic Bar子页 + 应用详情子页。
  * 内部独立子栈，通过 expose().back 支持全局侧滑返回逐层退出。
  *
  * 应用图标：完全继承 settingsprototype.tsx 原 AppIcon（SettingsAppIcon），保持与原代码一致。
  */
 
 /* ---------- 子视图栈 ---------- */
-const subView = ref('main')
+const subView = ref(notificationsStore.targetSubView === 'dynamicBar' ? 'dynamicBar' : 'main')
+if (notificationsStore.targetSubView === 'dynamicBar') {
+  notificationsStore.setTargetView('notifications', null)
+}
 function go(v) { subView.value = v }
 function back() {
   if (subView.value !== 'main') { subView.value = 'main'; return true }
@@ -42,6 +47,9 @@ const lockScreenStyle = ref('stacked')
 const onlyNewOnLock = ref(false)
 const conciseFloating = ref(true)
 const antiPeepFloating = ref(true)
+const dynamicBarMaster = ref(true)
+const dynamicBarMedia = ref(true)
+const dynamicBarPrayer = ref(true)
 
 const appStates = ref({
   transsioner: true, clock: true, google: true, phone: true, sms: true,
@@ -114,7 +122,7 @@ const emit = defineEmits(['back-to-settings'])
         <div class="ns-section mt-first">
           <div class="ns-row" :arrow="true"><span class="ns-row-title">{{ i18n.t('nsStatusBar') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
           <div class="ns-row"><span class="ns-row-title">{{ i18n.t('nsControlCenter') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
-          <div class="ns-row last"><span class="ns-row-title">{{ i18n.t('nsDynamicBar') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
+          <div class="ns-row last tappable" @click="go('dynamicBar')"><span class="ns-row-title">{{ i18n.t('nsDynamicBar') }}</span><svg class="chev" width="8" height="13" viewBox="0 0 8 13"><path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2" stroke-linecap="round" /></svg></div>
         </div>
 
         <div class="ns-group-label">{{ i18n.t('nsType') }}</div>
@@ -286,6 +294,47 @@ const emit = defineEmits(['back-to-settings'])
             <div class="ns-app-right"><i class="ns-divider"></i><ToggleSwitch :model-value="appStates[app.id]" @update:modelValue="toggleAppState(app.id)" /></div>
           </div>
         </div>
+      </div>
+
+      <!-- ============ Dynamic Bar 灵动岛子页 ============ -->
+      <div v-else-if="subView === 'dynamicBar'" key="dynamicBar" class="ns-page scrollable">
+        <div class="ns-sticky">
+          <button class="ns-back" @click="back()">
+            <svg width="13" height="20" viewBox="0 0 8 13"><path d="M6.5 0.5 1 6.5l5.5 6" fill="none" stroke="#007AFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span>{{ i18n.t('nsBack') }}</span>
+          </button>
+          <span class="ns-page-title">{{ i18n.t('nsDynamicBar') }}</span>
+        </div>
+
+        <div class="ns-section mt4">
+          <div class="ns-row last">
+            <div class="ns-row-text">
+              <span class="ns-row-title">{{ i18n.t('nsDynamicBar') }}</span>
+              <span class="ns-row-sub">{{ i18n.t('nsDynamicBarSub') }}</span>
+            </div>
+            <ToggleSwitch v-model="dynamicBarMaster" />
+          </div>
+        </div>
+
+        <template v-if="dynamicBarMaster">
+          <div class="ns-group-label">{{ i18n.t('nsRemindWays') }}</div>
+          <div class="ns-section">
+            <div class="ns-row">
+              <div class="ns-row-text">
+                <span class="ns-row-title">{{ i18n.t('nsDynamicBarMedia') }}</span>
+                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarMediaSub') }}</span>
+              </div>
+              <ToggleSwitch v-model="dynamicBarMedia" />
+            </div>
+            <div class="ns-row last">
+              <div class="ns-row-text">
+                <span class="ns-row-title">{{ i18n.t('nsDynamicBarPrayer') }}</span>
+                <span class="ns-row-sub">{{ i18n.t('nsDynamicBarPrayerSub') }}</span>
+              </div>
+              <ToggleSwitch v-model="dynamicBarPrayer" />
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- ============ 应用详情子页 ============ -->

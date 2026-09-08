@@ -7,11 +7,13 @@ import MessagesApp from './messages/MessagesApp.vue'
 import SettingsApp from './settings/SettingsApp.vue'
 import CalendarApp from './calendar/CalendarApp.vue'
 import CameraApp from './camera/CameraApp.vue'
+import VoiceMemosApp from './voicememos/VoiceMemosApp.vue'
 
 export const appComponents = {
   phone: PhoneApp,
   messages: MessagesApp,
   settings: SettingsApp,
   calendar: CalendarApp,
-  camera: CameraApp
+  camera: CameraApp,
+  voicememos: VoiceMemosApp
 }

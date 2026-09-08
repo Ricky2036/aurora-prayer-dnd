@@ -901,14 +901,60 @@ const glassRing = computed(() =>
         </div>
       </div>
 
-      <!-- 状态行 -->
-      <div class="cc-status" :class="{ hidden: editing }">
-        <div class="cc-status-left">
-          <span class="cc-carrier">Orange</span>
-        </div>
-        <div class="cc-status-right">
-          <StatusIcons color="#fff" :show-wifi="true" :show-signal="true" :show-battery="true" />
-        </div>
+      <!-- 状态行 (支持单卡一行 / 双卡两行) -->
+      <div class="cc-status" :class="{ hidden: editing, 'is-dual': control.showDualSim }">
+        <template v-if="!control.showDualSim">
+          <div class="cc-status-row cc-status-single">
+            <div class="cc-status-left">
+              <StatusIcons color="#fff" :show-wifi="false" :show-signal="true" :show-battery="false" />
+              <span class="cc-carrier">{{ i18n.ccLabel('carrier1') }}</span>
+            </div>
+            <div class="cc-status-right">
+              <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
+              <span class="cc-battery-pct">91%</span>
+              <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="cc-status-dual-rows">
+            <!-- 第 1 行: 卡1 信号 + 中国电信 / Wi-Fi + 电量百分比 + 电池 (与单卡第1行完全一致) -->
+            <div class="cc-status-row">
+              <div class="cc-status-left">
+                <StatusIcons color="#fff" :show-wifi="false" :show-signal="true" :show-battery="false" />
+                <span class="cc-carrier">{{ i18n.ccLabel('carrier1') }}</span>
+              </div>
+              <div class="cc-status-right">
+                <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
+                <span class="cc-battery-pct">91%</span>
+                <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
+              </div>
+            </div>
+            <!-- 第 2 行: 卡2 信号 + 中国移动 / NFC + 蓝牙 + 静音 -->
+            <div class="cc-status-row">
+              <div class="cc-status-left">
+                <StatusIcons color="#fff" :show-wifi="false" :show-signal="true" :show-battery="false" />
+                <span class="cc-carrier">{{ i18n.ccLabel('carrier2') }}</span>
+              </div>
+              <div class="cc-status-right cc-status-sub-icons">
+                <!-- NFC 图标 -->
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 8.5a6.5 6.5 0 1 1 12 0v7a6.5 6.5 0 1 1-12 0v-5a4.5 4.5 0 1 1 8 0v5a2.5 2.5 0 1 1-4 0v-4"/>
+                </svg>
+                <!-- 蓝牙图标 -->
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m7 7 10 10-5 5V2l5 5L7 17"/>
+                </svg>
+                <!-- 静音图标 -->
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 5 6 9H2v6h4l5 4V5z"/>
+                  <line x1="23" y1="9" x2="17" y2="15"/>
+                  <line x1="17" y1="9" x2="23" y2="15"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
       </div>
@@ -1364,11 +1410,11 @@ const glassRing = computed(() =>
   flex-shrink: 0;
 }
 
-/* 状态行 */
 .cc-status {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
   width: var(--cc-grid-w);
   /* 下间距 14px 的一半（7px）让给滚动区做顶部内边距：
      裁切起始线因此上移到「状态栏与网格按钮间距的中点」，
@@ -1377,7 +1423,10 @@ const glassRing = computed(() =>
   padding: 0;
   height: 16px;
   color: rgba(255, 255, 255, 0.95);
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, height 0.25s ease;
+}
+.cc-status.is-dual {
+  height: 36px;
 }
 .cc-status.hidden {
   opacity: 0;
@@ -1385,6 +1434,60 @@ const glassRing = computed(() =>
   margin: 0;
   overflow: hidden;
   pointer-events: none;
+}
+.cc-status-dual-rows {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cc-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 16px;
+  width: 100%;
+}
+.cc-status-sub-icons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.88;
+}
+.cc-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 11px;
+  padding: 0 2.5px;
+  font-size: 7.5px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.2px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  color: #fff;
+  transform: scale(0.9);
+  transform-origin: left center;
+}
+.cc-roam-r {
+  font-size: 9px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.95);
+  margin-right: -1px;
+}
+.cc-carrier-name {
+  font: 500 11.5px/1 var(--font-stack);
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+}
+.cc-net-speed {
+  font: 600 7px/0.95 var(--font-stack);
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: -0.2px;
+  margin-left: 2px;
+  transform: scale(0.85);
+  transform-origin: left center;
 }
 .cc-status-left {
   display: flex;
