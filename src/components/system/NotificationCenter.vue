@@ -256,8 +256,8 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 只有当卡片触及视口真正的最底部时才开始堆叠（允许通知与底部清除按钮重叠）
-  const bottomThreshold = containerHeight - 16
+  // 只有当卡片触及视口底部安全区时才开始堆叠（允许通知与底部清除按钮重叠，保留适度安全间距）
+  const bottomThreshold = containerHeight - 26
   const scrollTop = container.scrollTop
 
   // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
@@ -649,7 +649,7 @@ watch(expandedId, async () => {
   position: relative;
   flex: 1;
   margin: 4px 0 0;
-  padding: 6px 14px 40px;
+  padding: 6px 14px 48px;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: clip;

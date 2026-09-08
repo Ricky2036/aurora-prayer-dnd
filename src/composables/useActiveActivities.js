@@ -16,6 +16,8 @@ export function useActiveActivities() {
   const system = useSystemStore()
   const i18n = useI18nStore()
 
+  prayerStore.startTicker()
+
   const isRecorderActive = computed(() => {
     return recorderStore.isRecording && system.activeAppId !== 'voicememos'
   })
@@ -45,7 +47,7 @@ export function useActiveActivities() {
 
   const prayerSubtitle = computed(() => {
     const prayerId = prayerStore.currentIslandPrayer?.id || 'fajr'
-    return i18n.islandSub ? i18n.islandSub(prayerId) : '晨礼勿扰已开启，结束后自动退出'
+    return i18n.islandSub ? i18n.islandSub(prayerId) : '晨礼勿扰已开启'
   })
 
   /**

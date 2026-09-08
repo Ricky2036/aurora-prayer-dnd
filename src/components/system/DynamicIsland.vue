@@ -84,18 +84,9 @@ watch(
   }
 )
 
-/* 祈祷倒计时轮询 */
-let prayerTimer = null
+/* 祈祷倒计时轮询（由 prayerStore 全局托管，通知中心/锁屏展开时不中断） */
 onMounted(() => {
-  prayerTimer = setInterval(() => {
-    if (prayerStore.currentIslandPrayer) {
-      prayerStore.decrementCountdown()
-    }
-  }, 1000)
-})
-
-onBeforeUnmount(() => {
-  if (prayerTimer) clearInterval(prayerTimer)
+  prayerStore.startTicker()
 })
 
 /* 格式化祈祷倒计时文本 */

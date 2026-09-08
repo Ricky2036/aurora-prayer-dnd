@@ -187,7 +187,7 @@ export const MESSAGES = {
     suggestionTitle: '智慧建议',
 
     // 灵动岛
-    islandActiveSub: (name) => `${name}勿扰已开启，结束后自动退出`,
+    islandActiveSub: (name) => `${name}勿扰已开启`,
 
     // 5个礼拜
     prayers: {
@@ -514,7 +514,7 @@ export const MESSAGES = {
     suggestionTitle: 'Suggestions',
 
     // Dynamic Island
-    islandActiveSub: (name) => `${name} DND is active · Auto exits`,
+    islandActiveSub: (name) => `${name} DND is active`,
 
     // Prayers
     prayers: {
@@ -842,7 +842,7 @@ export const MESSAGES = {
     suggestionTitle: 'পরামর্শ',
 
     // Dynamic Island
-    islandActiveSub: (name) => `${name} ডিএনডি সক্রিয় · অটো এক্সিট`,
+    islandActiveSub: (name) => `${name} ডিএনডি সক্রিয়`,
 
     // Prayers
     prayers: {

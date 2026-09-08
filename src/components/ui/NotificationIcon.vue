@@ -43,7 +43,7 @@ const entry = computed(() => NOTIF_ICONS[props.type] || NOTIF_ICONS.default)
   justify-content: center;
   flex: none;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), inset 0 0.5px 0.5px rgba(255, 255, 255, 0.2);
+  box-shadow: none;
   user-select: none;
 }
 .notif-icon-img {

@@ -222,6 +222,7 @@ export const usePrayerStore = defineStore('prayer', {
       this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
       if (id) {
         this.islandExpanded = true
+        this.startTicker()
       }
     },
 
@@ -260,6 +261,23 @@ export const usePrayerStore = defineStore('prayer', {
       this.selectedContactIds = ['c1', 'c2', 'c3']
       const prayer = this.prayers.find((p) => p.id === 'fajr')
       this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
+      this.startTicker()
+    },
+
+    startTicker() {
+      ensurePrayerTicker(this)
     }
   }
 })
+
+let prayerTickerId = null
+
+function ensurePrayerTicker(store) {
+  if (prayerTickerId != null) return
+  prayerTickerId = setInterval(() => {
+    if (store.currentIslandPrayer) {
+      store.decrementCountdown()
+    }
+  }, 1000)
+}
+
