@@ -298,26 +298,23 @@ function updateStacking() {
         const visualY = stackIndex <= 1 ? stackIndex * 12 : (12 + (stackIndex - 1) * 8)
         const translateY = -excess + visualY
 
-        // 核心：随滑动距离与堆叠深度调节内容不透明度，滑入遮挡区时平滑退隐，彻底杜绝透底
-        const contentOpacity = clamp(1 - excess / 24, 0, 1)
-        card.style.setProperty('--nc-content-opacity', contentOpacity >= 0.99 ? '1' : String(contentOpacity.toFixed(2)))
+        // 根据滑动堆叠距离调节卡片的不透明度（降低卡片透明度，由 0.82 提升到 0.96），物理遮挡底层卡片，文字绝不隐藏
+        const bgOpacity = clamp(0.82 + (excess / 48) * 0.14, 0.82, 0.96)
+        card.style.setProperty('--nc-card-bg-opacity', String(bgOpacity.toFixed(2)))
 
-        // 卡片底板自身随堆叠层级轻度衰减深度
-        const cardOpacity = clamp(1 - stackIndex * 0.12, 0.6, 1)
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
-        card.style.opacity = String(cardOpacity.toFixed(2))
+        card.style.opacity = '1'
         card.style.pointerEvents = 'auto'
       } else {
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 32}px, 0) scale(0.8)`
         card.style.opacity = '0'
         card.style.pointerEvents = 'none'
-        card.style.setProperty('--nc-content-opacity', '0')
       }
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
       card.style.pointerEvents = ''
-      card.style.removeProperty('--nc-content-opacity')
+      card.style.removeProperty('--nc-card-bg-opacity')
     }
   }
 }
@@ -949,18 +946,14 @@ watch(expandedId, async () => {
   align-items: center;
   gap: 12px;
   padding: 13px 14px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: none;
+  background: rgba(48, 48, 58, var(--nc-card-bg-opacity, 0.82));
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition: background 0.2s ease;
   transform-origin: center center;
-  --nc-content-opacity: 1;
-}
-.nc-card > * {
-  opacity: var(--nc-content-opacity, 1);
-  transition: opacity 0.15s ease-out;
 }
 .nc-card.is-swiping,
 .nc-activity-card.is-swiping,
@@ -970,7 +963,7 @@ watch(expandedId, async () => {
 .nc-card.has-swipe-transition {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
-.nc-card:hover { background: rgba(255, 255, 255, 0.16); }
+.nc-card:hover { background: rgba(56, 56, 68, 0.88); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .nc-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .nc-card-title {
