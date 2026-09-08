@@ -150,17 +150,19 @@ useBackHandler(() => {
   overflow: hidden;
 }
 
-/* 底部悬浮导航 Dock（精准匹配图2设计规范与比例） */
+/* 底部悬浮导航 Dock（精准匹配图2设计规范与比例，宽度缩减约20%居中呈现） */
 .clock-floating-nav {
   position: absolute;
   bottom: calc(var(--safe-bottom, 20px) + 2px);
-  left: 14px;
-  right: 14px;
-  height: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 76px);
+  max-width: 295px;
+  height: 50px;
   background: rgba(30, 30, 32, 0.92);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border-radius: 26px;
+  border-radius: 25px;
   border: 0.5px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   display: flex;

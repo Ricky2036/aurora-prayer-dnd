@@ -7,6 +7,11 @@ import { useSystemStore } from '../../stores/systemStore'
 import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useRecorderStore } from '../../stores/recorderStore'
+import { useClockStore } from '../../stores/clockStore'
+import { usePrayerStore } from '../../stores/prayerStore'
+import { useActiveActivities } from '../../composables/useActiveActivities'
+import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import { GLYPHS } from '../../assets/icons/glyphs'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
 import { clamp } from '../../utils/math'
@@ -29,6 +34,9 @@ const system = useSystemStore()
 const notifications = useNotificationsStore()
 const i18n = useI18nStore()
 const recorder = useRecorderStore()
+const clock = useClockStore()
+const prayer = usePrayerStore()
+const { activeActivities } = useActiveActivities()
 
 const rootRef = ref(null)
 const UNLOCK_SPAN = 460
@@ -79,31 +87,44 @@ const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
 const PLAYER_START_Y = computed(() => BASE_Y.value - PLAYER_HEIGHT - PLAYER_NOTIF_GAP)
-const RECORDER_CARD_HEIGHT = 90
-const RECORDER_GAP = 10
+const ACTIVITY_CARD_HEIGHT = 84
+const ACTIVITY_GAP = 10
+const totalActivitiesHeight = computed(() => {
+  const count = activeActivities.value.length
+  return count > 0 ? count * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP) : 0
+})
 
-// 播放器在折叠态的 Y 坐标：若正在录音，录音卡片默认展开显示在播放器上方（或播放器整体上移为录音卡片留出空间）
+// 播放器在折叠态的 Y 坐标
 const PLAYER_COLLAPSED_Y = computed(() => {
-  const base = screenHeight.value - PLAYER_HEIGHT - 105
-  return recorder.isRecording ? base : base
+  return screenHeight.value - PLAYER_HEIGHT - 105
 })
 
-// 录音卡片在折叠态的 Y 坐标：直接位于播放器卡片上方
-const RECORDER_COLLAPSED_Y = computed(() => {
-  return PLAYER_COLLAPSED_Y.value - RECORDER_CARD_HEIGHT - RECORDER_GAP
-})
+// 活动卡片队列在折叠态的起始 Y 坐标：位于播放器卡片正上方；若活动较多则自 clipTop 下方自然排布
+function getActivityCollapsedY(index) {
+  const totalH = totalActivitiesHeight.value
+  const idealStart = PLAYER_COLLAPSED_Y.value - totalH
+  const minStart = clipTop.value + 4
+  const startY = Math.max(minStart, idealStart)
+  return startY + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
+}
 
-// 录音卡片在展开态的 Y 坐标：直接紧贴在音乐播放器上方（或随其一同平滑滚动）
-const RECORDER_START_Y = computed(() => {
-  return PLAYER_START_Y.value - RECORDER_CARD_HEIGHT - RECORDER_GAP
-})
+// 活动卡片队列在展开态的起始 Y 坐标：紧贴在音乐播放器上方，随通知队列平滑滚动
+function getActivityStartY(index) {
+  const totalH = totalActivitiesHeight.value
+  const baseY = Math.max(clipTop.value + 4, PLAYER_START_Y.value - totalH) + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
+  return isCollapsed.value ? getActivityCollapsedY(index) : baseY - scrollOffset.value - playerStretch.value
+}
 
 const DATE_TOP = 55
 const DATE_HEIGHT = 28
 const CLOCK_TOP = DATE_TOP + DATE_HEIGHT - 6 // 77
 const TOP_GAP = 16
-// 正在录音时，顶部可用空间需考虑录音卡片高度
-const TOP_WIDGET_START_Y = computed(() => recorder.isRecording ? RECORDER_START_Y.value : PLAYER_START_Y.value)
+// 有活动时，顶部可用空间需考虑活动卡片总高度
+const TOP_WIDGET_START_Y = computed(() => {
+  return activeActivities.value.length > 0
+    ? PLAYER_START_Y.value - totalActivitiesHeight.value
+    : PLAYER_START_Y.value
+})
 const CLOCK_INITIAL_HEIGHT = computed(() => Math.max(140, TOP_WIDGET_START_Y.value - CLOCK_TOP - TOP_GAP))
 const CLOCK_MIN_HEIGHT = 140
 const SAFE_GAP = TOP_GAP
@@ -321,8 +342,14 @@ function onCardPointerUp(e, id) {
 }
 
 function onDeleteCard(item) {
-  if (item.isRecorder) {
+  if (item.isRecorder || item.id === '__recorder__' || item.id === 'recorder') {
     recorder.stopRecording()
+  } else if (item.id === 'timer') {
+    clock.cancelTimer()
+  } else if (item.id === 'stopwatch') {
+    clock.resetStopwatch()
+  } else if (item.id === 'prayer') {
+    prayer.closeIsland()
   } else {
     notifications.remove(item.id)
   }
@@ -336,6 +363,36 @@ function onJumpSettings() {
   system.unlock()
   system.openApp('settings')
   swipeOffsets.value = {}
+}
+
+function handleActivityCardClick(act) {
+  if (dragDistance > 10 || isSwipingCard) return
+  if (justSwipedId === act.id) {
+    justSwipedId = null
+    return
+  }
+  if (swipeOffsets.value[act.id]) {
+    const next = { ...swipeOffsets.value }
+    delete next[act.id]
+    swipeOffsets.value = next
+    return
+  }
+  if (act.type === 'recorder') {
+    system.unlock()
+    system.openApp('voicememos')
+  } else if (act.type === 'timer') {
+    clock.setActiveTab('timer')
+    system.unlock()
+    system.openApp('clock')
+  } else if (act.type === 'stopwatch') {
+    clock.setActiveTab('stopwatch')
+    system.unlock()
+    system.openApp('clock')
+  } else if (act.type === 'prayer') {
+    clock.setActiveTab('muslim')
+    system.unlock()
+    system.openApp('clock')
+  }
 }
 
 function handleCardClick(item) {
@@ -443,17 +500,24 @@ const clipTop = computed(() => CLOCK_TOP + clockHeight.value + SAFE_GAP)
 const expandClip = computed(() => scrollY.value <= 0 || isCollapsed.value)
 const playerStretch = computed(() => lockItems.value.length * overscroll.value * STRETCH_FACTOR)
 const scrollOffset = computed(() => (scrollY.value < 0 ? scrollY.value : effectiveScrollY.value))
-const currentPlayerY = computed(() =>
-  isCollapsed.value ? PLAYER_COLLAPSED_Y.value : PLAYER_START_Y.value - scrollOffset.value - playerStretch.value
-)
-const currentRecorderY = computed(() =>
-  isCollapsed.value ? RECORDER_COLLAPSED_Y.value : RECORDER_START_Y.value - scrollOffset.value - playerStretch.value
-)
-const recorderCardStyle = computed(() => ({
-  transform: `translateY(${currentRecorderY.value}px)`,
-  transition: transitionStyle.value,
-  zIndex: 190
-}))
+const currentPlayerY = computed(() => {
+  if (isCollapsed.value) {
+    if (activeActivities.value.length > 0) {
+      const activitiesBottom = getActivityCollapsedY(0) + totalActivitiesHeight.value
+      return Math.max(PLAYER_COLLAPSED_Y.value, activitiesBottom)
+    }
+    return PLAYER_COLLAPSED_Y.value
+  }
+  return PLAYER_START_Y.value - scrollOffset.value - playerStretch.value
+})
+function activityCardStyle(index) {
+  const y = getActivityStartY(index)
+  return {
+    transform: `translateY(${y}px)`,
+    transition: transitionStyle.value,
+    zIndex: 190 - index
+  }
+}
 const animating = computed(() => (!isDragging.value && !isWheeling.value && !isSpringing.value && !isSwipingCard) || isCollapsed.value)
 const transitionStyle = computed(() =>
   animating.value
@@ -474,8 +538,9 @@ const clockStyle = computed(() => ({
 }))
 const pillStyle = computed(() => ({
   transform: `translateY(${isCollapsed.value ? 0 : 30}px) scale(${isCollapsed.value ? 1 : 0.85})`,
-  opacity: isCollapsed.value ? 1 : 0,
-  transition: 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease-out'
+  opacity: isCollapsed.value && activeActivities.value.length < 4 ? 1 : 0,
+  transition: 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease-out',
+  pointerEvents: isCollapsed.value && activeActivities.value.length < 4 ? 'auto' : 'none'
 }))
 
 function notifStyle(i) {
@@ -538,59 +603,146 @@ function notifStyle(i) {
         @touchend.passive="handleTouchEnd"
         @touchcancel.passive="handleTouchEnd"
       >
-        <!-- 正在录音活动卡片：与音乐播放器一样默认展开，支持横滑呼出灵动岛设置与停止按钮 -->
-        <div
-          v-if="recorder.isRecording"
-          class="ls-card-wrapper ls-recorder-standalone"
-          :style="recorderCardStyle"
-        >
-          <!-- 底层滑动操作按钮 -->
-          <div class="ls-swipe-actions" :class="{ 'is-active': (swipeOffsets['__recorder__'] || 0) < -2 }">
-            <button class="ls-action-btn ls-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
-              <LIcon name="headerSettings" :size="20" />
-            </button>
-            <button class="ls-action-btn ls-btn-delete" @click.stop="recorder.stopRecording" :title="i18n.t('delete')">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- 表层卡片主体（横滑） -->
+        <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
+        <template v-for="(act, actIdx) in activeActivities" :key="act.id">
           <div
-            class="ls-card-front is-recorder"
-            :class="{ 'is-swiping': isSwipingCard && activeCardId === '__recorder__' }"
-            :style="{ transform: `translateX(${swipeOffsets['__recorder__'] || 0}px)` }"
-            @pointerdown="onCardPointerDown($event, '__recorder__')"
-            @pointermove="onCardPointerMove($event, '__recorder__')"
-            @pointerup="onCardPointerUp($event, '__recorder__')"
-            @pointercancel="onCardPointerUp($event, '__recorder__')"
-            @click="handleCardClick({ id: '__recorder__', isRecorder: true })"
+            class="ls-card-wrapper ls-activity-standalone"
+            :style="activityCardStyle(actIdx)"
           >
-            <div class="ls-rc-icon-wrap">
-              <div class="ls-rc-audio-bars">
-                <span class="bar bar-1"></span>
-                <span class="bar bar-2"></span>
-                <span class="bar bar-3"></span>
-                <span class="bar bar-main"></span>
-                <span class="bar bar-5"></span>
-                <span class="bar bar-6"></span>
-                <span class="bar bar-7"></span>
-              </div>
+            <!-- 底层滑动操作按钮 -->
+            <div class="ls-swipe-actions" :class="{ 'is-active': (swipeOffsets[act.id] || 0) < -2 }">
+              <button class="ls-action-btn ls-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+                <LIcon name="headerSettings" :size="20" />
+              </button>
+              <button class="ls-action-btn ls-btn-delete" @click.stop="onDeleteCard(act)" :title="i18n.t('delete')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </button>
             </div>
-            <div class="ls-rc-info">
-              <div class="ls-rc-time">{{ recorder.formattedTime }}</div>
-              <div class="ls-rc-sub">{{ recorder.isPaused ? '录音已暂停' : (i18n.t('recordingCardTitle') || '录音中...') }}</div>
+
+            <!-- 表层卡片主体（横滑） -->
+            <div
+              class="ls-card-front ls-activity-card"
+              :class="[`is-${act.type}`, { 'is-swiping': isSwipingCard && activeCardId === act.id }]"
+              :style="{ transform: `translateX(${swipeOffsets[act.id] || 0}px)` }"
+              @pointerdown="onCardPointerDown($event, act.id)"
+              @pointermove="onCardPointerMove($event, act.id)"
+              @pointerup="onCardPointerUp($event, act.id)"
+              @pointercancel="onCardPointerUp($event, act.id)"
+              @click="handleActivityCardClick(act)"
+            >
+              <!-- 录音类型 -->
+              <template v-if="act.type === 'recorder'">
+                <div class="ls-rc-icon-wrap">
+                  <div class="ls-rc-audio-bars">
+                    <span class="bar bar-1"></span>
+                    <span class="bar bar-2"></span>
+                    <span class="bar bar-3"></span>
+                    <span class="bar bar-main"></span>
+                    <span class="bar bar-5"></span>
+                    <span class="bar bar-6"></span>
+                    <span class="bar bar-7"></span>
+                  </div>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ act.title }}</div>
+                  <div class="ls-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <button class="ls-rc-stop-btn" @click.stop="recorder.stopRecording" title="停止录音">
+                  <div class="ls-rc-stop-square"></div>
+                </button>
+              </template>
+
+              <!-- 定时器类型 -->
+              <template v-else-if="act.type === 'timer'">
+                <div class="ls-act-icon-wrap icon-timer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ act.title }}</div>
+                  <div class="ls-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button class="ls-act-ctrl-btn btn-cancel" @click.stop="clock.cancelTimer()" title="取消">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="ls-act-ctrl-btn btn-action"
+                    @click.stop="clock.timer.status === 'running' ? clock.pauseTimer() : clock.resumeTimer()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.timer.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 秒表类型 -->
+              <template v-else-if="act.type === 'stopwatch'">
+                <div class="ls-act-icon-wrap icon-stopwatch">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ act.title }}</div>
+                  <div class="ls-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button
+                    v-if="clock.stopwatch.status === 'running'"
+                    class="ls-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.recordLap()"
+                    title="计次"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.lap" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    v-else
+                    class="ls-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.resetStopwatch()"
+                    title="重置"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="ls-act-ctrl-btn btn-action"
+                    @click.stop="clock.stopwatch.status === 'running' ? clock.pauseStopwatch() : clock.startStopwatch()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.stopwatch.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 礼拜模式类型 -->
+              <template v-else-if="act.type === 'prayer'">
+                <div class="ls-act-icon-wrap icon-prayer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="GLYPHS.moon" fill="#00C853" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ act.title }}</div>
+                  <div class="ls-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button class="ls-act-ctrl-btn btn-cancel" @click.stop="prayer.closeIsland()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
             </div>
-            <button class="ls-rc-stop-btn" @click.stop="recorder.stopRecording" title="停止录音">
-              <div class="ls-rc-stop-square"></div>
-            </button>
           </div>
-        </div>
+        </template>
 
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard :style="{ transform: `translateY(${currentPlayerY}px)`, transition: transitionStyle, zIndex: 200 }" @click="handleExpand" />
@@ -851,11 +1003,58 @@ function notifStyle(i) {
   background: rgba(255, 255, 255, 0.82);
 }
 
-/* 录音活动卡片深色样式（与灵动岛/通知中心保持高雅一致） */
+/* 灵动岛活动卡片深色样式（与灵动岛/通知中心保持一致） */
+.ls-card-front.ls-activity-card,
 .ls-card-front.is-recorder {
   background: rgba(26, 26, 28, 0.88);
   border-color: rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.ls-act-icon-wrap {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ls-act-icon-wrap.icon-timer,
+.ls-act-icon-wrap.icon-stopwatch {
+  background: rgba(255, 149, 0, 0.16);
+}
+.ls-act-icon-wrap.icon-prayer {
+  background: rgba(0, 200, 83, 0.16);
+}
+
+.ls-act-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.ls-act-ctrl-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.ls-act-ctrl-btn:active {
+  transform: scale(0.92);
+}
+.ls-act-ctrl-btn.btn-cancel {
+  background: rgba(255, 255, 255, 0.16);
+}
+.ls-act-ctrl-btn.btn-action {
+  background: #ff9500;
+  box-shadow: 0 4px 14px rgba(255, 149, 0, 0.4);
 }
 
 /* 录音卡片内部元素 */

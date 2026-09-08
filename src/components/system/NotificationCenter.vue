@@ -13,6 +13,11 @@ import MaterialBlur from '../ui/MaterialBlur.vue'
 import LIcon from '../ui/LIcon.vue'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useRecorderStore } from '../../stores/recorderStore'
+import { useClockStore } from '../../stores/clockStore'
+import { usePrayerStore } from '../../stores/prayerStore'
+import { useActiveActivities } from '../../composables/useActiveActivities'
+import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import { GLYPHS } from '../../assets/icons/glyphs'
 
 /**
  * 通知中心（移植自 notificationcenter.tsx）：
@@ -24,6 +29,9 @@ const system = useSystemStore()
 const i18n = useI18nStore()
 const notifications = useNotificationsStore()
 const recorder = useRecorderStore()
+const clock = useClockStore()
+const prayer = usePrayerStore()
+const { activeActivities } = useActiveActivities()
 const { timeShort, now } = useClock()
 
 const overlay = computed(() => system.overlays.notificationCenter)
@@ -154,8 +162,14 @@ function onCardPointerUp(e, id) {
 }
 
 function onDeleteCard(id) {
-  if (id === '__recorder__') {
+  if (id === '__recorder__' || id === 'recorder') {
     recorder.stopRecording()
+  } else if (id === 'timer') {
+    clock.cancelTimer()
+  } else if (id === 'stopwatch') {
+    clock.resetStopwatch()
+  } else if (id === 'prayer') {
+    prayer.closeIsland()
   } else {
     notifications.remove(id)
   }
@@ -171,19 +185,31 @@ function onJumpSettings() {
   swipeOffsets.value = {}
 }
 
-function onRecorderCardClick() {
+function onActivityCardClick(act) {
   if (isSwipingCard) return
-  if (justSwipedId === '__recorder__') {
+  if (justSwipedId === act.id) {
     justSwipedId = null
     return
   }
-  if (swipeOffsets.value['__recorder__']) {
+  if (swipeOffsets.value[act.id]) {
     const next = { ...swipeOffsets.value }
-    delete next['__recorder__']
+    delete next[act.id]
     swipeOffsets.value = next
     return
   }
-  system.openApp('voicememos')
+  if (act.type === 'recorder') {
+    system.openApp('voicememos')
+  } else if (act.type === 'timer') {
+    clock.setActiveTab('timer')
+    system.openApp('clock')
+  } else if (act.type === 'stopwatch') {
+    clock.setActiveTab('stopwatch')
+    system.openApp('clock')
+  } else if (act.type === 'prayer') {
+    clock.setActiveTab('muslim')
+    system.openApp('clock')
+  }
+  system.requestCloseOverlay('notificationCenter')
 }
 
 function handleStopRecording(e) {
@@ -308,60 +334,143 @@ function toggleExpand(id) {
 
       <!-- 贯通式列表 -->
       <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
-        <!-- 灵动岛录音卡片（录音进行中显示，支持横滑呼出灵动岛设置与停止按钮） -->
-        <div v-if="recorder.isRecording" class="nc-swipe-card-wrapper nc-recorder-wrapper">
-          <!-- 底层滑动操作按钮 -->
-          <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets['__recorder__'] || 0) < -2 }">
-            <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
-              <LIcon name="headerSettings" :size="20" />
-            </button>
-            <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard('__recorder__')" :title="i18n.t('delete')">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- 表层录音卡片主体 -->
-          <div
-            class="nc-recorder-card"
-            :class="{ 'is-swiping': isSwipingCard && activeCardId === '__recorder__' }"
-            :style="{ transform: `translateX(${swipeOffsets['__recorder__'] || 0}px)` }"
-            @pointerdown="onCardPointerDown($event, '__recorder__')"
-            @pointermove="onCardPointerMove($event, '__recorder__')"
-            @pointerup="onCardPointerUp($event, '__recorder__')"
-            @pointercancel="onCardPointerUp($event, '__recorder__')"
-            @click="onRecorderCardClick"
-          >
-            <!-- 左侧：录音声波频谱柱 -->
-            <div class="nc-rc-left">
-              <div class="nc-rc-audio-bars">
-                <span class="bar bar-1"></span>
-                <span class="bar bar-2"></span>
-                <span class="bar bar-3"></span>
-                <span class="bar bar-main"></span>
-                <span class="bar bar-5"></span>
-                <span class="bar bar-6"></span>
-                <span class="bar bar-7"></span>
-              </div>
+        <!-- 灵动岛活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个） -->
+        <template v-for="act in activeActivities" :key="act.id">
+          <div class="nc-swipe-card-wrapper nc-activity-wrapper">
+            <!-- 底层滑动操作按钮 -->
+            <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[act.id] || 0) < -2 }">
+              <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+                <LIcon name="headerSettings" :size="20" />
+              </button>
+              <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard(act.id)" :title="i18n.t('delete')">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </button>
             </div>
 
-            <!-- 中间：大计时器与副标题 -->
-            <div class="nc-rc-info">
-              <div class="nc-rc-time">{{ recorder.formattedTime }}</div>
-              <div class="nc-rc-sub">{{ recorder.isPaused ? '录音已暂停' : '录音中...' }}</div>
-            </div>
+            <!-- 表层活动卡片主体 -->
+            <div
+              class="nc-activity-card"
+              :class="[`is-${act.type}`, { 'is-swiping': isSwipingCard && activeCardId === act.id }]"
+              :style="{ transform: `translateX(${swipeOffsets[act.id] || 0}px)` }"
+              @pointerdown="onCardPointerDown($event, act.id)"
+              @pointermove="onCardPointerMove($event, act.id)"
+              @pointerup="onCardPointerUp($event, act.id)"
+              @pointercancel="onCardPointerUp($event, act.id)"
+              @click="onActivityCardClick(act)"
+            >
+              <!-- 录音类型 -->
+              <template v-if="act.type === 'recorder'">
+                <div class="nc-rc-left">
+                  <div class="nc-rc-audio-bars">
+                    <span class="bar bar-1"></span>
+                    <span class="bar bar-2"></span>
+                    <span class="bar bar-3"></span>
+                    <span class="bar bar-main"></span>
+                    <span class="bar bar-5"></span>
+                    <span class="bar bar-6"></span>
+                    <span class="bar bar-7"></span>
+                  </div>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <button class="nc-rc-stop-btn" @click.stop="handleStopRecording" title="停止录音">
+                  <div class="nc-rc-stop-square"></div>
+                </button>
+              </template>
 
-            <!-- 右侧：圆形红色停止按钮 -->
-            <button class="nc-rc-stop-btn" @click.stop="handleStopRecording" title="停止录音">
-              <div class="nc-rc-stop-square"></div>
-            </button>
+              <!-- 定时器类型 -->
+              <template v-else-if="act.type === 'timer'">
+                <div class="nc-act-icon-wrap icon-timer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="nc-act-ctrls">
+                  <button class="nc-act-ctrl-btn btn-cancel" @click.stop="clock.cancelTimer()" title="取消">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="nc-act-ctrl-btn btn-action"
+                    @click.stop="clock.timer.status === 'running' ? clock.pauseTimer() : clock.resumeTimer()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.timer.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 秒表类型 -->
+              <template v-else-if="act.type === 'stopwatch'">
+                <div class="nc-act-icon-wrap icon-stopwatch">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="nc-act-ctrls">
+                  <button
+                    v-if="clock.stopwatch.status === 'running'"
+                    class="nc-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.recordLap()"
+                    title="计次"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.lap" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    v-else
+                    class="nc-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.resetStopwatch()"
+                    title="重置"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="nc-act-ctrl-btn btn-action"
+                    @click.stop="clock.stopwatch.status === 'running' ? clock.pauseStopwatch() : clock.startStopwatch()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.stopwatch.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 礼拜模式类型 -->
+              <template v-else-if="act.type === 'prayer'">
+                <div class="nc-act-icon-wrap icon-prayer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="GLYPHS.moon" fill="#00C853" />
+                  </svg>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="nc-act-ctrls">
+                  <button class="nc-act-ctrl-btn btn-cancel" @click.stop="prayer.closeIsland()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+            </div>
           </div>
-        </div>
+        </template>
 
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard class="nc-player-instance" />
@@ -490,6 +599,7 @@ function toggleExpand(id) {
 .nc-list::-webkit-scrollbar { display: none; }
 .nc-list { scrollbar-width: none; }
 
+.nc-activity-card,
 .nc-recorder-card {
   flex: none;
   position: relative;
@@ -512,8 +622,55 @@ function toggleExpand(id) {
   touch-action: pan-y;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
 }
+.nc-activity-card:active,
 .nc-recorder-card:active {
   background: rgba(22, 22, 26, 0.95);
+}
+
+.nc-act-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.nc-act-icon-wrap.icon-timer,
+.nc-act-icon-wrap.icon-stopwatch {
+  background: rgba(255, 149, 0, 0.16);
+}
+.nc-act-icon-wrap.icon-prayer {
+  background: rgba(0, 200, 83, 0.16);
+}
+
+.nc-act-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.nc-act-ctrl-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.nc-act-ctrl-btn:active {
+  transform: scale(0.92);
+}
+.nc-act-ctrl-btn.btn-cancel {
+  background: rgba(255, 255, 255, 0.16);
+}
+.nc-act-ctrl-btn.btn-action {
+  background: #ff9500;
+  box-shadow: 0 4px 14px rgba(255, 149, 0, 0.4);
 }
 
 .nc-rc-left {
