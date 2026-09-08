@@ -54,14 +54,19 @@ const rootRef = ref(null)
 const driver = getDriver('notificationCenter')
 if (driver) useSwipeGesture(rootRef, driver.closeGesture)
 
+let lastSwipeEndTime = 0
+const swipedTransitionId = ref(null)
+
 function onNcClick(e) {
+  if (Date.now() - lastSwipeEndTime < 350) return
   // 点击卡片本体、操作按钮、播放器、清除按钮等交互元素内部时，不重置滑开状态也不关闭叠层
-  if (e.target.closest('.nc-card, .ls-player, .nc-recorder-card, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, button, a, input, label')) {
+  if (e.target.closest('.nc-card, .nc-activity-card, .nc-swipe-card-wrapper, .nc-item-wrapper, .nc-activity-wrapper, .ls-player, .nc-player-instance, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, button, a, input, label')) {
     return
   }
   // 点击空白处时，如果有滑开的卡片，先收回
   if (Object.keys(swipeOffsets.value).length > 0) {
     swipeOffsets.value = {}
+    return
   }
   system.requestCloseOverlay('notificationCenter')
 }
@@ -118,6 +123,7 @@ function onCardPointerMove(e, id) {
   }
 
   if (isSwipingCard) {
+    e.preventDefault?.()
     let nextOffset = cardInitialOffset + dx
     if (nextOffset > 0) nextOffset = nextOffset * 0.2
     if (nextOffset < -160) nextOffset = -160 + (nextOffset + 160) * 0.2
@@ -133,10 +139,15 @@ let justSwipedId = null
 function onCardPointerUp(e, id) {
   if (activeCardId !== id) return
   if (isSwipingCard) {
+    lastSwipeEndTime = Date.now()
     justSwipedId = id
+    swipedTransitionId.value = id
     setTimeout(() => {
       if (justSwipedId === id) justSwipedId = null
-    }, 250)
+    }, 300)
+    setTimeout(() => {
+      if (swipedTransitionId.value === id) swipedTransitionId.value = null
+    }, 280)
 
     const currentOffset = swipeOffsets.value[id] || 0
     if (currentOffset < -45) {
@@ -231,7 +242,7 @@ function handleClearAll() {
   }, 800)
 }
 
-/* ---------- 灵动堆叠算法（滚动到底部时平滑叠放，与顶部卡片无缝紧密堆叠） ---------- */
+/* ---------- 底部灵动堆叠算法（底部无空间时才堆叠，位置不变并缩放至完全遮挡） ---------- */
 const listRef = ref(null)
 let rafId = null
 
@@ -245,32 +256,46 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  const player = container.querySelector('.nc-player-instance')
-  const playerBottom = player ? (player.offsetTop + player.offsetHeight - container.scrollTop) : 0
-  const bottomThreshold = Math.max(playerBottom + 6, containerHeight - 130)
+  // 底部堆叠阈值：只有当内容滚动触及容器视口底部（底部无多余空间）时才开始堆叠
+  // 底部留出约 92px 保证单张卡片可见高度，绝不悬浮在半空中
+  const bottomThreshold = containerHeight - 92
+  const scrollTop = container.scrollTop
 
+  // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
+  const items = []
   for (let i = 0; i < wrappers.length; i++) {
-    const wrapper = wrappers[i]
-    const card = wrapper.querySelector('.nc-card')
+    const w = wrappers[i]
+    items.push({
+      card: w.querySelector('.nc-card'),
+      id: w.dataset.id,
+      offsetTop: w.offsetTop
+    })
+  }
+
+  // 批量样式写入
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    const card = item.card
     if (!card) continue
-    const swipeX = swipeOffsets.value[wrapper.dataset.id] || 0
-    const relativeY = wrapper.offsetTop - container.scrollTop
+    const swipeX = swipeOffsets.value[item.id] || 0
+    const relativeY = item.offsetTop - scrollTop
 
     if (relativeY > bottomThreshold) {
       const excess = relativeY - bottomThreshold
-      const stackIndex = excess / 48
-      if (stackIndex <= 3) {
-        const scale = Math.max(0.88, 1 - stackIndex * 0.04)
-        const visualY = stackIndex <= 1 ? stackIndex * 14 : (14 + (stackIndex - 1) * 10)
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
-        card.style.opacity = Math.max(0.5, 1 - stackIndex * 0.16)
-      } else {
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 34}px, 0) scale(0.84)`
-        card.style.opacity = 0
-      }
+      // 底部卡片视觉位置保持在 bottomThreshold 不变（通过 -excess 抵消向下位移）
+      // 随着向下滑动，卡片逐渐缩小（1.0 -> 0.92），上层更高 z-index 的卡片向下滑动自然滑过并将其遮挡覆盖
+      const shrinkProgress = Math.min(1, excess / 64)
+      const scale = 1 - shrinkProgress * 0.08
+      // 被上层卡片完全覆盖后淡出消失
+      const opacity = excess > 38 ? Math.max(0, 1 - (excess - 38) / 24) : 1
+
+      card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess}px, 0) scale(${scale})`
+      card.style.opacity = opacity
+      card.style.pointerEvents = opacity <= 0.1 ? 'none' : 'auto'
     } else {
-      card.style.transform = `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)`
-      card.style.opacity = 1
+      card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
+      card.style.opacity = ''
+      card.style.pointerEvents = ''
     }
   }
 }
@@ -280,6 +305,11 @@ function onScroll() {
 }
 
 watch(() => notifications.list.length, async () => {
+  await nextTick()
+  updateStacking()
+})
+
+watch(() => activeActivities.value.length, async () => {
   await nextTick()
   updateStacking()
 })
@@ -332,6 +362,11 @@ function toggleExpand(id) {
   }
   expandedId.value = expandedId.value === id ? null : id
 }
+
+watch(expandedId, async () => {
+  await nextTick()
+  updateStacking()
+})
 </script>
 
 <template>
@@ -379,7 +414,7 @@ function toggleExpand(id) {
               @pointermove="onCardPointerMove($event, act.id)"
               @pointerup="onCardPointerUp($event, act.id)"
               @pointercancel="onCardPointerUp($event, act.id)"
-              @click="onActivityCardClick(act)"
+              @click.stop="onActivityCardClick(act)"
             >
               <!-- 录音类型 -->
               <template v-if="act.type === 'recorder'">
@@ -521,12 +556,16 @@ function toggleExpand(id) {
             <!-- 表层通知卡片主体 -->
             <div
               class="nc-card"
-              :class="{ expanded: expandedId === n.id, 'is-swiping': isSwipingCard && activeCardId === n.id }"
+              :class="{
+                expanded: expandedId === n.id,
+                'is-swiping': isSwipingCard && activeCardId === n.id,
+                'has-swipe-transition': !isSwipingCard && swipedTransitionId === n.id
+              }"
               @pointerdown="onCardPointerDown($event, n.id)"
               @pointermove="onCardPointerMove($event, n.id)"
               @pointerup="onCardPointerUp($event, n.id)"
               @pointercancel="onCardPointerUp($event, n.id)"
-              @click="toggleExpand(n.id)"
+              @click.stop="toggleExpand(n.id)"
             >
               <NotificationIcon :type="n.iconType" />
               <div class="nc-card-body">
@@ -601,14 +640,16 @@ function toggleExpand(id) {
   font: 500 15px/1.3 var(--font-stack);
 }
 
-/* 贯通式列表 */
+/* 贯通式列表：全屏边缘贴合，卡片滑动至屏幕边缘直接被视口裁切 */
 .nc-list {
   flex: 1;
-  margin: 4px 14px 0;
+  margin: 4px 0 0;
+  padding: 0 14px 130px;
+  box-sizing: border-box;
   border-radius: 24px 24px 0 0;
   overflow-y: auto;
+  overflow-x: clip;
   overscroll-behavior-y: contain;
-  padding-bottom: 130px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -896,11 +937,15 @@ function toggleExpand(id) {
   box-shadow: none;
   cursor: pointer;
   transition: background 0.2s ease;
-  transform-origin: top;
+  transform-origin: center center;
 }
 .nc-card.is-swiping,
+.nc-activity-card.is-swiping,
 .nc-recorder-card.is-swiping {
   transition: none !important;
+}
+.nc-card.has-swipe-transition {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .nc-card:hover { background: rgba(255, 255, 255, 0.12); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
