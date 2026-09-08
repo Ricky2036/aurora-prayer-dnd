@@ -10,7 +10,7 @@ const emit = defineEmits(['close-once', 'close-permanent', 'cancel'])
 
 const i18n = useI18nStore()
 
-function onBackdropClick(e) {
+function onBackdropDismiss(e) {
   if (e.target === e.currentTarget) {
     emit('cancel')
   }
@@ -22,15 +22,15 @@ function onBackdropClick(e) {
     <div
       v-if="visible"
       class="island-modal-backdrop"
-      @click="onBackdropClick"
-      @pointerdown.stop
+      @click="onBackdropDismiss"
+      @pointerdown="onBackdropDismiss"
+      @touchstart="onBackdropDismiss"
       @pointermove.stop
       @pointerup.stop
-      @touchstart.stop
       @touchmove.stop
       @touchend.stop
     >
-      <div class="island-modal-card" @click.stop>
+      <div class="island-modal-card" @pointerdown.stop @touchstart.stop @click.stop>
         <div class="island-modal-title">
           {{ i18n.t('islandClosePromptTitle') }}
         </div>
@@ -39,16 +39,11 @@ function onBackdropClick(e) {
         </div>
 
         <div class="island-modal-actions">
-          <div class="modal-btn-row">
-            <button class="modal-btn btn-only-once" @click="emit('close-once')">
-              {{ i18n.t('islandCloseOnlyOnce') }}
-            </button>
-            <button class="modal-btn btn-permanent" @click="emit('close-permanent')">
-              {{ i18n.t('islandClosePermanent') }}
-            </button>
-          </div>
-          <button class="modal-btn btn-cancel" @click="emit('cancel')">
-            {{ i18n.t('islandCloseCancel') }}
+          <button class="modal-btn btn-only-once" @click="emit('close-once')">
+            {{ i18n.t('islandCloseOnlyOnce') }}
+          </button>
+          <button class="modal-btn btn-permanent" @click="emit('close-permanent')">
+            {{ i18n.t('islandClosePermanent') }}
           </button>
         </div>
       </div>
@@ -80,7 +75,7 @@ function onBackdropClick(e) {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 32px 24px 20px;
+  padding: 32px 24px 24px;
   box-sizing: border-box;
   user-select: none;
 }
@@ -109,27 +104,27 @@ function onBackdropClick(e) {
 
 .island-modal-actions {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.modal-btn-row {
-  display: flex;
   gap: 12px;
   width: 100%;
 }
 
 .modal-btn {
+  flex: 1;
+  height: 52px;
+  border-radius: 26px;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-size: 16.5px;
+  font-weight: 600;
   cursor: pointer;
   box-sizing: border-box;
   outline: none;
+  background: #EFEFEF;
   -webkit-tap-highlight-color: transparent;
-  transition: background 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s ease;
 }
 
 .modal-btn:active {
@@ -137,13 +132,7 @@ function onBackdropClick(e) {
 }
 
 .btn-only-once {
-  flex: 1;
-  height: 52px;
-  border-radius: 26px;
-  background: #EFEFEF;
   color: #191919;
-  font-size: 16.5px;
-  font-weight: 600;
 }
 
 .btn-only-once:active {
@@ -151,31 +140,11 @@ function onBackdropClick(e) {
 }
 
 .btn-permanent {
-  flex: 1;
-  height: 52px;
-  border-radius: 26px;
-  background: #EFEFEF;
   color: #F53F3F;
-  font-size: 16.5px;
-  font-weight: 600;
 }
 
 .btn-permanent:active {
   background: #FCE8E8;
-}
-
-.btn-cancel {
-  width: 100%;
-  height: 48px;
-  border-radius: 24px;
-  background: #F7F8FA;
-  color: #86909C;
-  font-size: 15.5px;
-  font-weight: 500;
-}
-
-.btn-cancel:active {
-  background: #EAEBED;
 }
 
 /* 进出场动画（从底部滑入 / 滑出） */

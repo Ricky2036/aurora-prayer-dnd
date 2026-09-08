@@ -415,7 +415,7 @@ export const MESSAGES = {
     nsDynamicBarGroupStopwatch: '秒表',
     nsDynamicBarGroupPrayer: '礼拜助手',
     nsDynamicBarGroupMedia: '媒体播控',
-    islandClosePromptTitle: '是否要关闭此应用的灵动岛展示？',
+    islandClosePromptTitle: '关闭此应用的灵动岛展示？',
     islandClosePromptDesc: '关闭后后续将不再上岛展示，可在“设置 - 通知 - Dynamic Bar”中重新开启。',
     islandCloseOnlyOnce: '仅一次',
     islandClosePermanent: '永久关闭',
