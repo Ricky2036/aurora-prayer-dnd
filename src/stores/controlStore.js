@@ -112,7 +112,8 @@ export const ITEM_LABELS = {
 export const LAYOUT_PRESETS = [
   { id: 'camon', label: 'CAMON', only: [] },
   { id: 'note', label: 'NOTE', only: ['joyHeart'] },
-  { id: 'gt', label: 'GT', only: ['liquidCooling', 'shoulderKey'] }
+  { id: 'gt', label: 'GT', only: ['liquidCooling', 'shoulderKey'] },
+  { id: 'hios17', label: 'HiOS 17', only: [] }
 ]
 /** 所有「机型独有」磁贴：通用布局里要把它们全部排除 */
 export const PRESET_EXCLUSIVE_IDS = LAYOUT_PRESETS.flatMap((p) => p.only)
