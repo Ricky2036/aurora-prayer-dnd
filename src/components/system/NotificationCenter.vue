@@ -276,16 +276,12 @@ function updateStacking() {
     })
   }
 
-  // 批量样式写入：整卡保持完整自然圆角矩形，绝不添加任何裁切切角
+  // 批量样式写入：整卡保持完整自然圆角矩形，随滑入深度平滑调节内容与卡片透明度，彻底避免透底
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
     const card = item.card
     if (!card) continue
 
-    // 确保内容完整，绝不在内容上使用 opacity: 0
-    if (item.content && item.content.style.opacity) item.content.style.opacity = ''
-    if (item.icon && item.icon.style.opacity) item.icon.style.opacity = ''
-    if (item.chevron && item.chevron.style.opacity) item.chevron.style.opacity = ''
     if (card.style.clipPath) card.style.clipPath = ''
 
     const swipeX = swipeOffsets.value[item.id] || 0
@@ -302,18 +298,26 @@ function updateStacking() {
         const visualY = stackIndex <= 1 ? stackIndex * 12 : (12 + (stackIndex - 1) * 8)
         const translateY = -excess + visualY
 
+        // 核心：随滑动距离与堆叠深度调节内容不透明度，滑入遮挡区时平滑退隐，彻底杜绝透底
+        const contentOpacity = clamp(1 - excess / 24, 0, 1)
+        card.style.setProperty('--nc-content-opacity', contentOpacity >= 0.99 ? '1' : String(contentOpacity.toFixed(2)))
+
+        // 卡片底板自身随堆叠层级轻度衰减深度
+        const cardOpacity = clamp(1 - stackIndex * 0.12, 0.6, 1)
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
-        card.style.opacity = '1'
+        card.style.opacity = String(cardOpacity.toFixed(2))
         card.style.pointerEvents = 'auto'
       } else {
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 32}px, 0) scale(0.8)`
         card.style.opacity = '0'
         card.style.pointerEvents = 'none'
+        card.style.setProperty('--nc-content-opacity', '0')
       }
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
       card.style.pointerEvents = ''
+      card.style.removeProperty('--nc-content-opacity')
     }
   }
 }
@@ -663,7 +667,7 @@ watch(expandedId, async () => {
   position: relative;
   flex: 1;
   margin: 4px 0 0;
-  padding: 6px 14px 48px;
+  padding: 6px 14px 130px;
   box-sizing: border-box;
   overflow-y: auto;
   overflow-x: clip;
@@ -952,6 +956,11 @@ watch(expandedId, async () => {
   cursor: pointer;
   transition: background 0.2s ease;
   transform-origin: center center;
+  --nc-content-opacity: 1;
+}
+.nc-card > * {
+  opacity: var(--nc-content-opacity, 1);
+  transition: opacity 0.15s ease-out;
 }
 .nc-card.is-swiping,
 .nc-activity-card.is-swiping,
