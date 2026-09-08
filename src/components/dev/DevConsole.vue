@@ -514,7 +514,10 @@ function onCopyFineTune() {
             <div class="pc-seg">
               <div
                 class="pc-seg-thumb-3"
-                :style="{ transform: `translateX(${Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset)) * 100}%)` }"
+                :style="{
+                  width: `calc(${100 / LAYOUT_PRESETS.length}% - ${6 / LAYOUT_PRESETS.length}px)`,
+                  transform: `translateX(${Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset)) * 100}%)`
+                }"
               ></div>
               <button
                 v-for="p in LAYOUT_PRESETS"

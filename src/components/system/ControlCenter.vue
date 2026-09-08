@@ -954,10 +954,10 @@ const glassRing = computed(() =>
               <span class="cc-carrier">{{ i18n.ccLabel('carrier1') }}</span>
             </div>
             <div class="cc-status-right">
-              <LIcon v-if="dndOn" name="moon" :size="13" class="cc-ind" />
-              <LIcon v-if="control.hotspot" name="radio" :size="13" class="cc-ind" />
-              <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="13" class="cc-ind" />
-              <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="13" class="cc-ind" />
+              <LIcon v-if="dndOn" name="moon" :size="16" :stroke-width="2.4" class="cc-ind" />
+              <LIcon v-if="control.hotspot" name="radio" :size="16" :stroke-width="2.4" class="cc-ind" />
+              <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="16" :stroke-width="2.4" class="cc-ind" />
+              <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="16" :stroke-width="2.4" class="cc-ind" />
               <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
               <span class="cc-battery-pct">91%</span>
               <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
@@ -973,6 +973,10 @@ const glassRing = computed(() =>
                 <span class="cc-carrier">{{ i18n.ccLabel('carrier1') }}</span>
               </div>
               <div class="cc-status-right">
+                <LIcon v-if="dndOn" name="moon" :size="16" :stroke-width="2.4" class="cc-ind" />
+                <LIcon v-if="control.hotspot" name="radio" :size="16" :stroke-width="2.4" class="cc-ind" />
+                <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="16" :stroke-width="2.4" class="cc-ind" />
+                <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="16" :stroke-width="2.4" class="cc-ind" />
                 <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
                 <span class="cc-battery-pct">91%</span>
                 <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
