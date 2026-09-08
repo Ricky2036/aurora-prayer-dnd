@@ -6,6 +6,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | --- | --- | --- | --- | --- | --- | --- |
 | Merged | Codex | Notification Center module (Transferred to Antigravity) | `codex/lane` | None (handed off & merged) | `232b5bc` | `ea7ae15` |
 | Merged | Workbuddy | Control Center module | `workbuddy/lane` | `src/components/system/ControlCenter.vue`; `src/components/system/cc/**`; `src/stores/controlStore.js`; `src/components/dev/ControlCenterFineTunePanel.vue`; Control Center-specific scripts/tests | `232b5bc` | `06c6007` |
-| Merged | Antigravity | Island Activity Delete Modal & Complete Island Switches | `antigravity/lane` plus integration worktree | `src/components/apps/**`; `src/components/phone/ScreenView.vue`; `src/components/system/NotificationCenter.vue`; `src/components/system/LockScreen.vue`; `src/composables/useActiveActivities.js`; app-specific stores/assets/tests; integration-only shared registration files | `232b5bc` | `8157bd4` |
+| Merged | Antigravity | Island Activity Delete Modal & Complete Island Switches | `antigravity/lane` plus integration worktree | `src/components/apps/**`; `src/components/phone/ScreenView.vue`; `src/components/system/NotificationCenter.vue`; `src/components/system/LockScreen.vue`; `src/composables/useActiveActivities.js`; app-specific stores/assets/tests; integration-only shared registration files | `232b5bc` | `1867aa3` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
