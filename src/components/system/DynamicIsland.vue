@@ -41,6 +41,20 @@ const hasAnyIsland = computed(() => {
   )
 })
 
+/* 活跃项列表，按优先级排序：Timer > Stopwatch > Recorder > Prayer */
+const activeList = computed(() => {
+  const list = []
+  if (isTimerActive.value) list.push('timer')
+  if (isStopwatchActive.value) list.push('stopwatch')
+  if (isRecorderActive.value) list.push('recorder')
+  if (isPrayerActive.value) list.push('prayer')
+  return list
+})
+
+/* 主卡片（承载与顶部胶囊连续形变的卡片）与副卡片（多活动时向下展开的卡片） */
+const primaryActiveItem = computed(() => activeList.value[0] || null)
+const secondaryActiveItem = computed(() => activeList.value[1] || null)
+
 /* 展开态：由各 store 的 islandExpanded 共同驱动 */
 const isExpanded = computed({
   get() {
@@ -106,9 +120,31 @@ const compactCapsuleTime = computed(() => {
   return ''
 })
 
-/* 点击胶囊展开 */
-function handleCapsuleClick() {
-  isExpanded.value = true
+/* 点击主胶囊或展开卡片 */
+function handlePrimaryCardClick() {
+  if (!isExpanded.value) {
+    isExpanded.value = true
+  } else {
+    // 展开状态下点击卡片主体进入对应 App
+    if (primaryActiveItem.value === 'timer') {
+      openClockTab('timer')
+    } else if (primaryActiveItem.value === 'stopwatch') {
+      openClockTab('stopwatch')
+    } else if (primaryActiveItem.value === 'recorder') {
+      openRecorderApp()
+    }
+  }
+}
+
+/* 点击副卡片 */
+function handleSecondaryCardClick() {
+  if (secondaryActiveItem.value === 'timer') {
+    openClockTab('timer')
+  } else if (secondaryActiveItem.value === 'stopwatch') {
+    openClockTab('stopwatch')
+  } else if (secondaryActiveItem.value === 'recorder') {
+    openRecorderApp()
+  }
 }
 
 /* 点击背景遮罩收起 */
@@ -150,219 +186,329 @@ function handleClosePrayer(e) {
     @click="handleCloseBackdrop"
   ></div>
 
-  <!-- 灵动岛主挂载容器（置顶无侵入） -->
+  <!-- 灵动岛主挂载容器 -->
   <div v-if="hasAnyIsland" class="dynamic-island-wrapper">
-    <!-- ================= 1. 收起态：紧凑胶囊（位于顶部居中） ================= -->
+    <!-- 1. 主灵动岛实体：在 compact 胶囊与 expanded 大圆角矩形之间做连续流体无缝变形 -->
     <div
-      v-if="!isExpanded"
-      class="island-capsule"
-      @click="handleCapsuleClick"
+      class="island-card"
+      :class="{
+        'is-expanded': isExpanded,
+        'is-compact': !isExpanded
+      }"
+      @click="handlePrimaryCardClick"
     >
-      <div class="capsule-left">
-        <svg v-if="isTimerActive" width="13" height="13" viewBox="0 0 24 24">
-          <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
-        </svg>
-        <svg v-else-if="isStopwatchActive" width="13" height="13" viewBox="0 0 24 24">
-          <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
-        </svg>
-        <span v-else-if="isRecorderActive" class="rc-mini-wave">
-          <i></i><i></i><i></i><i></i><i></i>
-        </span>
-        <svg v-else-if="isPrayerActive" width="13" height="13" viewBox="0 0 24 24">
-          <path :d="GLYPHS.moon" fill="#00C853" />
-        </svg>
-      </div>
-
-      <div class="capsule-camera-slot"></div>
-
-      <div class="capsule-right">
-        <span class="capsule-time">{{ compactCapsuleTime }}</span>
-      </div>
-    </div>
-
-    <!-- ================= 2. 展开态：独立圆角矩形卡片列表（回归经典礼拜模式大尺寸） ================= -->
-    <div v-else class="island-expanded-list">
-      <!-- 录音活动卡片 -->
-      <div
-        v-if="isRecorderActive"
-        class="island-live-card"
-        @click="openRecorderApp"
-      >
-        <div class="ilc-left">
-          <div class="ilc-icon-wrap icon-recorder">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff453a">
-              <path d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4z"/>
-            </svg>
-          </div>
-          <div class="ilc-time-col">
-            <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
-            <span class="ilc-sub-label">录音中...</span>
-          </div>
+      <!-- ================= 1.1 收起态图层（顶部胶囊） ================= -->
+      <div class="morph-layer compact-layer">
+        <div class="cc-left">
+          <svg v-if="isTimerActive" width="13" height="13" viewBox="0 0 24 24">
+            <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+          </svg>
+          <svg v-else-if="isStopwatchActive" width="13" height="13" viewBox="0 0 24 24">
+            <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+          </svg>
+          <span v-else-if="isRecorderActive" class="rc-mini-wave">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <svg v-else-if="isPrayerActive" width="13" height="13" viewBox="0 0 24 24">
+            <path :d="GLYPHS.moon" fill="#00C853" />
+          </svg>
         </div>
 
-        <div class="ilc-actions">
-          <button
-            class="ilc-btn btn-stop-record"
-            @click.stop="handleStopRecording"
-            title="停止录音"
-          >
-            <div class="btn-stop-square"></div>
-          </button>
+        <div class="cc-camera-slot"></div>
+
+        <div class="cc-right">
+          <span class="cc-time">{{ compactCapsuleTime }}</span>
         </div>
       </div>
 
-      <!-- 定时器倒计时卡片 -->
-      <div
-        v-if="isTimerActive"
-        class="island-live-card"
-        @click="openClockTab('timer')"
-      >
-        <div class="ilc-left">
-          <div class="ilc-icon-wrap icon-timer">
-            <svg width="22" height="22" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
-            </svg>
+      <!-- ================= 1.2 展开态图层（80px大圆角矩形） ================= -->
+      <div class="morph-layer expanded-layer">
+        <!-- 主项：定时器 -->
+        <template v-if="primaryActiveItem === 'timer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-timer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
+              </span>
+            </div>
           </div>
-          <div class="ilc-time-col">
-            <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
-            <span class="ilc-sub-label">
-              {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
-            </span>
-          </div>
-        </div>
 
-        <div class="ilc-actions">
-          <button
-            class="ilc-btn btn-cancel"
-            @click.stop="clockStore.cancelTimer()"
-            title="取消倒计时"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.close" fill="#fff" />
-            </svg>
-          </button>
-          <button
-            class="ilc-btn btn-playpause"
-            @click.stop="
-              clockStore.timer.status === 'running'
-                ? clockStore.pauseTimer()
-                : clockStore.resumeTimer()
-            "
-            title="暂停/开始"
-          >
-            <svg
-              v-if="clockStore.timer.status === 'running'"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.cancelTimer()"
+              title="取消倒计时"
             >
-              <path :d="CLOCK_ICONS.pause" fill="#000" />
-            </svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.play" fill="#000" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      <!-- 秒表计时卡片 -->
-      <div
-        v-if="isStopwatchActive"
-        class="island-live-card"
-        @click="openClockTab('stopwatch')"
-      >
-        <div class="ilc-left">
-          <div class="ilc-icon-wrap icon-stopwatch">
-            <svg width="22" height="22" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
-            </svg>
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.timer.status === 'running'
+                  ? clockStore.pauseTimer()
+                  : clockStore.resumeTimer()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.timer.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
           </div>
-          <div class="ilc-time-col">
-            <span class="ilc-main-time">{{ clockStore.formattedStopwatchIsland }}</span>
-            <span class="ilc-sub-label">
-              {{ clockStore.stopwatch.status === 'paused' ? '秒表 · 已暂停' : '秒表 · 计时中' }}
-            </span>
+        </template>
+
+        <!-- 主项：秒表 -->
+        <template v-else-if="primaryActiveItem === 'stopwatch'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-stopwatch">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedStopwatchIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.stopwatch.status === 'paused' ? '秒表 · 已暂停' : '秒表 · 计时中' }}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div class="ilc-actions">
-          <!-- 运行中显示计次，暂停时显示重置 -->
-          <button
-            v-if="clockStore.stopwatch.status === 'running'"
-            class="ilc-btn btn-cancel"
-            @click.stop="clockStore.recordLap()"
-            title="计次"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.lap" fill="#fff" />
-            </svg>
-          </button>
-          <button
-            v-else
-            class="ilc-btn btn-cancel"
-            @click.stop="clockStore.resetStopwatch()"
-            title="重置秒表"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.close" fill="#fff" />
-            </svg>
-          </button>
-
-          <!-- 播放/暂停按键 -->
-          <button
-            class="ilc-btn btn-playpause"
-            @click.stop="
-              clockStore.stopwatch.status === 'running'
-                ? clockStore.pauseStopwatch()
-                : clockStore.startStopwatch()
-            "
-            title="暂停/开始"
-          >
-            <svg
+          <div class="ilc-actions">
+            <button
               v-if="clockStore.stopwatch.status === 'running'"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.recordLap()"
+              title="计次"
             >
-              <path :d="CLOCK_ICONS.pause" fill="#000" />
-            </svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.play" fill="#000" />
-            </svg>
-          </button>
-        </div>
-      </div>
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.lap" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              v-else
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.resetStopwatch()"
+              title="重置秒表"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
 
-      <!-- 穆斯林祈祷倒计时卡片 -->
-      <div
-        v-if="isPrayerActive"
-        class="island-live-card"
-      >
-        <div class="ilc-left">
-          <div class="ilc-icon-wrap icon-prayer">
-            <svg width="22" height="22" viewBox="0 0 24 24">
-              <path :d="GLYPHS.moon" fill="#00C853" />
-            </svg>
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.stopwatch.status === 'running'
+                  ? clockStore.pauseStopwatch()
+                  : clockStore.startStopwatch()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.stopwatch.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
           </div>
-          <div class="ilc-time-col">
-            <span class="ilc-main-time">{{ formattedPrayerCountdown }}</span>
-            <span class="ilc-sub-label">{{ prayerSubtitle }}</span>
-          </div>
-        </div>
+        </template>
 
-        <div class="ilc-actions">
-          <button
-            class="ilc-btn btn-cancel"
-            @click.stop="handleClosePrayer"
-            title="关闭"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path :d="CLOCK_ICONS.close" fill="#fff" />
-            </svg>
-          </button>
-        </div>
+        <!-- 主项：录音 -->
+        <template v-else-if="primaryActiveItem === 'recorder'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-recorder">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#ff453a">
+                <path d="M17 10.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4z"/>
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
+              <span class="ilc-sub-label">录音中...</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-stop-record"
+              @click.stop="handleStopRecording"
+              title="停止录音"
+            >
+              <div class="btn-stop-square"></div>
+            </button>
+          </div>
+        </template>
+
+        <!-- 主项：礼拜 -->
+        <template v-else-if="primaryActiveItem === 'prayer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-prayer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="GLYPHS.moon" fill="#00C853" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ formattedPrayerCountdown }}</span>
+              <span class="ilc-sub-label">{{ prayerSubtitle }}</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="handleClosePrayer"
+              title="关闭"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+          </div>
+        </template>
       </div>
     </div>
+
+    <!-- 2. 副灵动岛卡片：当存在多个活动项（如定时器+秒表）时展开平滑滑出，尺寸完全一致为 80px 圆角矩形 -->
+    <Transition name="subcard-slide">
+      <div
+        v-if="isExpanded && secondaryActiveItem"
+        class="island-secondary-card"
+        @click="handleSecondaryCardClick"
+      >
+        <!-- 副项：秒表 -->
+        <template v-if="secondaryActiveItem === 'stopwatch'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-stopwatch">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedStopwatchIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.stopwatch.status === 'paused' ? '秒表 · 已暂停' : '秒表 · 计时中' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              v-if="clockStore.stopwatch.status === 'running'"
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.recordLap()"
+              title="计次"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.lap" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              v-else
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.resetStopwatch()"
+              title="重置秒表"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.stopwatch.status === 'running'
+                  ? clockStore.pauseStopwatch()
+                  : clockStore.startStopwatch()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.stopwatch.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 副项：定时器 -->
+        <template v-else-if="secondaryActiveItem === 'timer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-timer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.cancelTimer()"
+              title="取消倒计时"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.timer.status === 'running'
+                  ? clockStore.pauseTimer()
+                  : clockStore.resumeTimer()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.timer.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -385,60 +531,96 @@ function handleClosePrayer(e) {
   width: calc(var(--screen-w, 360px) - 20px);
   max-width: 358px;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* ================= 1. 收起态紧凑胶囊 (Compact Capsule) ================= */
-.island-capsule {
-  margin: 0 auto;
+/* ================= 灵动岛无缝连续形变核心 (Liquid Morphing) ================= */
+.island-card {
+  position: relative;
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  overflow: hidden;
+  will-change: width, height, border-radius, padding, box-shadow;
+  pointer-events: auto;
+  /* 苹果级流体弹簧形变过渡曲线：胶囊与80px大圆角矩形同一DOM无缝过渡 */
+  transition:
+    width 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    height 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    padding 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 0.38s ease;
+}
+
+/* 收起态尺寸（紧凑胶囊） */
+.island-card.is-compact {
   width: 124px;
   height: 30px;
   border-radius: 15px;
-  background: #000000;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 0 10px;
-  box-sizing: border-box;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
-  animation: capsulePop 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
-.island-capsule:active {
+.island-card.is-compact:active {
   transform: scale(0.95);
 }
 
-@keyframes capsulePop {
-  from {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/* 展开态尺寸：经典礼拜模式大圆角矩形 (高度80px，圆角22px，大气开阔) */
+.island-card.is-expanded {
+  width: 100%;
+  height: 80px;
+  border-radius: 22px;
+  padding: 0 16px 0 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
-.capsule-left {
+/* 图层绝对定位叠放并无缝渐变 */
+.morph-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  will-change: opacity, transform;
+}
+
+/* ================= 收起态胶囊图层 ================= */
+.compact-layer {
+  padding: 0 10px;
+  justify-content: space-between;
+  transition: opacity 0.2s cubic-bezier(0.32, 0.72, 0, 1), transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.is-compact .compact-layer {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+.is-expanded .compact-layer {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.cc-left {
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.capsule-camera-slot {
+.cc-camera-slot {
   width: 18px;
   height: 15px;
   flex: none;
 }
-
-.capsule-right {
+.cc-right {
   display: flex;
   align-items: center;
 }
-
-.capsule-time {
+.cc-time {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
   font-size: 12.5px;
   font-weight: 600;
@@ -447,7 +629,7 @@ function handleClosePrayer(e) {
   letter-spacing: -0.2px;
 }
 
-/* 录音胶囊迷你声波 */
+/* 录音迷你声波 */
 .rc-mini-wave {
   display: inline-flex;
   align-items: center;
@@ -472,25 +654,31 @@ function handleClosePrayer(e) {
   100% { transform: scaleY(1.1); opacity: 1; }
 }
 
-/* ================= 2. 展开态独立圆角矩形卡片列表 (回归礼拜模式尺寸) ================= */
-.island-expanded-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: transparent !important;
-  box-shadow: none !important;
-  border: none !important;
-  padding: 0 !important;
+/* ================= 展开态主卡片图层 ================= */
+.expanded-layer {
+  padding: 0 16px 0 18px;
+  justify-content: space-between;
+  transition: opacity 0.26s cubic-bezier(0.32, 0.72, 0, 1) 0.08s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.is-expanded .expanded-layer {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+.is-compact .expanded-layer {
+  opacity: 0;
+  transform: scale(0.85);
   pointer-events: none;
 }
 
-/* 独立圆角矩形卡片（高度80px，圆角22px，完美契合礼拜模式大气比例） */
-.island-live-card {
+/* ================= 展开态副卡片（多活动时独立呈现，尺寸同为主卡片） ================= */
+.island-secondary-card {
+  margin-top: 10px;
   width: 100%;
   height: 80px;
   border-radius: 22px;
   background: #000000;
+  color: #ffffff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
@@ -499,25 +687,26 @@ function handleClosePrayer(e) {
   box-sizing: border-box;
   cursor: pointer;
   pointer-events: auto;
-  transition: transform 0.15s ease, filter 0.15s ease;
-  animation: cardSlideDown 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-.island-live-card:active {
+.island-secondary-card:active {
   filter: brightness(1.12);
 }
 
-@keyframes cardSlideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* 副卡片平滑滑入滑出过渡 */
+.subcard-slide-enter-active {
+  transition: opacity 0.3s cubic-bezier(0.32, 0.72, 0, 1) 0.08s, transform 0.36s cubic-bezier(0.32, 0.72, 0, 1) 0.08s;
+}
+.subcard-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.subcard-slide-enter-from,
+.subcard-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-20px) scale(0.92);
 }
 
+/* ================= 展开卡片内部公共视觉规范 ================= */
 .ilc-left {
   display: flex;
   align-items: center;
@@ -612,6 +801,7 @@ function handleClosePrayer(e) {
   background: #444448;
 }
 
+/* 高亮橙色主控按钮：纯白图标、4px发光投影 */
 .ilc-btn.btn-playpause {
   background: #ff9500;
   box-shadow: 0 4px 14px rgba(255, 149, 0, 0.4);

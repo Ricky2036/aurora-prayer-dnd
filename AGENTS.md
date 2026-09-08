@@ -27,7 +27,7 @@ If the directory name does not match one of these values, stop and ask which rol
 9. Use the development port assigned to your role with `--strictPort`:
    - `tos-antigravity`: `1234`
    - `tos-workbuddy`: `5678`
-   - `tos-codex`: 端口已停用关闭
+   - `tos-codex`: `8888`
 10. If a task conflicts with these defaults, the written task assignment wins only for the files it names.
 
 ## Shared-file lock
