@@ -298,9 +298,9 @@ function updateStacking() {
         const visualY = stackIndex <= 1 ? stackIndex * 12 : (12 + (stackIndex - 1) * 8)
         const translateY = -excess + visualY
 
-        // 根据滑动堆叠距离调节卡片的不透明度（降低卡片透明度，由 0.82 提升到 0.96），物理遮挡底层卡片，文字绝不隐藏
-        const bgOpacity = clamp(0.82 + (excess / 48) * 0.14, 0.82, 0.96)
-        card.style.setProperty('--nc-card-bg-opacity', String(bgOpacity.toFixed(2)))
+        // 根据滑动堆叠距离调节白毛玻璃卡片不透明度（0.14 提高至 0.22），加厚雾面遮挡透底，绝不隐藏文字
+        const bgAlpha = clamp(0.14 + (excess / 48) * 0.08, 0.14, 0.22)
+        card.style.setProperty('--nc-card-bg-alpha', String(bgAlpha.toFixed(2)))
 
         card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
         card.style.opacity = '1'
@@ -314,7 +314,7 @@ function updateStacking() {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
       card.style.pointerEvents = ''
-      card.style.removeProperty('--nc-card-bg-opacity')
+      card.style.removeProperty('--nc-card-bg-alpha')
     }
   }
 }
@@ -946,11 +946,12 @@ watch(expandedId, async () => {
   align-items: center;
   gap: 12px;
   padding: 13px 14px;
-  background: rgba(48, 48, 58, var(--nc-card-bg-opacity, 0.82));
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, var(--nc-card-bg-alpha, 0.14));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: none;
   cursor: pointer;
   transition: background 0.2s ease;
   transform-origin: center center;
@@ -963,7 +964,7 @@ watch(expandedId, async () => {
 .nc-card.has-swipe-transition {
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
-.nc-card:hover { background: rgba(56, 56, 68, 0.88); }
+.nc-card:hover { background: rgba(255, 255, 255, 0.18); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .nc-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .nc-card-title {
