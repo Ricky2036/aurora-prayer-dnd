@@ -36,6 +36,7 @@ const dndOn = computed(() => control.dnd || control.doNotDisturb)
       <LIcon v-if="control.hotspot" name="radio" :size="18" :stroke-width="2.5" class="sb-ind" />
       <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="sb-ind" />
       <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="sb-ind" />
+      <LIcon v-if="control.bluetooth" name="bluetooth" :size="18" :stroke-width="2.5" class="sb-ind" />
       <StatusIcons :color="light ? '#fff' : '#000'" />
     </div>
   </div>

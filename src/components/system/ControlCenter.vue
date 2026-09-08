@@ -958,6 +958,7 @@ const glassRing = computed(() =>
               <LIcon v-if="control.hotspot" name="radio" :size="18" :stroke-width="2.5" class="cc-ind" />
               <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="cc-ind" />
               <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="cc-ind" />
+              <LIcon v-if="control.bluetooth" name="bluetooth" :size="18" :stroke-width="2.5" class="cc-ind" />
               <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
               <span class="cc-battery-pct">91%</span>
               <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
@@ -966,7 +967,7 @@ const glassRing = computed(() =>
         </template>
         <template v-else>
           <div class="cc-status-dual-rows">
-            <!-- 第 1 行: 卡1 信号 + 中国电信 / Wi-Fi + 电量百分比 + 电池 (与单卡第1行完全一致) -->
+            <!-- 第 1 行: 卡1 信号 + 中国电信 / 勿扰 + 热点 + Wi-Fi + 电量百分比 + 电池 -->
             <div class="cc-status-row">
               <div class="cc-status-left">
                 <StatusIcons color="#fff" :show-wifi="false" :show-signal="true" :show-battery="false" />
@@ -975,23 +976,21 @@ const glassRing = computed(() =>
               <div class="cc-status-right">
                 <LIcon v-if="dndOn" name="moon" :size="18" :stroke-width="2.5" class="cc-ind" />
                 <LIcon v-if="control.hotspot" name="radio" :size="18" :stroke-width="2.5" class="cc-ind" />
-                <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="cc-ind" />
-                <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="cc-ind" />
                 <StatusIcons color="#fff" :show-wifi="true" :show-signal="false" :show-battery="false" />
                 <span class="cc-battery-pct">91%</span>
                 <StatusIcons color="#fff" :show-wifi="false" :show-signal="false" :show-battery="true" />
               </div>
             </div>
-            <!-- 第 2 行: 卡2 信号 + 中国移动 / 蓝牙 -->
+            <!-- 第 2 行: 卡2 信号 + 中国移动 / 静音 + 振动 + 蓝牙 (与第1行均衡，避免一行塞满一行空) -->
             <div class="cc-status-row">
               <div class="cc-status-left">
                 <StatusIcons color="#fff" :show-wifi="false" :show-signal="true" :show-battery="false" />
                 <span class="cc-carrier">{{ i18n.ccLabel('carrier2') }}</span>
               </div>
-              <!-- 只保留蓝牙，且必须复用蓝牙按钮那颗图标（lucide.js 的 bluetooth），
-                   不要用 stroke 版手写 SVG —— 14px 下会糊成一坨变形的线 -->
               <div class="cc-status-right cc-status-sub-icons">
-                <LIcon name="bluetooth" :size="14" />
+                <LIcon v-if="control.soundMode === 'mute'" name="bellOff" :size="18" :stroke-width="2.5" class="cc-ind" />
+                <LIcon v-if="control.soundMode === 'vibrate'" name="vibrate" :size="18" :stroke-width="2.5" class="cc-ind" />
+                <LIcon v-if="control.bluetooth" name="bluetooth" :size="18" :stroke-width="2.5" class="cc-ind" />
               </div>
             </div>
           </div>
