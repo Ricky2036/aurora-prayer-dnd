@@ -256,9 +256,8 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 只有当列表实际内容高度超出可视高度时，才会有“底部无空间”的情况发生
-  const isOverflowing = container.scrollHeight > containerHeight + 20
-  const bottomThreshold = containerHeight - 20
+  // 只有当卡片触及屏幕最底部时才开始堆叠
+  const bottomThreshold = containerHeight - 10
   const scrollTop = container.scrollTop
 
   // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
@@ -282,19 +281,21 @@ function updateStacking() {
     const relativeY = item.offsetTop - scrollTop
     const cardBottom = relativeY + item.offsetHeight
 
-    // 只有当列表真正超出且该卡片触及容器真正的最底部极限时，才做堆叠
-    if (isOverflowing && cardBottom > bottomThreshold) {
+    // 只有当卡片真实底部超过视口底线时才形成层叠
+    if (cardBottom > bottomThreshold) {
       const excess = cardBottom - bottomThreshold
-      // 底部卡片视觉位置保持在 bottomThreshold 不变（通过 -excess 抵消向下位移）
-      // 随着向下滑动，卡片逐渐缩小（1.0 -> 0.92），上层更高 z-index 的卡片向下滑动自然滑过并将其遮挡覆盖
-      const shrinkProgress = Math.min(1, excess / 64)
-      const scale = 1 - shrinkProgress * 0.08
-      // 被上层卡片完全覆盖后淡出消失
-      const opacity = excess > 38 ? Math.max(0, 1 - (excess - 38) / 24) : 1
-
-      card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess}px, 0) scale(${scale})`
-      card.style.opacity = opacity
-      card.style.pointerEvents = opacity <= 0.1 ? 'none' : 'auto'
+      const stackIndex = excess / 48
+      if (stackIndex <= 3.5) {
+        const scale = Math.max(0.82, 1 - stackIndex * 0.05)
+        const visualY = stackIndex <= 1 ? stackIndex * 12 : (12 + (stackIndex - 1) * 8)
+        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
+        card.style.opacity = Math.max(0.45, 1 - stackIndex * 0.16)
+        card.style.pointerEvents = 'auto'
+      } else {
+        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 32}px, 0) scale(0.8)`
+        card.style.opacity = 0
+        card.style.pointerEvents = 'none'
+      }
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
