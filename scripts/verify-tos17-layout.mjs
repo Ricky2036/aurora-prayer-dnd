@@ -70,6 +70,25 @@ for (const id of ['camon', 'note', 'gt', 'hios17', 'note17', 'gt17']) {
   )
 }
 
+// ---- EE1 系列：在 tOS17 基础上，快速分享(cast) 之前插入 VPN ----
+const EE1_REMOVED = ['darkMode', 'autoRotate', 'motionComfort']
+for (const [id, exclusive] of Object.entries({
+  ee1Camon: [],
+  ee1Note: ['joyHeart'],
+  ee1Gt: ['liquidCooling', 'shoulderKey']
+})) {
+  await setPreset(id)
+  const ids = await readCells()
+  check(`${id}: 含 VPN`, ids.includes('vpn'), `total=${ids.length}`)
+  const vpnAt = ids.indexOf('vpn')
+  const castAt = ids.indexOf('cast')
+  check(`${id}: VPN 排在 快速分享 之前`, vpnAt >= 0 && castAt >= 0 && vpnAt < castAt, `vpn@${vpnAt} cast@${castAt}`)
+  for (const r of EE1_REMOVED) check(`${id}: 不含 ${r}（沿用 tOS17 规则）`, !ids.includes(r))
+  for (const e of exclusive) check(`${id}: 含独占项 ${e}`, ids.includes(e))
+  const tail = ids.slice(-3)
+  check(`${id}: 收尾三个 = 快速分享/扫一扫/钱包`, JSON.stringify(tail) === JSON.stringify(['cast', 'scan', 'calculator']), `actual=${tail.join('/')}`)
+}
+
 // ---- 倒数第二排顺序：肩键 → 液冷散热 → 灯效 → 晕动舒缓（GT / GT 17 一致）----
 const SECOND_LAST = ['shoulderKey', 'liquidCooling', 'boost', 'motionComfort']
 // GT 17 按 tOS17 规则去掉了 晕动舒缓，所以只校验前三个的相对顺序

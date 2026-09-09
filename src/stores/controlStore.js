@@ -41,7 +41,8 @@ export const DEFAULT_ICON_SIZES = {
   motionComfort: 34,
   liquidCooling: 32,
   shoulderKey: 32,
-  jbl: 32
+  jbl: 32,
+  vpn: 30
 }
 
 export const DEFAULT_BG_SIZES = {
@@ -96,7 +97,8 @@ export const ITEM_LABELS = {
   motionComfort: '晕动舒缓',
   liquidCooling: '液冷散热',
   shoulderKey: '肩键',
-  jbl: 'JBL'
+  jbl: 'JBL',
+  vpn: 'VPN'
 }
 
 /* ---- 宫格整体缩放（gridScale）：格子 + 间距 + 图标 + 底板一起等比缩放 ----
@@ -116,14 +118,28 @@ export const ITEM_LABELS = {
  *   当前 NOTE/GT 的 tOS17 版相对 tOS16 去掉：深色模式(darkMode) / 红外遥控(autoRotate) /
  *   晕动舒缓(motionComfort)。
  *   CAMON 的 tOS17 走 HIOS17_ITEMS 固定清单：去掉 深色主题(darkMode) / 红外遥控(autoRotate)，
- *   加回 tOS16 有而它缺的 截屏(screenshot) / 灯效(boost)（Ricky 2026-09-08）。 */
+ *   加回 tOS16 有而它缺的 截屏(screenshot) / 灯效(boost)（Ricky 2026-09-08）。
+ * EE1 系列（Ricky 2026-09-09）：在 tOS 17 布局基础上，于 快速分享(cast) 之前
+ *   插入 VPN —— 用 layout:'hios17' 表明确走 HiOS 清单，用 extra 声明插入项。 */
+const TOS17_REMOVED = ['darkMode', 'autoRotate', 'motionComfort']
 export const LAYOUT_PRESETS = [
   { id: 'camon', label: 'CAMON', shortLabel: 'CAMON', series: '16', only: [] },
   { id: 'note', label: 'NOTE', shortLabel: 'NOTE', series: '16', only: ['joyHeart'] },
   { id: 'gt', label: 'GT', shortLabel: 'GT', series: '16', only: ['liquidCooling', 'shoulderKey'] },
   { id: 'hios17', label: 'CAMON 17', shortLabel: 'CAMON', series: '17', only: [] },
-  { id: 'note17', label: 'NOTE 17', shortLabel: 'NOTE', series: '17', only: ['joyHeart'], removed: ['darkMode', 'autoRotate', 'motionComfort'] },
-  { id: 'gt17', label: 'GT 17', shortLabel: 'GT', series: '17', only: ['liquidCooling', 'shoulderKey'], removed: ['darkMode', 'autoRotate', 'motionComfort'] }
+  { id: 'note17', label: 'NOTE 17', shortLabel: 'NOTE', series: '17', only: ['joyHeart'], removed: TOS17_REMOVED },
+  { id: 'gt17', label: 'GT 17', shortLabel: 'GT', series: '17', only: ['liquidCooling', 'shoulderKey'], removed: TOS17_REMOVED },
+  { id: 'ee1Camon', label: 'CAMON EE1', shortLabel: 'CAMON', series: 'ee1', layout: 'hios17', extra: ['vpn'] },
+  { id: 'ee1Note', label: 'NOTE EE1', shortLabel: 'NOTE', series: 'ee1', only: ['joyHeart'], removed: TOS17_REMOVED, extra: ['vpn'] },
+  {
+    id: 'ee1Gt',
+    label: 'GT EE1',
+    shortLabel: 'GT',
+    series: 'ee1',
+    only: ['liquidCooling', 'shoulderKey'],
+    removed: TOS17_REMOVED,
+    extra: ['vpn']
+  }
 ]
 /** 所有「机型独有」磁贴：通用布局里要把它们全部排除 */
 export const PRESET_EXCLUSIVE_IDS = LAYOUT_PRESETS.flatMap((p) => p.only)
@@ -212,6 +228,7 @@ export const useControlStore = defineStore('control', {
     liquidCooling: false,
     shoulderKey: false,
     jbl: false,
+    vpn: false,
     dnd: false,
     mediaPlaying: true,
     mediaActive: true,
