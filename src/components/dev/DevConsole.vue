@@ -1352,35 +1352,38 @@ function onCopyFineTune() {
 }
 
 /* 隐私指示 / 双卡显示：一张卡片内两个**独立**双态按钮。
-   底板/圆角/字号沿用 .pc-seg + .pc-seg-btn，但刻意不复用 .pc-seg-thumb 滑块：
+   Ricky 2026-09-09：两个按钮要看得见地分开，不要连成一根长条 ——
+   所以这里没有 .pc-seg 那样的公共底板，也没有 .pc-seg-thumb 滑块：
    滑块语义是「互斥切换」，这里两个按钮各自可点选/取消（可同选、可同不选），
-   所以选中态直接落在按钮自身的背景色上，用同一个 0.2,0.8,0.2,1 缓动保持一致手感。 */
+   每个按钮自带一块底板（沿用 .pc-card 的深灰 + 描边，只是圆角/内距按按钮缩小），
+   间距 10 与其它卡片之间的间距同档，选中态落在按钮自身的蓝色底上。 */
 .pc-toggle-row {
   display: flex;
-  gap: 8px;
-  background: #101014;
-  border: 1px solid #27272a;
-  border-radius: 12px;
-  padding: 3px;
+  gap: 10px;
 }
 .pc-toggle-btn {
   flex: 1 1 0;
   min-width: 0;
-  padding: 7px 0;
+  padding: 9px 0;
   font: 500 12px/1 var(--font-stack);
-  border-radius: 9px;
+  border-radius: 12px;
   color: #a1a1aa;
-  background: transparent;
-  border: none;
+  background: #17171c;
+  border: 1px solid #2e2e38;
   cursor: pointer;
-  transition: background 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease, box-shadow 0.28s ease;
+  transition: background 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease,
+    border-color 0.28s ease, box-shadow 0.28s ease;
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
   user-select: none;
 }
-.pc-toggle-btn:hover { color: #f4f4f5; }
+.pc-toggle-btn:hover {
+  color: #f4f4f5;
+  border-color: #3f3f4c;
+}
 .pc-toggle-btn.on {
   background: #2563eb;
+  border-color: #2563eb;
   color: #ffffff;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
