@@ -8,6 +8,7 @@ import { getDriver } from '../../composables/driverRegistry'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
 import { clamp } from '../../utils/math'
+import { getNotificationStackLayout } from '../../utils/notificationStack'
 import MusicPlayerCard from './MusicPlayerCard.vue'
 import MaterialBlur from '../ui/MaterialBlur.vue'
 import LIcon from '../ui/LIcon.vue'
@@ -36,6 +37,14 @@ const prayer = usePrayerStore()
 const control = useControlStore()
 const { activeActivities } = useActiveActivities()
 const { timeShort, now } = useClock()
+const mediaActivity = computed(() => ({
+  id: 'media',
+  type: 'media',
+  appId: 'music',
+  title: control.mediaTitle,
+  subtitle: control.mediaArtist,
+  status: control.mediaPlaying ? 'playing' : 'paused'
+}))
 
 const overlay = computed(() => system.overlays.notificationCenter)
 const visible = computed(() => overlay.value.status !== 'closed')
@@ -204,6 +213,8 @@ function stopActivityInstance(act) {
     clock.resetStopwatch()
   } else if (act.type === 'prayer' || act.id === 'prayer') {
     prayer.closeIsland()
+  } else if (act.type === 'media' || act.id === 'media') {
+    control.dismissMediaImmediately()
   }
 }
 
@@ -244,6 +255,8 @@ function onDeleteCard(id) {
     clock.resetStopwatch()
   } else if (id === 'prayer') {
     prayer.closeIsland()
+  } else if (id === 'media') {
+    control.dismissMediaImmediately()
   } else {
     notifications.remove(id)
   }
@@ -344,12 +357,7 @@ function updateStacking() {
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
   if (!wrappers.length) return
 
-  // 堆叠起始基准线：提升至安全呼吸区（与底部清除按钮形成自然叠放层次，距离容器底部 76px）
-  const bottomThreshold = containerHeight - 76
   const scrollTop = container.scrollTop
-
-  // 最下方挤压极限位置：紧贴容器底部（距容器底 4px），彻底消除底部空隙
-  const maxVisualY = Math.max(68, containerHeight - bottomThreshold - 4)
 
   // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
   const items = []
@@ -378,40 +386,16 @@ function updateStacking() {
     const swipeX = swipeOffsets.value[item.id] || 0
     const relativeY = item.offsetTop - scrollTop
     const cardBottom = relativeY + item.offsetHeight
+    const layout = getNotificationStackLayout({ cardBottom, viewportHeight: containerHeight })
 
     // 只有当卡片真实底部超过视口底线时才形成层叠
-    if (cardBottom > bottomThreshold) {
-      const excess = cardBottom - bottomThreshold
-      const stackIndex = excess / 48
-
-      // 物理堆叠位移：让底层卡片随挤压深度持续向下推移直至最底部位置（maxVisualY），无缝贴合底部消除空隙
-      let visualY
-      if (stackIndex <= 1) {
-        visualY = stackIndex * 16
-      } else if (stackIndex <= 2) {
-        visualY = 16 + (stackIndex - 1) * 20
-      } else if (stackIndex <= 3) {
-        visualY = 36 + (stackIndex - 2) * 18
-      } else {
-        visualY = Math.min(maxVisualY, 54 + (stackIndex - 3) * 16)
-      }
-
-      const translateY = -excess + visualY
-      const scale = Math.max(0.78, 1 - stackIndex * 0.055)
-
+    if (layout.stacked) {
       // 根据滑动堆叠距离调节白毛玻璃卡片不透明度（0.14 提高至 0.22），加厚雾面遮挡透底，绝不隐藏文字
-      const bgAlpha = clamp(0.14 + (excess / 48) * 0.08, 0.14, 0.22)
-      card.style.setProperty('--nc-card-bg-alpha', String(bgAlpha.toFixed(2)))
+      card.style.setProperty('--nc-card-bg-alpha', String(layout.backgroundAlpha.toFixed(2)))
 
-      // 自然渐隐消失：当过度挤压并推至最底部时（stackIndex 1.6 ~ 3.8），不透明度平滑衰减至 0，无任何突兀切断
-      let opacity = 1
-      if (stackIndex > 1.6) {
-        opacity = clamp(1 - (stackIndex - 1.6) / 2.2, 0, 1)
-      }
-
-      card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
-      card.style.opacity = String(opacity.toFixed(3))
-      card.style.pointerEvents = opacity < 0.08 ? 'none' : 'auto'
+      card.style.transform = `translateX(${swipeX}px) translate3d(0, ${layout.translateY}px, 0) scale(${layout.scale})`
+      card.style.opacity = String(layout.opacity.toFixed(3))
+      card.style.pointerEvents = layout.interactive ? 'auto' : 'none'
     } else {
       card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
       card.style.opacity = ''
@@ -661,8 +645,45 @@ watch(expandedId, async () => {
           </div>
         </template>
 
-        <!-- 音乐播放器卡片 -->
-        <MusicPlayerCard v-if="control.mediaActive" class="nc-player-instance" />
+        <!-- 音乐播放器卡片：与其他灵动岛活动共用横滑操作 -->
+        <div v-if="control.mediaActive" class="nc-swipe-card-wrapper nc-media-wrapper">
+          <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets.media || 0) < -2 }">
+            <button
+              class="nc-action-btn nc-btn-settings"
+              :style="getActionBtnStyle('media', 'settings')"
+              @click.stop="onJumpSettings"
+              :title="i18n.t('islandSettings')"
+            >
+              <LIcon name="headerSettings" :size="20" />
+            </button>
+            <button
+              class="nc-action-btn nc-btn-delete"
+              :style="getActionBtnStyle('media', 'delete')"
+              @click.stop="onRequestDeleteActivity(mediaActivity)"
+              :title="i18n.t('delete')"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+          </div>
+          <MusicPlayerCard
+            class="nc-player-instance"
+            :class="{
+              'is-swiping': isSwipingCard && activeCardId === 'media',
+              'has-swipe-transition': !isSwipingCard && swipedTransitionId === 'media'
+            }"
+            :style="{ transform: `translateX(${swipeOffsets.media || 0}px)` }"
+            @pointerdown="onCardPointerDown($event, 'media')"
+            @pointermove="onCardPointerMove($event, 'media')"
+            @pointerup="onCardPointerUp($event, 'media')"
+            @pointercancel="onCardPointerUp($event, 'media')"
+          />
+        </div>
 
         <!-- 通知列表 -->
         <template v-if="notifications.list.length">
@@ -989,6 +1010,15 @@ watch(expandedId, async () => {
   margin-bottom: 0;
   box-shadow: none !important;
 }
+.nc-media-wrapper {
+  height: 164px;
+}
+.nc-player-instance.is-swiping {
+  transition: none !important;
+}
+.nc-player-instance.has-swipe-transition {
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
 
 /* ---- 滑动容器与底层操作按钮 ---- */
 .nc-swipe-card-wrapper {
@@ -1023,6 +1053,7 @@ watch(expandedId, async () => {
 .nc-swipe-actions.is-active {
   opacity: 1;
   pointer-events: auto;
+  z-index: 3;
 }
 
 .nc-action-btn {
@@ -1067,6 +1098,9 @@ watch(expandedId, async () => {
   color: #ffffff;
 }
 .nc-btn-delete {
+  color: #ffffff;
+}
+.nc-btn-delete:active {
   color: #ff3b30;
 }
 
@@ -1096,6 +1130,8 @@ watch(expandedId, async () => {
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: none;
+  clip-path: inset(0 round 24px);
+  isolation: isolate;
   cursor: pointer;
   transition: background 0.2s ease;
   transform-origin: center center;
