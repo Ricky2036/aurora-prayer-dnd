@@ -3,13 +3,14 @@
 const props = defineProps({
   title: { type: String, default: '' },
   backLabel: { type: String, default: '' },
-  showBack: { type: Boolean, default: true }
+  showBack: { type: Boolean, default: true },
+  sticky: { type: Boolean, default: true }
 })
 const emit = defineEmits(['back'])
 </script>
 
 <template>
-  <div class="app-nav-bar">
+  <div class="app-nav-bar" :class="{ 'is-sticky': sticky }">
     <button v-if="showBack" class="anb-back-btn" @click="emit('back')">
       <!-- 极简返回箭头（不显示上级文字，参考图 1/图 2 样式） -->
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -25,6 +26,7 @@ const emit = defineEmits(['back'])
 <style scoped>
 .app-nav-bar {
   position: relative;
+  width: 100%;
   height: calc(var(--safe-top) + 48px);
   padding: var(--safe-top) 8px 0 12px;
   display: flex;
@@ -34,8 +36,14 @@ const emit = defineEmits(['back'])
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 0.5px solid rgba(60, 60, 67, 0.1);
   flex: none;
-  z-index: 5;
+  z-index: 10;
   gap: 8px;
+  box-sizing: border-box;
+}
+
+.app-nav-bar.is-sticky {
+  position: sticky;
+  top: 0;
 }
 
 .anb-back-btn {
