@@ -514,8 +514,8 @@ export const MESSAGES = {
     aiContactsCount: '老婆、老板等3人',
 
     // 闹钟提醒与时段联动
-    prayerAlarmHeader: '闹钟提醒',
-    prayerAlarmLinkage: '礼拜前闹钟提醒',
+    prayerAlarmHeader: '唤礼提醒',
+    prayerAlarmLinkage: '闹钟提醒',
     prayerAlarmLinkageDesc: '各时段开始前响铃或播放唤礼声',
     alarmAdvanceTime: '提醒时间',
     noReminder: '不提醒',
@@ -882,8 +882,8 @@ export const MESSAGES = {
     aiContactsCount: 'Wife, Boss & 1 other',
 
     // Alarm Reminder
-    prayerAlarmHeader: 'ALARM REMINDER',
-    prayerAlarmLinkage: 'Prayer Alarm Reminder',
+    prayerAlarmHeader: 'ADHAN REMINDER',
+    prayerAlarmLinkage: 'Alarm Reminder',
     prayerAlarmLinkageDesc: 'Ring or play Adhan before each prayer time',
     alarmAdvanceTime: 'Reminder Time',
     noReminder: 'None',
@@ -1251,8 +1251,8 @@ export const MESSAGES = {
     aiContactsCount: 'স্ত্রী, বসসহ ৩ জন',
 
     // Alarm Reminder
-    prayerAlarmHeader: 'অ্যালার্ম স্মারক',
-    prayerAlarmLinkage: 'নামাজের পূর্বের অ্যালার্ম',
+    prayerAlarmHeader: 'আযান স্মারক',
+    prayerAlarmLinkage: 'অ্যালার্ম স্মারক',
     prayerAlarmLinkageDesc: 'প্রতিটি নামাজের পূর্বে অ্যালার্ম বা আযান বাজবে',
     alarmAdvanceTime: 'স্মারক সময়',
     noReminder: 'কোনোটি নয়',

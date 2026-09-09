@@ -382,8 +382,8 @@ function saveEdit() {
             </div>
           </div>
 
-          <!-- 闹钟提醒入口（开关改为箭头，点击进入二级页面） -->
-          <div class="group-header">{{ tr('prayerAlarmHeader', '闹钟提醒', 'ALARM REMINDER', 'অ্যালার্ম স্মারক') }}</div>
+          <!-- 闹钟提醒入口（小标题为唤礼提醒，标题为闹钟提醒） -->
+          <div class="group-header">{{ tr('prayerAlarmHeader', '唤礼提醒', 'ADHAN REMINDER', 'আযান স্মারক') }}</div>
           <div class="cell-group">
             <div class="list-cell clickable" @click="openReminderSubpage">
               <div class="lc-icon" style="background: #FF9500;">
@@ -392,7 +392,7 @@ function saveEdit() {
                 </svg>
               </div>
               <div class="lc-main no-sep">
-                <span class="lc-title">{{ tr('prayerAlarmLinkage', '礼拜前闹钟提醒', 'Prayer Alarm Reminder', 'নামাজের পূর্বের অ্যালার্ম') }}</span>
+                <span class="lc-title">{{ tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক') }}</span>
                 <div class="lc-right">
                   <span class="lc-sub-val dark-text">{{ currentReminderLabel }}</span>
                   <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
@@ -532,8 +532,8 @@ function saveEdit() {
 
       <!-- ================= 3. 提醒时间全屏二级页 ================= -->
       <div v-else-if="currentView === 'reminder'" key="reminder" class="prayer-subpage">
-        <!-- 顶部导航：当前菜单名称「提醒时间」，左侧返回按钮「< 礼拜模式」 -->
-        <AppNavBar :title="tr('alarmAdvanceTime', '提醒时间', 'Reminder Time', 'স্মারক সময়')" :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')" @back="handleReminderBack" />
+        <!-- 顶部导航：当前菜单名称「闹钟提醒」，左侧返回按钮「< 礼拜模式」 -->
+        <AppNavBar :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')" :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')" @back="handleReminderBack" />
 
         <div class="scrollable detail-body">
           <div class="group-header">{{ tr('alarmAdvanceTime', '提醒时间', 'REMINDER TIME', 'স্মারক সময়') }}</div>
