@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useI18nStore } from './i18nStore'
+import { resolveCurrentIslandPrayer } from '../utils/prayerIsland.js'
 
 const DEFAULT_PRAYERS = [
   {
@@ -111,6 +112,7 @@ export const usePrayerStore = defineStore('prayer', {
 
       /* ---- 灵动岛与控制台模拟状态 ---- */
       simulatedPrayerId: 'fajr', // 默认初始化为晨礼，展示礼拜灵动岛
+      dismissedIslandPrayerId: null,
       islandExpanded: false,
       islandCountdownSeconds: getPrayerDurationSeconds(defaultFajr)
     }
@@ -136,11 +138,14 @@ export const usePrayerStore = defineStore('prayer', {
     },
     // 当前灵动岛生效的礼拜（优先取模拟项，其次取当前处于时段内的礼拜）
     currentIslandPrayer: (s) => {
-      if (!s.masterEnabled) return null
-      if (s.simulatedPrayerId) {
-        return s.prayers.find((p) => p.id === s.simulatedPrayerId) || null
-      }
-      return s.activePrayer || (s.userMode === 'muslim' ? (s.prayers.find((p) => p.enabled) || s.prayers[0]) : null)
+      return resolveCurrentIslandPrayer({
+        masterEnabled: s.masterEnabled,
+        simulatedPrayerId: s.simulatedPrayerId,
+        dismissedPrayerId: s.dismissedIslandPrayerId,
+        activePrayer: s.activePrayer,
+        userMode: s.userMode,
+        prayers: s.prayers
+      })
     },
     // 动态生成联系人选择摘要标签（如：老婆、老板等3人）
     selectedContactsSummary(s) {
@@ -218,6 +223,7 @@ export const usePrayerStore = defineStore('prayer', {
     /* 灵动岛控制：切换礼拜时精确关联对应时间间隔 */
     setSimulatedPrayer(id) {
       this.simulatedPrayerId = id
+      if (id) this.dismissedIslandPrayerId = null
       const prayer = this.prayers.find((p) => p.id === id)
       this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
       if (id) {
@@ -235,6 +241,7 @@ export const usePrayerStore = defineStore('prayer', {
     },
 
     closeIsland() {
+      this.dismissedIslandPrayerId = this.currentIslandPrayer?.id || this.simulatedPrayerId || null
       this.simulatedPrayerId = null
       this.islandExpanded = false
       const prayer = this.prayers.find((p) => p.id === 'fajr')
@@ -258,6 +265,7 @@ export const usePrayerStore = defineStore('prayer', {
       this.prayers = JSON.parse(JSON.stringify(DEFAULT_PRAYERS))
       this.masterEnabled = true
       this.simulatedPrayerId = 'fajr'
+      this.dismissedIslandPrayerId = null
       this.selectedContactIds = ['c1', 'c2', 'c3']
       const prayer = this.prayers.find((p) => p.id === 'fajr')
       this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
@@ -280,4 +288,3 @@ function ensurePrayerTicker(store) {
     }
   }, 1000)
 }
-
