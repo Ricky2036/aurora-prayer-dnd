@@ -1,5 +1,5 @@
 import { chromium } from 'playwright'
-const PORT = process.argv[2] || '5678'
+const PORT = process.argv[2] || '5555'
 const CHROME =
   process.env.PLAYWRIGHT_CHROME ||
   '/Users/jingzhan.chen/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'
@@ -43,14 +43,17 @@ const expected = {
   location: { r: 6, c: 2, w: 1, h: 1 },
   rotationLock: { r: 6, c: 3, w: 1, h: 1 },
   dnd: { r: 6, c: 4, w: 1, h: 1 },
-  calculator: { r: 7, c: 1, w: 1, h: 1 },
-  batterySaver: { r: 7, c: 2, w: 1, h: 1 },
-  screenRecord: { r: 7, c: 3, w: 1, h: 1 },
-  scan: { r: 7, c: 4, w: 1, h: 1 },
-  darkMode: { r: 8, c: 1, w: 1, h: 1 },
-  autoRotate: { r: 8, c: 2, w: 1, h: 1 },
-  share: { r: 8, c: 3, w: 1, h: 1 },
-  cast: { r: 8, c: 4, w: 1, h: 1 }
+  batterySaver: { r: 7, c: 1, w: 1, h: 1 },
+  screenRecord: { r: 7, c: 2, w: 1, h: 1 },
+  // tOS17 差异（Ricky 2026-09-08）：深色主题 / 红外遥控 下线，
+  // 加回 tOS16 有而这里缺的 截屏 / 灯效（同为 1x1）
+  screenshot: { r: 7, c: 3, w: 1, h: 1 },
+  boost: { r: 7, c: 4, w: 1, h: 1 },
+  // 收尾三个与其它默认布局统一：快速分享 / 扫一扫 / 钱包
+  share: { r: 8, c: 1, w: 1, h: 1 },
+  cast: { r: 8, c: 2, w: 1, h: 1 },
+  scan: { r: 8, c: 3, w: 1, h: 1 },
+  calculator: { r: 8, c: 4, w: 1, h: 1 }
 }
 
 let allOk = true

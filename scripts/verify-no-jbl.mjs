@@ -2,7 +2,7 @@
  * 用法: node scripts/verify-no-jbl.mjs [port] */
 import { chromium } from 'playwright'
 
-const PORT = process.argv[2] || '5678'
+const PORT = process.argv[2] || '5555'
 const URL = `http://127.0.0.1:${PORT}/`
 
 /* 本机 playwright 版本与缓存里的 chromium 版本对不上时用 executablePath 兜底

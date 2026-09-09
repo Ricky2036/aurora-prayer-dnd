@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useControlStore, LAYOUT_PRESETS } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { usePrayerStore } from '../../stores/prayerStore'
@@ -58,6 +58,66 @@ const i18n = useI18nStore()
 const presetIndex = computed(() =>
   Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset))
 )
+
+/** tOS16 预设（顶行）与 tOS17 预设（底行，用于与 tOS16 对比）。
+ *  按 preset.series 分流；series 缺省时归入 tOS16，避免新预设掉出控件。 */
+const tos16Presets = computed(() => LAYOUT_PRESETS.filter((p) => (p.series || '16') === '16'))
+const tos17Presets = computed(() => LAYOUT_PRESETS.filter((p) => p.series === '17'))
+/* 默认布局两行共 6 个按钮 —— 整张卡片只保留「一个」滑块，
+   切换时靠实测目标按钮相对容器的偏移连续移动（含跨行），
+   而不是两行各一个滑块各自淡出/归位（那样跨行切换会先从行首闪一下）。
+   首帧无动画就位，之后才开过渡；容器尺寸变化（面板折叠/响应式）时重算。 */
+function usePresetThumb() {
+  const rowsRef = ref(null)
+  const thumbStyle = ref({ opacity: 0 })
+  const ready = ref(false)
+  let ro = null
+
+  function syncThumb() {
+    const el = rowsRef.value
+    if (!el) return
+    const btn = el.querySelector('.pc-seg-btn.on')
+    if (!btn) {
+      thumbStyle.value = { ...thumbStyle.value, opacity: 0 }
+      return
+    }
+    const c = el.getBoundingClientRect()
+    const b = btn.getBoundingClientRect()
+    thumbStyle.value = {
+      width: `${b.width}px`,
+      height: `${b.height}px`,
+      transform: `translate(${b.left - c.left}px, ${b.top - c.top}px)`,
+      opacity: 1
+    }
+  }
+
+  /* 两行是 v-if 页签里的延迟内容 —— 首次挂载时 rowsRef 可能还是 null，
+     切到「控制中心」页签后才真正出现，所以元素一挂上就要补一次测量。 */
+  function attach() {
+    const el = rowsRef.value
+    if (!el) return
+    syncThumb()
+    requestAnimationFrame(() => { ready.value = true })
+    if (typeof ResizeObserver !== 'undefined') {
+      if (ro) ro.disconnect()
+      ro = new ResizeObserver(() => syncThumb())
+      ro.observe(el)
+    }
+  }
+
+  onMounted(attach)
+  watch(rowsRef, (el) => { if (el) nextTick(attach) })
+  onBeforeUnmount(() => { if (ro) ro.disconnect() })
+  watch(() => control.layoutPreset, () => nextTick(syncThumb))
+
+  return { rowsRef, thumbStyle, ready }
+}
+
+const desktopPresetThumb = usePresetThumb()
+const mobilePresetThumb = usePresetThumb()
+/* 模板 ref 需要顶层同名变量才能绑定 */
+const desktopRowsRef = desktopPresetThumb.rowsRef
+const mobileRowsRef = mobilePresetThumb.rowsRef
 
 /* ================= Tab 切换状态 ================= */
 const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
@@ -506,28 +566,45 @@ function onCopyFineTune() {
 
         <!-- 3. 控制中心 Tab -->
         <section v-else-if="activeTab === 'control'" key="control" class="pc-tab-panel">
-          <!-- 默认布局（机型） -->
+          <!-- 默认布局：tOS16 / tOS17 两行对照，同一张卡片内 -->
           <div class="pc-card">
             <div class="pc-card-header">
               <span class="pc-card-title">默认布局</span>
             </div>
-            <div class="pc-seg">
+            <div class="pc-preset-rows" ref="desktopRowsRef">
               <div
-                class="pc-seg-thumb-3"
-                :style="{
-                  width: `calc(${100 / LAYOUT_PRESETS.length}% - ${6 / LAYOUT_PRESETS.length}px)`,
-                  transform: `translateX(${Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset)) * 100}%)`
-                }"
+                class="pc-preset-thumb"
+                :class="{ 'is-ready': desktopPresetThumb.ready.value }"
+                :style="desktopPresetThumb.thumbStyle.value"
               ></div>
-              <button
-                v-for="p in LAYOUT_PRESETS"
-                :key="p.id"
-                class="pc-seg-btn"
-                :class="{ on: control.layoutPreset === p.id }"
-                @click="control.setLayoutPreset(p.id)"
-              >
-                {{ p.label }}
-              </button>
+              <div class="pc-preset-row">
+                <span class="pc-preset-tag">tOS 16</span>
+                <div class="pc-seg">
+                  <button
+                    v-for="p in tos16Presets"
+                    :key="p.id"
+                    class="pc-seg-btn"
+                    :class="{ on: control.layoutPreset === p.id }"
+                    @click="control.setLayoutPreset(p.id)"
+                  >
+                    {{ p.shortLabel || p.label }}
+                  </button>
+                </div>
+              </div>
+              <div class="pc-preset-row">
+                <span class="pc-preset-tag">tOS 17</span>
+                <div class="pc-seg">
+                  <button
+                    v-for="p in tos17Presets"
+                    :key="p.id"
+                    class="pc-seg-btn"
+                    :class="{ on: control.layoutPreset === p.id }"
+                    @click="control.setLayoutPreset(p.id)"
+                  >
+                    {{ p.shortLabel || p.label }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -863,25 +940,45 @@ function onCopyFineTune() {
 
                 <!-- 3. 控制中心 Tab -->
                 <section v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
-                  <!-- 默认布局（机型） -->
+                  <!-- 默认布局：tOS16 / tOS17 两行对照，同一张卡片内 -->
                   <div class="pc-card">
                     <div class="pc-card-header">
                       <span class="pc-card-title">默认布局</span>
                     </div>
-                    <div class="pc-seg">
+                    <div class="pc-preset-rows" ref="mobileRowsRef">
                       <div
-                        class="pc-seg-thumb-3"
-                        :style="{ transform: `translateX(${presetIndex * 100}%)` }"
+                        class="pc-preset-thumb"
+                        :class="{ 'is-ready': mobilePresetThumb.ready.value }"
+                        :style="mobilePresetThumb.thumbStyle.value"
                       ></div>
-                      <button
-                        v-for="p in LAYOUT_PRESETS"
-                        :key="p.id"
-                        class="pc-seg-btn"
-                        :class="{ on: control.layoutPreset === p.id }"
-                        @click="control.setLayoutPreset(p.id)"
-                      >
-                        {{ p.label }}
-                      </button>
+                      <div class="pc-preset-row">
+                        <span class="pc-preset-tag">tOS 16</span>
+                        <div class="pc-seg">
+                          <button
+                            v-for="p in tos16Presets"
+                            :key="p.id"
+                            class="pc-seg-btn"
+                            :class="{ on: control.layoutPreset === p.id }"
+                            @click="control.setLayoutPreset(p.id)"
+                          >
+                            {{ p.shortLabel || p.label }}
+                          </button>
+                        </div>
+                      </div>
+                      <div class="pc-preset-row">
+                        <span class="pc-preset-tag">tOS 17</span>
+                        <div class="pc-seg">
+                          <button
+                            v-for="p in tos17Presets"
+                            :key="p.id"
+                            class="pc-seg-btn"
+                            :class="{ on: control.layoutPreset === p.id }"
+                            @click="control.setLayoutPreset(p.id)"
+                          >
+                            {{ p.shortLabel || p.label }}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -1192,6 +1289,57 @@ function onCopyFineTune() {
 .pc-state-tag.is-on .pc-dot {
   background: #10b981;
   box-shadow: 0 0 8px #10b981;
+}
+
+/* 默认布局：tOS16 / tOS17 两行对照（同一张卡片内） */
+.pc-preset-rows {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 两行 6 个按钮共用一个滑块：位置由 JS 实测目标按钮写入 transform，
+   所以跨行切换也是连续位移，不会先在行首闪一下。
+   z-index 1 与按钮同级 —— 靠 DOM 顺序（滑块在前）压在按钮文字之下、
+   .pc-seg 底板之上。 */
+.pc-preset-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  border-radius: 9px;
+  background: #2563eb;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+  pointer-events: none;
+}
+
+/* 首帧直接就位，不加过渡；之后才开启动画 */
+.pc-preset-thumb.is-ready {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pc-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pc-preset-tag {
+  flex: 0 0 54px;
+  width: 54px;
+  font: 600 11px/1 var(--font-stack);
+  color: #8b8b93;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.pc-preset-row .pc-seg {
+  flex: 1;
+  min-width: 0;
 }
 
 /* 分段选择器 */
