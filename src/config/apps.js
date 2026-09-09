@@ -122,7 +122,7 @@ export const APPS = [
   {
     id: 'clock',
     name: '时钟',
-    depth: 'placeholder',
+    depth: 'core',
     heroBackground: '#1C1C1E',
     special: 'clock',
     page: 0

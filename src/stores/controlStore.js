@@ -175,6 +175,7 @@ function loadStoredDefaults() {
 
 const initialOverrides = loadStorageOverrides()
 const initialDefaults = loadStoredDefaults()
+let mediaDismissTimer = null
 
 /** 控制中心 / 状态栏 / 亮度滤镜共享的真实开关状态 */
 export const useControlStore = defineStore('control', {
@@ -213,6 +214,9 @@ export const useControlStore = defineStore('control', {
     jbl: false,
     dnd: false,
     mediaPlaying: true,
+    mediaActive: true,
+    mediaTitle: 'Big Big World',
+    mediaArtist: 'Emilia',
 
     /* ---- 控制台 / 编辑模式（与 App.vue 控制台共享） ---- */
     editing: false,        // 控制中心编辑模式（控制台可切换）
@@ -248,7 +252,45 @@ export const useControlStore = defineStore('control', {
 
   actions: {
     toggle(key) {
+      if (key === 'mediaPlaying') {
+        this.toggleMediaPlaying()
+        return
+      }
       if (typeof this[key] === 'boolean') this[key] = !this[key]
+    },
+    toggleMediaPlaying() {
+      this.mediaPlaying = !this.mediaPlaying
+      this.handleMediaStateChange()
+    },
+    setMediaPlaying(playing) {
+      this.mediaPlaying = !!playing
+      this.handleMediaStateChange()
+    },
+    handleMediaStateChange() {
+      if (this.mediaPlaying) {
+        this.mediaActive = true
+        if (mediaDismissTimer) {
+          clearTimeout(mediaDismissTimer)
+          mediaDismissTimer = null
+        }
+      } else {
+        if (mediaDismissTimer) {
+          clearTimeout(mediaDismissTimer)
+        }
+        // 暂停超过 10 分钟 (600,000 ms) 自动消失
+        mediaDismissTimer = setTimeout(() => {
+          this.mediaActive = false
+          mediaDismissTimer = null
+        }, 10 * 60 * 1000)
+      }
+    },
+    dismissMediaImmediately() {
+      this.mediaActive = false
+      this.mediaPlaying = false
+      if (mediaDismissTimer) {
+        clearTimeout(mediaDismissTimer)
+        mediaDismissTimer = null
+      }
     },
     /** 精确赋值（录屏状态需要与真实录制状态同步，不能用取反的 toggle） */
     setFlag(key, value) {

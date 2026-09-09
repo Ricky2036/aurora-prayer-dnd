@@ -2,7 +2,7 @@
 
 Branch: `codex/lane`
 
-Development port: `5174`
+Development port: `8888`
 
 Current module ownership:
 

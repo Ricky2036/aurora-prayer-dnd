@@ -1,12 +1,29 @@
 <script setup>
+import { ref } from 'vue'
 import { useClock } from '../../composables/useClock'
+import { useSystemStore } from '../../stores/systemStore'
+import { getAnchorRect, setLaunchRect } from '../../utils/appIconAnchors'
+import { rectRelativeToScreen } from '../../utils/dom'
 
-/** 时钟 Widget（2×2）：白底实时指针表盘，表盘放大居中显示 */
+/** 时钟 Widget（2×2）：白底实时指针表盘，表盘放大居中显示，点击打开时钟 App */
 const { hourDeg, minuteDeg, secondDeg } = useClock()
+const system = useSystemStore()
+const widgetRef = ref(null)
+
+function openClock() {
+  const screenEl = document.querySelector('.screen-view')
+  const launchRect = (screenEl && widgetRef.value)
+    ? (getAnchorRect('clock', screenEl) || rectRelativeToScreen(widgetRef.value, screenEl))
+    : null
+  if (launchRect) {
+    setLaunchRect('clock', launchRect)
+  }
+  system.openApp('clock')
+}
 </script>
 
 <template>
-  <div class="widget clock-widget">
+  <div ref="widgetRef" class="widget clock-widget" @click="openClock">
     <svg class="cw-face" viewBox="0 0 120 120">
       <circle cx="60" cy="60" r="57" fill="#fff" />
       <!-- 刻度 -->
@@ -58,6 +75,7 @@ const { hourDeg, minuteDeg, secondDeg } = useClock()
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
 }
 /* 表盘放大至容器可用空间，居中显示 */
 .cw-face {

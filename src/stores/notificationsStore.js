@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { seedNotifications } from '../config/seedNotifications'
+import { seedNotifications } from '../config/seedNotifications.js'
 
 let nextId = 100
 
@@ -8,7 +8,15 @@ export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
     list: seedNotifications(),
     targetView: null, // 'notifications' | null
-    targetSubView: null // 'dynamicBar' | 'main' | null
+    targetSubView: null, // 'dynamicBar' | 'main' | null
+    islandSettings: {
+      master: true,
+      recorder: true,
+      timer: true,
+      stopwatch: true,
+      prayer: true,
+      media: true
+    }
   }),
 
   getters: {
@@ -18,15 +26,20 @@ export const useNotificationsStore = defineStore('notifications', {
       const map = {}
       for (const n of s.list) map[n.appId] = (map[n.appId] || 0) + 1
       return map
+    },
+    /** 检查指定活动是否允许上灵动岛展示 */
+    isIslandEnabled: (s) => (key) => {
+      return s.islandSettings[key] !== false
     }
   },
 
   actions: {
     /** 新增一条通知 = push 一下，锁屏/通知中心/角标自动同步 */
-    push({ appId, title, body, minutesAgo = 0 }) {
+    push({ appId, title, body, minutesAgo = 0, iconType }) {
       this.list.unshift({
         id: nextId++,
         appId,
+        iconType: iconType || appId,
         title,
         body,
         time: Date.now() - minutesAgo * 60000
@@ -43,6 +56,12 @@ export const useNotificationsStore = defineStore('notifications', {
     setTargetView(view, subView = null) {
       this.targetView = view
       this.targetSubView = subView
+    },
+
+    setIslandEnabled(key, enabled) {
+      if (key in this.islandSettings) {
+        this.islandSettings[key] = enabled
+      }
     }
   }
 })

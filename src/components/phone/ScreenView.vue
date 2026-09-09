@@ -55,8 +55,8 @@ function onHeroFrame(nextFrame) {
 /** 应用打开时桌面不响应手势 */
 const homeInteractive = computed(() => system.baseLayer !== 'app')
 
-/** 状态栏/Home 条配色：浅色背景应用内切换为深色（相机等深色应用除外） */
-const DARK_BG_APPS = ['camera']
+/** 状态栏/Home 条配色：浅色背景应用内切换为深色（相机、时钟、录音等深色应用除外） */
+const DARK_BG_APPS = ['camera', 'clock', 'voicememos']
 const chromeLight = computed(() => {
   if (system.baseLayer === 'app') return DARK_BG_APPS.includes(system.activeAppId)
   return true

@@ -110,7 +110,7 @@ export const usePrayerStore = defineStore('prayer', {
       selectedContactIds: ['c1', 'c2', 'c3'], // 默认选择：老婆、老板、妈妈 (3人)
 
       /* ---- 灵动岛与控制台模拟状态 ---- */
-      simulatedPrayerId: null, // 默认不显示灵动岛，点击控制台按钮再显示
+      simulatedPrayerId: 'fajr', // 默认初始化为晨礼，展示礼拜灵动岛
       islandExpanded: false,
       islandCountdownSeconds: getPrayerDurationSeconds(defaultFajr)
     }
@@ -134,13 +134,13 @@ export const usePrayerStore = defineStore('prayer', {
         return currentMins >= start && currentMins <= end
       }) || null
     },
-    // 当前灵动岛生效的礼拜（仅当控制台选中时显示）
+    // 当前灵动岛生效的礼拜（优先取模拟项，其次取当前处于时段内的礼拜）
     currentIslandPrayer: (s) => {
       if (!s.masterEnabled) return null
       if (s.simulatedPrayerId) {
         return s.prayers.find((p) => p.id === s.simulatedPrayerId) || null
       }
-      return null
+      return s.activePrayer || (s.userMode === 'muslim' ? (s.prayers.find((p) => p.enabled) || s.prayers[0]) : null)
     },
     // 动态生成联系人选择摘要标签（如：老婆、老板等3人）
     selectedContactsSummary(s) {
@@ -222,6 +222,7 @@ export const usePrayerStore = defineStore('prayer', {
       this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
       if (id) {
         this.islandExpanded = true
+        this.startTicker()
       }
     },
 
@@ -256,10 +257,27 @@ export const usePrayerStore = defineStore('prayer', {
     resetDefaults() {
       this.prayers = JSON.parse(JSON.stringify(DEFAULT_PRAYERS))
       this.masterEnabled = true
-      this.simulatedPrayerId = null
+      this.simulatedPrayerId = 'fajr'
       this.selectedContactIds = ['c1', 'c2', 'c3']
       const prayer = this.prayers.find((p) => p.id === 'fajr')
       this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
+      this.startTicker()
+    },
+
+    startTicker() {
+      ensurePrayerTicker(this)
     }
   }
 })
+
+let prayerTickerId = null
+
+function ensurePrayerTicker(store) {
+  if (prayerTickerId != null) return
+  prayerTickerId = setInterval(() => {
+    if (store.currentIslandPrayer) {
+      store.decrementCountdown()
+    }
+  }, 1000)
+}
+

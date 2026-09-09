@@ -16,14 +16,24 @@ const entry = computed(() => NOTIF_ICONS[props.type] || NOTIF_ICONS.default)
 <template>
   <div
     class="notif-icon"
+    :class="{ 'is-img': !!entry.image }"
     :style="{
       width: size + 'px',
       height: size + 'px',
-      borderRadius: Math.round(size * 0.3) + 'px',
-      background: entry.bg
+      borderRadius: Math.round(size * 0.24) + 'px',
+      background: entry.image ? 'transparent' : entry.bg
     }"
-    v-html="entry.svg"
-  ></div>
+  >
+    <img
+      v-if="entry.image"
+      :src="entry.image"
+      class="notif-icon-img"
+      :alt="type"
+      loading="lazy"
+      draggable="false"
+    />
+    <div v-else-if="entry.svg" class="notif-icon-svg" v-html="entry.svg"></div>
+  </div>
 </template>
 
 <style scoped>
@@ -33,9 +43,24 @@ const entry = computed(() => NOTIF_ICONS[props.type] || NOTIF_ICONS.default)
   justify-content: center;
   flex: none;
   overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35), 0 1px 3px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
+  user-select: none;
 }
-.notif-icon :deep(svg) {
+.notif-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  display: block;
+}
+.notif-icon-svg {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notif-icon-svg :deep(svg) {
   width: 62%;
   height: 62%;
 }

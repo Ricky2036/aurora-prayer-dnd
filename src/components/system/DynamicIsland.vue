@@ -1,49 +1,109 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useRecorderStore } from '../../stores/recorderStore'
+import { useClockStore } from '../../stores/clockStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { useI18nStore } from '../../stores/i18nStore'
+import { useNotificationsStore } from '../../stores/notificationsStore'
+import { useControlStore } from '../../stores/controlStore'
 import { GLYPHS } from '../../assets/icons/glyphs'
+import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import LIcon from '../ui/LIcon.vue'
+import MusicPlayerCard from './MusicPlayerCard.vue'
+import albumCover from '../../assets/icons/album_cover.png'
 
 const prayerStore = usePrayerStore()
 const recorderStore = useRecorderStore()
+const clockStore = useClockStore()
 const system = useSystemStore()
 const i18n = useI18nStore()
+const notificationsStore = useNotificationsStore()
+const control = useControlStore()
+const mediaIslandExpanded = ref(false)
 
-/* 是否显示录音灵动岛（录音中且当前不在录音应用内） */
-const showRecorderIsland = computed(() => {
-  return recorderStore.isRecording && system.activeAppId !== 'voicememos'
+if (typeof window !== 'undefined') {
+  window.__clock = clockStore
+  window.__prayer = prayerStore
+  window.__control = control
+}
+
+/* 各独立活动项活跃判断（录音中/计时中/秒表中，且当前不在对应 App 内部，且灵动岛开关开启） */
+const isRecorderActive = computed(() => {
+  return notificationsStore.isIslandEnabled('recorder') && recorderStore.isRecording && system.activeAppId !== 'voicememos'
 })
 
-/* 录音灵动岛展开态 */
-const isRecorderExpanded = computed(() => recorderStore.islandExpanded)
-
-/* 激活的灵动岛类型：'recorder' | 'prayer' | null */
-const activeIslandType = computed(() => {
-  if (showRecorderIsland.value) return 'recorder'
-  if (prayerStore.currentIslandPrayer) return 'prayer'
-  return null
+const isTimerActive = computed(() => {
+  return notificationsStore.isIslandEnabled('timer') && clockStore.isTimerActive && system.activeAppId !== 'clock'
 })
 
-const isExpanded = computed(() => {
-  if (activeIslandType.value === 'recorder') return isRecorderExpanded.value
-  if (activeIslandType.value === 'prayer') return prayerStore.islandExpanded
-  return false
+const isStopwatchActive = computed(() => {
+  return notificationsStore.isIslandEnabled('stopwatch') && clockStore.isStopwatchActive && system.activeAppId !== 'clock'
 })
 
-/* 祈祷倒计时轮询 */
-let timer = null
+const isPrayerActive = computed(() => {
+  return notificationsStore.isIslandEnabled('prayer') && Boolean(prayerStore.currentIslandPrayer)
+})
+
+const isMediaActive = computed(() => {
+  return notificationsStore.isIslandEnabled('media') && Boolean(control.mediaActive)
+})
+
+/* 是否有任意灵动岛活动 */
+const hasAnyIsland = computed(() => {
+  return (
+    isRecorderActive.value ||
+    isTimerActive.value ||
+    isStopwatchActive.value ||
+    isPrayerActive.value ||
+    isMediaActive.value
+  )
+})
+
+/* 活跃项列表，按优先级排序：Timer > Stopwatch > Recorder > Media > Prayer */
+const activeList = computed(() => {
+  const list = []
+  if (isTimerActive.value) list.push('timer')
+  if (isStopwatchActive.value) list.push('stopwatch')
+  if (isRecorderActive.value) list.push('recorder')
+  if (isMediaActive.value) list.push('media')
+  if (isPrayerActive.value) list.push('prayer')
+  return list
+})
+
+/* 主卡片与副卡片列表：最多支持 4 项活动同时展示 */
+const primaryActiveItem = computed(() => activeList.value[0] || null)
+const subActiveItems = computed(() => activeList.value.slice(1, 4))
+
+/* 展开态：由各 store 的 islandExpanded 共同驱动 */
+const isExpanded = computed({
+  get() {
+    return (
+      (isTimerActive.value || isStopwatchActive.value ? clockStore.islandExpanded : false) ||
+      (isRecorderActive.value ? recorderStore.islandExpanded : false) ||
+      (isPrayerActive.value ? prayerStore.islandExpanded : false) ||
+      (isMediaActive.value ? mediaIslandExpanded.value : false)
+    )
+  },
+  set(val) {
+    clockStore.islandExpanded = val
+    recorderStore.islandExpanded = val
+    prayerStore.islandExpanded = val
+    mediaIslandExpanded.value = val
+  }
+})
+
+/* 当切换 App 或退出到桌面时，默认收起至紧凑胶囊态 */
+watch(
+  [() => system.activeAppId, () => system.baseLayer],
+  () => {
+    isExpanded.value = false
+  }
+)
+
+/* 祈祷倒计时轮询（由 prayerStore 全局托管，通知中心/锁屏展开时不中断） */
 onMounted(() => {
-  timer = setInterval(() => {
-    if (prayerStore.currentIslandPrayer) {
-      prayerStore.decrementCountdown()
-    }
-  }, 1000)
-})
-
-onBeforeUnmount(() => {
-  if (timer) clearInterval(timer)
+  prayerStore.startTicker()
 })
 
 /* 格式化祈祷倒计时文本 */
@@ -64,35 +124,75 @@ const prayerSubtitle = computed(() => {
   return i18n.islandSub(prayerId)
 })
 
-function handleCardClick() {
-  if (activeIslandType.value === 'recorder') {
-    if (!recorderStore.islandExpanded) {
-      recorderStore.islandExpanded = true
-    } else {
-      // 展开态点击主体区域打开录音 App
-      system.openApp('voicememos')
-      recorderStore.islandExpanded = false
-    }
-  } else if (activeIslandType.value === 'prayer') {
-    if (!prayerStore.islandExpanded) {
-      prayerStore.islandExpanded = true
-    }
+/* 紧凑胶囊收起态显示的文本 */
+const compactCapsuleTime = computed(() => {
+  if (primaryActiveItem.value === 'timer') return clockStore.formattedTimerIsland
+  if (primaryActiveItem.value === 'stopwatch') return clockStore.formattedStopwatchIsland
+  if (primaryActiveItem.value === 'recorder') return recorderStore.formattedTime
+  if (primaryActiveItem.value === 'prayer') return formattedPrayerCountdown.value
+  return ''
+})
+
+/* 点击卡片主体跳转至对应 App */
+function handleCardClick(item) {
+  if (item === 'timer') {
+    openClockTab('timer')
+  } else if (item === 'stopwatch') {
+    openClockTab('stopwatch')
+  } else if (item === 'recorder') {
+    openRecorderApp()
+  } else if (item === 'prayer') {
+    openClockTab('muslim')
   }
 }
 
+/* 点击主胶囊或主卡片 */
+function handlePrimaryCardClick() {
+  if (!isExpanded.value) {
+    isExpanded.value = true
+  } else {
+    handleCardClick(primaryActiveItem.value)
+  }
+}
+
+/* 多副卡片平滑入场与出场位移计算，精确对准摄像头孔位 */
+function onSubcardBeforeEnter(el) {
+  const index = Array.from(el.parentNode?.children || []).indexOf(el)
+  const estimatedTop = 90 + Math.max(0, index) * 90
+  el.style.setProperty('--fly-up', `${-(estimatedTop + 25)}px`)
+}
+
+function onSubcardBeforeLeave(el) {
+  const top = el.offsetTop
+  el.style.top = `${top}px`
+  el.style.setProperty('--fly-up', `${-(top + 25)}px`)
+}
+
+/* 点击背景遮罩收起 */
 function handleCloseBackdrop() {
-  if (activeIslandType.value === 'recorder') {
-    recorderStore.islandExpanded = false
-  } else if (activeIslandType.value === 'prayer') {
-    prayerStore.islandExpanded = false
-  }
+  isExpanded.value = false
 }
 
+/* 点击时钟卡片跳转进入对应 Tab 并收起 */
+function openClockTab(tab) {
+  clockStore.setActiveTab(tab)
+  system.openApp('clock')
+  isExpanded.value = false
+}
+
+/* 打开录音机并收起 */
+function openRecorderApp() {
+  system.openApp('voicememos')
+  isExpanded.value = false
+}
+
+/* 停止录音 */
 function handleStopRecording(e) {
   e.stopPropagation()
   recorderStore.stopRecording()
 }
 
+/* 关闭祈祷灵动岛 */
 function handleClosePrayer(e) {
   e.stopPropagation()
   prayerStore.closeIsland()
@@ -100,110 +200,427 @@ function handleClosePrayer(e) {
 </script>
 
 <template>
-  <!-- 全局点击空白处收回至胶囊状态遮罩 -->
+  <!-- 全局点击空白处收起灵动岛遮罩 -->
   <div
-    v-if="activeIslandType && isExpanded"
+    v-if="hasAnyIsland && isExpanded"
     class="island-backdrop"
     @click="handleCloseBackdrop"
   ></div>
 
-  <!-- 灵动岛无缝形态过渡容器（同一DOM连续缩放与变形） -->
-  <div
-    v-if="activeIslandType"
-    class="dynamic-island-wrapper"
-    :class="{ 'type-recorder': activeIslandType === 'recorder' }"
-  >
+  <!-- 灵动岛主挂载容器 -->
+  <div v-if="hasAnyIsland" class="dynamic-island-wrapper">
+    <!-- 1. 主灵动岛实体：在 compact 胶囊与 expanded 大圆角矩形之间做连续流体无缝变形 -->
     <div
       class="island-card"
       :class="{
         'is-expanded': isExpanded,
         'is-compact': !isExpanded,
-        'recorder-card': activeIslandType === 'recorder'
+        'is-media': isExpanded && primaryActiveItem === 'media'
       }"
-      @click="handleCardClick"
+      @click="handlePrimaryCardClick"
     >
-      <!-- ================= 1. 收起态内容（胶囊） ================= -->
+      <!-- ================= 1.1 收起态图层（顶部胶囊） ================= -->
       <div class="morph-layer compact-layer">
-        <!-- 录音胶囊收起态 -->
-        <template v-if="activeIslandType === 'recorder'">
-          <div class="rc-capsule-left">
-            <span class="rc-mini-wave">
-              <i></i><i></i><i></i><i></i><i></i>
-            </span>
+        <div class="cc-left">
+          <svg v-if="primaryActiveItem === 'timer'" width="13" height="13" viewBox="0 0 24 24">
+            <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+          </svg>
+          <svg v-else-if="primaryActiveItem === 'stopwatch'" width="13" height="13" viewBox="0 0 24 24">
+            <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+          </svg>
+          <span v-else-if="primaryActiveItem === 'recorder'" class="rc-mini-wave">
+            <i></i><i></i><i></i><i></i><i></i>
+          </span>
+          <svg v-else-if="primaryActiveItem === 'prayer'" width="13" height="13" viewBox="0 0 24 24">
+            <path :d="GLYPHS.moon" fill="#00C853" />
+          </svg>
+          <div v-else-if="primaryActiveItem === 'media'" class="media-mini-cover-wrap">
+            <img :src="albumCover" class="media-mini-cover" alt="Cover" />
           </div>
-          <div class="cc-camera-slot"></div>
-          <div class="rc-capsule-right">
-            <span class="rc-time">{{ recorderStore.formattedTime }}</span>
-          </div>
-        </template>
+        </div>
 
-        <!-- 祈祷胶囊收起态 -->
-        <template v-else>
-          <div class="cc-left">
-            <svg width="13" height="13" viewBox="0 0 24 24">
-              <path :d="GLYPHS.moon" fill="#00C853" />
-            </svg>
-          </div>
-          <div class="cc-camera-slot"></div>
-          <div class="cc-right">
-            <span class="cc-time">{{ formattedPrayerCountdown }}</span>
-          </div>
-        </template>
+        <div class="cc-camera-slot"></div>
+
+        <div class="cc-right">
+          <span v-if="primaryActiveItem === 'media'" class="media-mini-wave" :class="{ paused: !control.mediaPlaying }">
+            <i></i><i></i><i></i><i></i>
+          </span>
+          <span v-else class="cc-time">{{ compactCapsuleTime }}</span>
+        </div>
       </div>
 
-      <!-- ================= 2. 展开态内容：大圆角矩形卡片 ================= -->
-      <div class="morph-layer expanded-layer" @click="handleCardClick">
-        <!-- 录音大卡片展开态 (完美还原参考截图) -->
-        <template v-if="activeIslandType === 'recorder'">
-          <!-- 左侧：录音声波频谱柱（橙红主柱 + 白/灰副柱） -->
-          <div class="rc-expanded-left">
-            <div class="rc-audio-bars">
-              <span class="bar bar-1"></span>
-              <span class="bar bar-2"></span>
-              <span class="bar bar-3"></span>
-              <span class="bar bar-main"></span>
-              <span class="bar bar-5"></span>
-              <span class="bar bar-6"></span>
-              <span class="bar bar-7"></span>
+      <!-- ================= 1.2 展开态图层（大圆角矩形） ================= -->
+      <div
+        class="morph-layer expanded-layer"
+        :class="{ 'is-media-layer': primaryActiveItem === 'media' }"
+      >
+        <!-- 主项：定时器 -->
+        <template v-if="primaryActiveItem === 'timer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-timer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
+              </span>
             </div>
           </div>
 
-          <!-- 中间：大计时器与副标题 -->
-          <div class="rc-expanded-info">
-            <div class="rc-expanded-time">{{ recorderStore.formattedTime }}</div>
-            <div class="rc-expanded-sub">录音中...</div>
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.cancelTimer()"
+              title="取消倒计时"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.timer.status === 'running'
+                  ? clockStore.pauseTimer()
+                  : clockStore.resumeTimer()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.timer.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
           </div>
-
-          <!-- 右侧：圆形红色停止按钮 (外红底内白圆角方块) -->
-          <button class="rc-stop-btn" @click.stop="handleStopRecording" title="停止录音">
-            <div class="rc-stop-square"></div>
-          </button>
         </template>
 
-        <!-- 祈祷卡片展开态 -->
-        <template v-else>
-          <!-- 左侧：勿扰月亮图标 -->
-          <div class="ic-left-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24">
-              <path :d="GLYPHS.moon" fill="#00C853" />
-            </svg>
+        <!-- 主项：秒表 -->
+        <template v-else-if="primaryActiveItem === 'stopwatch'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-stopwatch">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedStopwatchIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.stopwatch.status === 'paused' ? '秒表 · 已暂停' : '秒表 · 计时中' }}
+              </span>
+            </div>
           </div>
 
-          <!-- 中间：倒计时与辅助文案 -->
-          <div class="ic-center-info">
-            <div class="ic-time">{{ formattedPrayerCountdown }}</div>
-            <div class="ic-sub">{{ prayerSubtitle }}</div>
+          <div class="ilc-actions">
+            <button
+              v-if="clockStore.stopwatch.status === 'running'"
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.recordLap()"
+              title="计次"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.lap" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              v-else
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.resetStopwatch()"
+              title="重置秒表"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.stopwatch.status === 'running'
+                  ? clockStore.pauseStopwatch()
+                  : clockStore.startStopwatch()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.stopwatch.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 主项：录音 -->
+        <template v-else-if="primaryActiveItem === 'recorder'">
+          <div class="ilc-left">
+            <div class="rc-expanded-left">
+              <div class="rc-audio-bars">
+                <span class="bar bar-1"></span>
+                <span class="bar bar-2"></span>
+                <span class="bar bar-3"></span>
+                <span class="bar bar-main"></span>
+                <span class="bar bar-5"></span>
+                <span class="bar bar-6"></span>
+                <span class="bar bar-7"></span>
+              </div>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
+              <span class="ilc-sub-label">{{ recorderStore.isPaused ? '录音已暂停' : '正在录音' }}</span>
+            </div>
           </div>
 
-          <!-- 右侧：关闭按钮 -->
-          <button class="ic-close-btn" @click.stop="handleClosePrayer">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M18 6L6 18M6 6l12 12" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-stop-record"
+              @click.stop="handleStopRecording"
+              title="停止录音"
+            >
+              <div class="btn-stop-square"></div>
+            </button>
+          </div>
+        </template>
+
+        <!-- 主项：礼拜 -->
+        <template v-else-if="primaryActiveItem === 'prayer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-prayer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="GLYPHS.moon" fill="#00C853" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ formattedPrayerCountdown }}</span>
+              <span class="ilc-sub-label">{{ prayerSubtitle }}</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="handleClosePrayer"
+              title="关闭"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 主项：音乐（与通知中心高卡片完全一致的布局） -->
+        <template v-else-if="primaryActiveItem === 'media'">
+          <MusicPlayerCard :is-island="true" />
         </template>
       </div>
     </div>
+
+    <!-- 2. 副灵动岛卡片列表：支持最多同时展示 4 项，展开时平滑向下滑出，间距 10px -->
+    <TransitionGroup
+      name="subcard-slide"
+      @before-enter="onSubcardBeforeEnter"
+      @before-leave="onSubcardBeforeLeave"
+    >
+      <div
+        v-if="isExpanded"
+        v-for="item in subActiveItems"
+        :key="item"
+        class="island-secondary-card"
+        :class="{ 'is-media-card': item === 'media' }"
+        @click="handleCardClick(item)"
+      >
+        <!-- 副项：秒表 -->
+        <template v-if="item === 'stopwatch'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-stopwatch">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedStopwatchIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.stopwatch.status === 'paused' ? '秒表 · 已暂停' : '秒表 · 计时中' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              v-if="clockStore.stopwatch.status === 'running'"
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.recordLap()"
+              title="计次"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.lap" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              v-else
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.resetStopwatch()"
+              title="重置秒表"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.stopwatch.status === 'running'
+                  ? clockStore.pauseStopwatch()
+                  : clockStore.startStopwatch()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.stopwatch.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 副项：定时器 -->
+        <template v-else-if="item === 'timer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-timer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ clockStore.formattedTimerIsland }}</span>
+              <span class="ilc-sub-label">
+                {{ clockStore.timer.status === 'paused' ? '已暂停' : '倒计时' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="clockStore.cancelTimer()"
+              title="取消倒计时"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+            <button
+              class="ilc-btn btn-playpause"
+              @click.stop="
+                clockStore.timer.status === 'running'
+                  ? clockStore.pauseTimer()
+                  : clockStore.resumeTimer()
+              "
+              title="暂停/开始"
+            >
+              <svg
+                v-if="clockStore.timer.status === 'running'"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+              >
+                <path :d="CLOCK_ICONS.pause" fill="#ffffff" />
+              </svg>
+              <svg v-else width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.play" fill="#ffffff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 副项：录音 -->
+        <template v-else-if="item === 'recorder'">
+          <div class="ilc-left">
+            <div class="rc-expanded-left">
+              <div class="rc-audio-bars">
+                <span class="bar bar-1"></span>
+                <span class="bar bar-2"></span>
+                <span class="bar bar-3"></span>
+                <span class="bar bar-main"></span>
+                <span class="bar bar-5"></span>
+                <span class="bar bar-6"></span>
+                <span class="bar bar-7"></span>
+              </div>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ recorderStore.formattedTime }}</span>
+              <span class="ilc-sub-label">{{ recorderStore.isPaused ? '录音已暂停' : '正在录音' }}</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-stop-record"
+              @click.stop="handleStopRecording"
+              title="停止录音"
+            >
+              <div class="btn-stop-square"></div>
+            </button>
+          </div>
+        </template>
+
+        <!-- 副项：礼拜 -->
+        <template v-else-if="item === 'prayer'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-prayer">
+              <svg width="22" height="22" viewBox="0 0 24 24">
+                <path :d="GLYPHS.moon" fill="#00C853" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">{{ formattedPrayerCountdown }}</span>
+              <span class="ilc-sub-label">{{ prayerSubtitle }}</span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-cancel"
+              @click.stop="handleClosePrayer"
+              title="关闭"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path :d="CLOCK_ICONS.close" fill="#fff" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
+        <!-- 副项：音乐（与通知中心高卡片完全一致的布局） -->
+        <template v-else-if="item === 'media'">
+          <MusicPlayerCard :is-island="true" />
+        </template>
+      </div>
+    </TransitionGroup>
   </div>
 </template>
 
@@ -223,6 +640,12 @@ function handleClosePrayer(e) {
   transform: translateX(-50%);
   z-index: 97;
   user-select: none;
+  width: calc(var(--screen-w, 360px) - 20px);
+  max-width: 358px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* ================= 灵动岛无缝连续形变核心 (Liquid Morphing) ================= */
@@ -234,7 +657,8 @@ function handleClosePrayer(e) {
   cursor: pointer;
   overflow: hidden;
   will-change: width, height, border-radius, padding, box-shadow;
-  /* 苹果级流体弹簧形变过渡曲线 */
+  pointer-events: auto;
+  /* 苹果级流体弹簧形变过渡曲线：胶囊与80px大圆角矩形同一DOM无缝过渡 */
   transition:
     width 0.38s cubic-bezier(0.32, 0.72, 0, 1),
     height 0.38s cubic-bezier(0.32, 0.72, 0, 1),
@@ -243,22 +667,26 @@ function handleClosePrayer(e) {
     box-shadow 0.38s ease;
 }
 
-/* 收起态尺寸 */
+/* 收起态尺寸（紧凑胶囊） */
 .island-card.is-compact {
   width: 124px;
   height: 30px;
   border-radius: 15px;
   padding: 0 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
-/* 展开态尺寸：圆角矩形 */
+.island-card.is-compact:active {
+  transform: scale(0.95);
+}
+
+/* 展开态尺寸：经典礼拜模式大圆角矩形 (高度80px，圆角28px) */
 .island-card.is-expanded {
-  width: calc(var(--screen-w, 360px) - 20px);
-  max-width: 358px;
+  width: 100%;
   height: 80px;
-  border-radius: 22px;
+  border-radius: 28px;
   padding: 0 16px 0 18px;
-  cursor: default;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
 /* 图层绝对定位叠放并无缝渐变 */
@@ -269,24 +697,28 @@ function handleClosePrayer(e) {
   height: 100%;
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   will-change: opacity, transform;
 }
 
-/* ================= 收起态图层 ================= */
+/* ================= 收起态胶囊图层 ================= */
 .compact-layer {
   padding: 0 10px;
   justify-content: space-between;
-  transition: opacity 0.2s cubic-bezier(0.32, 0.72, 0, 1), transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* 收起态时：等待卡片缩至小尺寸（延迟 0.15s）后才淡入，避免缩小初期内容重叠 */
 .is-compact .compact-layer {
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+  transition: opacity 0.18s cubic-bezier(0.32, 0.72, 0, 1) 0.15s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
 }
+/* 展开时：以极快速度淡出（0.10s），立刻让出视野 */
 .is-expanded .compact-layer {
   opacity: 0;
-  transform: scale(0.8);
+  transform: scale(0.85);
   pointer-events: none;
+  transition: opacity 0.10s ease-out, transform 0.20s ease-out;
 }
 
 .cc-left {
@@ -312,109 +744,11 @@ function handleClosePrayer(e) {
   letter-spacing: -0.2px;
 }
 
-/* ================= 展开态图层 ================= */
-.expanded-layer {
-  padding: 0 16px 0 18px;
-  justify-content: space-between;
-  transition: opacity 0.26s cubic-bezier(0.32, 0.72, 0, 1) 0.08s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.is-expanded .expanded-layer {
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: auto;
-}
-.is-compact .expanded-layer {
-  opacity: 0;
-  transform: scale(0.85);
-  pointer-events: none;
-}
-
-/* 左侧图标容器 */
-.ic-left-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: rgba(0, 200, 83, 0.16);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-
-/* 中间文案 */
-.ic-center-info {
-  flex: 1;
-  min-width: 0;
-  margin-left: 14px;
-  margin-right: 12px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.ic-time {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 23px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.3px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.15;
-}
-
-.ic-sub {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.75);
-  margin-top: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* 右侧关闭按钮 */
-.ic-close-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  background: #333336;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex: none;
-  transition: background 0.15s ease, transform 0.1s ease;
-}
-
-.ic-close-btn:hover {
-  background: #444448;
-}
-
-.ic-close-btn:active {
-  transform: scale(0.92);
-}
-
-/* ================= 录音灵动岛特殊样式 ================= */
-
-/* 胶囊收起态尺寸 */
-.island-card.recorder-card.is-compact {
-  width: 122px;
-  height: 30px;
-  border-radius: 15px;
-  padding: 0 10px;
-}
-
-/* 胶囊左侧：跳动的红色迷你声波 */
-.rc-capsule-left {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* 录音迷你声波 */
 .rc-mini-wave {
   display: inline-flex;
   align-items: center;
-  gap: 2.2px;
+  gap: 2px;
   height: 14px;
 }
 .rc-mini-wave i {
@@ -435,32 +769,141 @@ function handleClosePrayer(e) {
   100% { transform: scaleY(1.1); opacity: 1; }
 }
 
-/* 胶囊右侧：时间 */
-.rc-capsule-right {
+/* ================= 展开态主卡片图层 ================= */
+.expanded-layer {
+  padding: 0 16px 0 18px;
+  justify-content: space-between;
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* 展开时：延迟 0.12s 待卡片骨架展开到一定宽度后再平滑淡入，避免过窄挤爆换行 */
+.is-expanded .expanded-layer {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  transition: opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1) 0.12s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+}
+/* 收起时：立即极速淡出（0.10s），完全杜绝文字挤压与与胶囊重叠的闪烁 */
+.is-compact .expanded-layer {
+  opacity: 0;
+  transform: scale(0.92);
+  pointer-events: none;
+  transition: opacity 0.10s ease-out, transform 0.22s ease-out;
+}
+
+/* ================= 展开态副卡片（多活动时独立呈现，尺寸同为主卡片） ================= */
+.island-secondary-card {
+  margin-top: 10px;
+  width: 100%;
+  height: 80px;
+  border-radius: 28px;
+  background: #000000;
+  color: #ffffff;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
-}
-.rc-time {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.2px;
-}
-
-/* 录音展开大卡片尺寸与圆角 (符合截图) */
-.island-card.recorder-card.is-expanded {
-  width: calc(var(--screen-w, 360px) - 22px);
-  max-width: 356px;
-  height: 84px;
-  border-radius: 26px;
-  background: #000000;
+  justify-content: space-between;
   padding: 0 16px 0 18px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  cursor: pointer;
+  pointer-events: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  will-change: transform, opacity, border-radius;
 }
 
-/* 展开卡片左侧：声波跳动频谱 */
+.island-secondary-card:active {
+  filter: brightness(1.12);
+}
+
+/* 副卡片平滑滑入滑出过渡：与主卡片完全同步从摄像头萌发与收回摄像头 */
+.subcard-slide-enter-active {
+  transform-origin: center center;
+  transition:
+    transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.32s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform, opacity, border-radius;
+}
+
+.subcard-slide-leave-active {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  transform-origin: center center;
+  transition:
+    transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1) 0.05s,
+    border-radius 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform, opacity, border-radius;
+}
+
+/* 萌发与收回位移：动态基于 --fly-up 飞入/飞出摄像头孔，缩放至 124px*30px 胶囊大小 */
+.subcard-slide-enter-from,
+.subcard-slide-leave-to {
+  opacity: 0;
+  transform: translateY(var(--fly-up, -115px)) scale(0.36, 0.375);
+  border-radius: 15px;
+}
+
+.subcard-slide-enter-to,
+.subcard-slide-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1, 1);
+  border-radius: 28px;
+}
+
+/* 副卡片内部元素在收起时立即快速淡出（100ms），绝不闪屏 */
+.subcard-slide-leave-active .ilc-left,
+.subcard-slide-leave-active .ilc-actions {
+  opacity: 0;
+  transition: opacity 0.10s ease-out;
+}
+
+/* 副卡片内部元素在展开时在卡片展开到一定程度后再淡入（120ms后） */
+.subcard-slide-enter-active .ilc-left,
+.subcard-slide-enter-active .ilc-actions {
+  transition: opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1) 0.12s;
+}
+.subcard-slide-enter-from .ilc-left,
+.subcard-slide-enter-from .ilc-actions {
+  opacity: 0;
+}
+
+/* ================= 展开卡片内部公共视觉规范 ================= */
+.ilc-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
+}
+
+/* 44px 圆形图标衬底 */
+.ilc-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.icon-timer,
+.icon-stopwatch {
+  background: rgba(255, 149, 0, 0.16);
+}
+
+.icon-prayer {
+  background: rgba(0, 200, 83, 0.16);
+}
+
+.icon-recorder {
+  background: rgba(235, 68, 54, 0.16);
+}
+
+/* 展开卡片左侧：声波跳动频谱（与录音原版设计及通知栏完全统一） */
 .rc-expanded-left {
   display: flex;
   align-items: center;
@@ -469,26 +912,28 @@ function handleClosePrayer(e) {
   width: 44px;
   height: 44px;
 }
+
 .rc-audio-bars {
   display: flex;
   align-items: center;
   gap: 3.5px;
   height: 32px;
 }
+
 .rc-audio-bars .bar {
   display: inline-block;
   width: 3px;
   border-radius: 1.5px;
   background: #ffffff;
-  transition: height 0.1s ease;
 }
+
 .rc-audio-bars .bar-1 { height: 16px; animation: rcAudioPulse 1.2s infinite alternate 0.1s; }
 .rc-audio-bars .bar-2 { height: 10px; animation: rcAudioPulse 1.2s infinite alternate 0.3s; }
 .rc-audio-bars .bar-3 { height: 22px; animation: rcAudioPulse 1.2s infinite alternate 0.15s; }
 .rc-audio-bars .bar-main {
   width: 3.5px;
   height: 30px;
-  background: #ff5238; /* 截图中主条为醒目的橙红色 */
+  background: #ff5238;
   animation: rcAudioPulseMain 0.9s infinite alternate 0.05s;
 }
 .rc-audio-bars .bar-5 { height: 12px; animation: rcAudioPulse 1.2s infinite alternate 0.4s; }
@@ -499,66 +944,155 @@ function handleClosePrayer(e) {
   0% { transform: scaleY(0.45); opacity: 0.6; }
   100% { transform: scaleY(1.15); opacity: 1; }
 }
+
 @keyframes rcAudioPulseMain {
   0% { transform: scaleY(0.5); }
   100% { transform: scaleY(1.1); }
 }
 
-/* 展开卡片中间：大时间与录音中文案 */
-.rc-expanded-info {
-  flex: 1;
-  min-width: 0;
-  margin-left: 12px;
-  margin-right: 12px;
+.ilc-time-col {
   display: flex;
   flex-direction: column;
   justify-content: center;
-}
-.rc-expanded-time {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 26px;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.5px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-.rc-expanded-sub {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-  font-size: 13px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.68);
-  margin-top: 3px;
-  letter-spacing: -0.1px;
+  margin-left: 14px;
+  margin-right: 12px;
+  min-width: 0;
 }
 
-/* 展开卡片右侧：红色停止圆形按钮 (截图实景 1:1) */
-.rc-stop-btn {
-  width: 46px;
-  height: 46px;
+.ilc-main-time {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+}
+
+.ilc-sub-label {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 右侧控制按键组 */
+.ilc-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+/* 42px 大圆操作按键 */
+.ilc-btn {
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: #eb4436; /* 截图同款高亮红色 */
-  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
   flex: none;
-  transition: transform 0.12s ease, background 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 4px 14px rgba(235, 68, 54, 0.4);
 }
-.rc-stop-btn:hover {
-  background: #f05244;
-  transform: scale(1.04);
-}
-.rc-stop-btn:active {
+
+.ilc-btn:active {
   transform: scale(0.92);
 }
-/* 停止按钮内部白色圆角方形 */
-.rc-stop-square {
-  width: 17px;
-  height: 17px;
+
+.ilc-btn.btn-cancel {
+  background: #333336;
+}
+
+.ilc-btn.btn-cancel:hover {
+  background: #444448;
+}
+
+/* 高亮橙色主控按钮：纯白图标、4px发光投影 */
+.ilc-btn.btn-playpause {
+  background: #ff9500;
+  box-shadow: 0 4px 14px rgba(255, 149, 0, 0.4);
+}
+
+.ilc-btn.btn-stop-record {
+  background: #eb4436;
+  box-shadow: 0 4px 14px rgba(235, 68, 54, 0.4);
+}
+
+.btn-stop-square {
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
   background: #ffffff;
+}
+
+/* 微型音乐胶囊图层 */
+.media-mini-cover-wrap {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.media-mini-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.08);
+}
+.media-mini-wave {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.5px;
+  height: 12px;
+  width: 14px;
+}
+.media-mini-wave i {
+  width: 2px;
+  background: #30d158;
+  border-radius: 999px;
+  animation: miniWave 0.8s ease-in-out infinite;
+}
+.media-mini-wave i:nth-child(2) { animation-duration: 0.9s; animation-delay: 0.2s; }
+.media-mini-wave i:nth-child(3) { animation-duration: 0.7s; animation-delay: 0.4s; }
+.media-mini-wave i:nth-child(4) { animation-duration: 1.0s; animation-delay: 0.1s; }
+.media-mini-wave.paused i {
+  animation-play-state: paused;
+  height: 3px !important;
+}
+
+@keyframes miniWave {
+  0%, 100% { height: 25%; opacity: 0.8; }
+  50% { height: 100%; opacity: 1; }
+}
+
+/* 展开态主卡片：音乐使用与通知中心完全一致的较高卡片尺寸 (164px, 32px 圆角) */
+.island-card.is-expanded.is-media {
+  height: 164px;
+  border-radius: 32px;
+}
+
+/* 展开态主卡片音乐图层 */
+.expanded-layer.is-media-layer {
+  display: block;
+  padding: 16px;
+  white-space: normal;
+}
+
+/* 展开态副卡片：若为音乐，高度同样为 164px，圆角 32px */
+.island-secondary-card.is-media-card {
+  height: 164px;
+  border-radius: 32px;
+  padding: 16px;
+  display: block;
+  white-space: normal;
 }
 </style>

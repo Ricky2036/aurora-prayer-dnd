@@ -13,6 +13,13 @@ import MaterialBlur from '../ui/MaterialBlur.vue'
 import LIcon from '../ui/LIcon.vue'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useRecorderStore } from '../../stores/recorderStore'
+import { useClockStore } from '../../stores/clockStore'
+import { usePrayerStore } from '../../stores/prayerStore'
+import { useControlStore } from '../../stores/controlStore'
+import { useActiveActivities } from '../../composables/useActiveActivities'
+import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import { GLYPHS } from '../../assets/icons/glyphs'
+import IslandCloseModal from '../ui/IslandCloseModal.vue'
 
 /**
  * 通知中心（移植自 notificationcenter.tsx）：
@@ -24,6 +31,10 @@ const system = useSystemStore()
 const i18n = useI18nStore()
 const notifications = useNotificationsStore()
 const recorder = useRecorderStore()
+const clock = useClockStore()
+const prayer = usePrayerStore()
+const control = useControlStore()
+const { activeActivities } = useActiveActivities()
 const { timeShort, now } = useClock()
 
 const overlay = computed(() => system.overlays.notificationCenter)
@@ -46,14 +57,20 @@ const rootRef = ref(null)
 const driver = getDriver('notificationCenter')
 if (driver) useSwipeGesture(rootRef, driver.closeGesture)
 
+let lastSwipeEndTime = 0
+const swipedTransitionId = ref(null)
+
 function onNcClick(e) {
+  if (isIslandModalVisible.value) return
+  if (Date.now() - lastSwipeEndTime < 350) return
   // 点击卡片本体、操作按钮、播放器、清除按钮等交互元素内部时，不重置滑开状态也不关闭叠层
-  if (e.target.closest('.nc-card, .ls-player, .nc-recorder-card, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, button, a, input, label')) {
+  if (e.target.closest('.nc-card, .nc-activity-card, .nc-swipe-card-wrapper, .nc-item-wrapper, .nc-activity-wrapper, .ls-player, .nc-player-instance, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, .island-modal-backdrop, button, a, input, label')) {
     return
   }
   // 点击空白处时，如果有滑开的卡片，先收回
   if (Object.keys(swipeOffsets.value).length > 0) {
     swipeOffsets.value = {}
+    return
   }
   system.requestCloseOverlay('notificationCenter')
 }
@@ -110,9 +127,10 @@ function onCardPointerMove(e, id) {
   }
 
   if (isSwipingCard) {
+    e.preventDefault?.()
     let nextOffset = cardInitialOffset + dx
     if (nextOffset > 0) nextOffset = nextOffset * 0.2
-    if (nextOffset < -160) nextOffset = -160 + (nextOffset + 160) * 0.2
+    if (nextOffset < -260) nextOffset = -260 + (nextOffset + 260) * 0.2
     swipeOffsets.value = {
       ...swipeOffsets.value,
       [id]: nextOffset
@@ -125,13 +143,28 @@ let justSwipedId = null
 function onCardPointerUp(e, id) {
   if (activeCardId !== id) return
   if (isSwipingCard) {
+    lastSwipeEndTime = Date.now()
     justSwipedId = id
+    swipedTransitionId.value = id
     setTimeout(() => {
       if (justSwipedId === id) justSwipedId = null
-    }, 250)
+    }, 300)
+    setTimeout(() => {
+      if (swipedTransitionId.value === id) swipedTransitionId.value = null
+    }, 280)
 
     const currentOffset = swipeOffsets.value[id] || 0
-    if (currentOffset < -45) {
+    if (currentOffset <= -170) {
+      // 超过 50%~60% 阈值，直接飞出并删除该卡片
+      swipedTransitionId.value = id
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -420
+      }
+      setTimeout(() => {
+        onDeleteCard(id)
+      }, 200)
+    } else if (currentOffset < -45) {
       resetOtherCards(id)
       swipeOffsets.value = {
         ...swipeOffsets.value,
@@ -153,15 +186,95 @@ function onCardPointerUp(e, id) {
   cardPointerId = null
 }
 
-function onDeleteCard(id) {
-  if (id === '__recorder__') {
+const isIslandModalVisible = ref(false)
+const pendingIslandAct = ref(null)
+
+function onRequestDeleteActivity(act) {
+  pendingIslandAct.value = act
+  isIslandModalVisible.value = true
+}
+
+function stopActivityInstance(act) {
+  if (!act) return
+  if (act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
     recorder.stopRecording()
+  } else if (act.type === 'timer' || act.id === 'timer') {
+    clock.cancelTimer()
+  } else if (act.type === 'stopwatch' || act.id === 'stopwatch') {
+    clock.resetStopwatch()
+  } else if (act.type === 'prayer' || act.id === 'prayer') {
+    prayer.closeIsland()
+  }
+}
+
+function handleCloseOnce() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleClosePermanent() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act)
+  notifications.setIslandEnabled(act.type, false)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleCancelIslandModal() {
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function onDeleteCard(id) {
+  if (id === '__recorder__' || id === 'recorder') {
+    recorder.stopRecording()
+  } else if (id === 'timer') {
+    clock.cancelTimer()
+  } else if (id === 'stopwatch') {
+    clock.resetStopwatch()
+  } else if (id === 'prayer') {
+    prayer.closeIsland()
   } else {
     notifications.remove(id)
   }
   const next = { ...swipeOffsets.value }
   delete next[id]
   swipeOffsets.value = next
+}
+
+/** 滑动操作按钮弹性物理与位移动画计算（不缩放图标，通过动态拉伸设置与删除按钮间距体现弹性） */
+function getActionBtnStyle(id, type) {
+  const offset = swipeOffsets.value[id] || 0
+  if (offset >= 0) {
+    return {
+      opacity: 0,
+      transform: 'translateX(0)',
+      pointerEvents: 'none'
+    }
+  }
+  const dist = Math.abs(offset)
+  const isSettings = type === 'settings'
+  const opacity = Math.min(1, dist / 35).toFixed(2)
+  // 当滑动超过 118px 时，拉伸按钮间距
+  const extraDist = Math.max(0, dist - 118)
+  const extraGap = extraDist * 0.45
+  const shiftX = isSettings ? extraGap : (extraGap * 0.12)
+  const isCurrentlySwiping = isSwipingCard && activeCardId === id
+  return {
+    opacity,
+    transform: `translateX(${-shiftX}px)`,
+    transition: isCurrentlySwiping ? 'none' : 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease'
+  }
 }
 
 function onJumpSettings() {
@@ -171,19 +284,31 @@ function onJumpSettings() {
   swipeOffsets.value = {}
 }
 
-function onRecorderCardClick() {
+function onActivityCardClick(act) {
   if (isSwipingCard) return
-  if (justSwipedId === '__recorder__') {
+  if (justSwipedId === act.id) {
     justSwipedId = null
     return
   }
-  if (swipeOffsets.value['__recorder__']) {
+  if (swipeOffsets.value[act.id]) {
     const next = { ...swipeOffsets.value }
-    delete next['__recorder__']
+    delete next[act.id]
     swipeOffsets.value = next
     return
   }
-  system.openApp('voicememos')
+  if (act.type === 'recorder') {
+    system.openApp('voicememos')
+  } else if (act.type === 'timer') {
+    clock.setActiveTab('timer')
+    system.openApp('clock')
+  } else if (act.type === 'stopwatch') {
+    clock.setActiveTab('stopwatch')
+    system.openApp('clock')
+  } else if (act.type === 'prayer') {
+    clock.setActiveTab('muslim')
+    system.openApp('clock')
+  }
+  system.requestCloseOverlay('notificationCenter')
 }
 
 function handleStopRecording(e) {
@@ -205,60 +330,129 @@ function handleClearAll() {
   }, 800)
 }
 
-/* ---------- 物理阻尼堆叠算法（滚动时底部卡片逐张堆叠） ---------- */
+/* ---------- 底部灵动堆叠算法（底部无空间时才堆叠，位置不变并缩放至完全遮挡） ---------- */
 const listRef = ref(null)
 let rafId = null
+
 function updateStacking() {
   rafId = null
   const container = listRef.value
-  if (!container) return
-  const containerRect = container.getBoundingClientRect()
+  if (!container || overlay.value.status === 'closed') return
+  const containerHeight = container.clientHeight
+  if (!containerHeight) return
+
   const wrappers = container.querySelectorAll('.nc-item-wrapper')
-  const bottomThreshold = containerRect.height - 180
-  wrappers.forEach((wrapper) => {
-    const rect = wrapper.getBoundingClientRect()
-    const card = wrapper.querySelector('.nc-card')
-    if (!card) return
-    // 横滑偏移：从 data-id 取该卡当前 swipeOffset，和堆叠变换合成到同一个 transform。
-    // 不要在模板里用 :style="{transform: translateX}" —— 它会在每次重渲染把这里的堆叠 scale 冲掉。
-    const swipeX = swipeOffsets.value[wrapper.dataset.id] || 0
-    const relativeY = rect.top - containerRect.top
-    if (relativeY > bottomThreshold) {
-      const excess = relativeY - bottomThreshold
-      const stackIndex = excess / 50
-      if (stackIndex <= 3.5) {
-        const scale = Math.max(0.75, 1 - stackIndex * 0.08)
-        let visualY = 0
-        if (stackIndex <= 1) visualY = stackIndex * 24
-        else if (stackIndex <= 2) visualY = 24 + (stackIndex - 1) * 12
-        else visualY = 36 + (stackIndex - 2) * 6
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + visualY}px, 0) scale(${scale})`
-        card.style.opacity = Math.max(0.4, 1 - stackIndex * 0.2)
-        card.style.filter = `brightness(${Math.max(0.7, 1 - stackIndex * 0.25)})`
+  if (!wrappers.length) return
+
+  // 堆叠起始基准线：提升至安全呼吸区（与底部清除按钮形成自然叠放层次，距离容器底部 76px）
+  const bottomThreshold = containerHeight - 76
+  const scrollTop = container.scrollTop
+
+  // 最下方挤压极限位置：紧贴容器底部（距容器底 4px），彻底消除底部空隙
+  const maxVisualY = Math.max(68, containerHeight - bottomThreshold - 4)
+
+  // 批量只读测量，彻底避免循环内读写交替引发强制同步重排 (Layout Thrashing)
+  const items = []
+  for (let i = 0; i < wrappers.length; i++) {
+    const w = wrappers[i]
+    const card = w.querySelector('.nc-card')
+    items.push({
+      card,
+      content: card ? card.querySelector('.nc-card-body') : null,
+      icon: card ? card.querySelector('.notif-icon') : null,
+      chevron: card ? card.querySelector('.nc-card-chevron') : null,
+      id: w.dataset.id,
+      offsetTop: w.offsetTop,
+      offsetHeight: w.offsetHeight
+    })
+  }
+
+  // 批量样式写入：整卡保持完整自然圆角矩形，随滑入深度平滑调节内容与卡片透明度，彻底避免透底
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    const card = item.card
+    if (!card) continue
+
+    if (card.style.clipPath) card.style.clipPath = ''
+
+    const swipeX = swipeOffsets.value[item.id] || 0
+    const relativeY = item.offsetTop - scrollTop
+    const cardBottom = relativeY + item.offsetHeight
+
+    // 只有当卡片真实底部超过视口底线时才形成层叠
+    if (cardBottom > bottomThreshold) {
+      const excess = cardBottom - bottomThreshold
+      const stackIndex = excess / 48
+
+      // 物理堆叠位移：让底层卡片随挤压深度持续向下推移直至最底部位置（maxVisualY），无缝贴合底部消除空隙
+      let visualY
+      if (stackIndex <= 1) {
+        visualY = stackIndex * 16
+      } else if (stackIndex <= 2) {
+        visualY = 16 + (stackIndex - 1) * 20
+      } else if (stackIndex <= 3) {
+        visualY = 36 + (stackIndex - 2) * 18
       } else {
-        card.style.transform = `translateX(${swipeX}px) translate3d(0, ${-excess + 50}px, 0) scale(0.7)`
-        card.style.opacity = 0
+        visualY = Math.min(maxVisualY, 54 + (stackIndex - 3) * 16)
       }
+
+      const translateY = -excess + visualY
+      const scale = Math.max(0.78, 1 - stackIndex * 0.055)
+
+      // 根据滑动堆叠距离调节白毛玻璃卡片不透明度（0.14 提高至 0.22），加厚雾面遮挡透底，绝不隐藏文字
+      const bgAlpha = clamp(0.14 + (excess / 48) * 0.08, 0.14, 0.22)
+      card.style.setProperty('--nc-card-bg-alpha', String(bgAlpha.toFixed(2)))
+
+      // 自然渐隐消失：当过度挤压并推至最底部时（stackIndex 1.6 ~ 3.8），不透明度平滑衰减至 0，无任何突兀切断
+      let opacity = 1
+      if (stackIndex > 1.6) {
+        opacity = clamp(1 - (stackIndex - 1.6) / 2.2, 0, 1)
+      }
+
+      card.style.transform = `translateX(${swipeX}px) translate3d(0, ${translateY}px, 0) scale(${scale})`
+      card.style.opacity = String(opacity.toFixed(3))
+      card.style.pointerEvents = opacity < 0.08 ? 'none' : 'auto'
     } else {
-      card.style.transform = `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)`
-      card.style.opacity = 1
-      card.style.filter = 'brightness(1)'
+      card.style.transform = swipeX ? `translateX(${swipeX}px) translate3d(0, 0, 0) scale(1)` : ''
+      card.style.opacity = ''
+      card.style.pointerEvents = ''
+      card.style.removeProperty('--nc-card-bg-alpha')
     }
-  })
+  }
 }
+
 function onScroll() {
   if (rafId == null) rafId = requestAnimationFrame(updateStacking)
 }
+
 watch(() => notifications.list.length, async () => {
   await nextTick()
   updateStacking()
 })
-// 横滑偏移变化时，把堆叠变换和横滑合成重算（updateStacking 里已含 translateX）
+
+watch(() => activeActivities.value.length, async () => {
+  await nextTick()
+  updateStacking()
+})
+
 watch(swipeOffsets, () => {
   if (rafId == null) rafId = requestAnimationFrame(updateStacking)
 }, { deep: true })
+
+watch(() => overlay.value.status, async (status) => {
+  if (status === 'open') {
+    await nextTick()
+    setTimeout(updateStacking, 30)
+  }
+})
+
 let mountTimer = null
-onMounted(() => { mountTimer = setTimeout(() => { updateStacking(); mountTimer = null }, 80) })
+onMounted(() => {
+  mountTimer = setTimeout(() => {
+    updateStacking()
+    mountTimer = null
+  }, 100)
+})
 
 onBeforeUnmount(() => {
   clearTimeout(clearTimer)
@@ -289,6 +483,11 @@ function toggleExpand(id) {
   }
   expandedId.value = expandedId.value === id ? null : id
 }
+
+watch(expandedId, async () => {
+  await nextTick()
+  updateStacking()
+})
 </script>
 
 <template>
@@ -308,63 +507,162 @@ function toggleExpand(id) {
 
       <!-- 贯通式列表 -->
       <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
-        <!-- 灵动岛录音卡片（录音进行中显示，支持横滑呼出灵动岛设置与停止按钮） -->
-        <div v-if="recorder.isRecording" class="nc-swipe-card-wrapper nc-recorder-wrapper">
-          <!-- 底层滑动操作按钮 -->
-          <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets['__recorder__'] || 0) < -2 }">
-            <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
-              <LIcon name="headerSettings" :size="20" />
-            </button>
-            <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard('__recorder__')" :title="i18n.t('delete')">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- 表层录音卡片主体 -->
-          <div
-            class="nc-recorder-card"
-            :class="{ 'is-swiping': isSwipingCard && activeCardId === '__recorder__' }"
-            :style="{ transform: `translateX(${swipeOffsets['__recorder__'] || 0}px)` }"
-            @pointerdown="onCardPointerDown($event, '__recorder__')"
-            @pointermove="onCardPointerMove($event, '__recorder__')"
-            @pointerup="onCardPointerUp($event, '__recorder__')"
-            @pointercancel="onCardPointerUp($event, '__recorder__')"
-            @click="onRecorderCardClick"
-          >
-            <!-- 左侧：录音声波频谱柱 -->
-            <div class="nc-rc-left">
-              <div class="nc-rc-audio-bars">
-                <span class="bar bar-1"></span>
-                <span class="bar bar-2"></span>
-                <span class="bar bar-3"></span>
-                <span class="bar bar-main"></span>
-                <span class="bar bar-5"></span>
-                <span class="bar bar-6"></span>
-                <span class="bar bar-7"></span>
-              </div>
+        <!-- 灵动岛活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个） -->
+        <template v-for="act in activeActivities" :key="act.id">
+          <div class="nc-swipe-card-wrapper nc-activity-wrapper">
+            <!-- 底层滑动操作按钮 -->
+            <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[act.id] || 0) < -2 }">
+              <button
+                class="nc-action-btn nc-btn-settings"
+                :style="getActionBtnStyle(act.id, 'settings')"
+                @click.stop="onJumpSettings"
+                :title="i18n.t('islandSettings')"
+              >
+                <LIcon name="headerSettings" :size="20" />
+              </button>
+              <button
+                class="nc-action-btn nc-btn-delete"
+                :style="getActionBtnStyle(act.id, 'delete')"
+                @click.stop="onRequestDeleteActivity(act)"
+                :title="i18n.t('delete')"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18"/>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+              </button>
             </div>
 
-            <!-- 中间：大计时器与副标题 -->
-            <div class="nc-rc-info">
-              <div class="nc-rc-time">{{ recorder.formattedTime }}</div>
-              <div class="nc-rc-sub">{{ recorder.isPaused ? '录音已暂停' : '录音中...' }}</div>
-            </div>
+            <!-- 表层活动卡片主体 -->
+            <div
+              class="nc-activity-card"
+              :class="[
+                `is-${act.type}`,
+                {
+                  'is-swiping': isSwipingCard && activeCardId === act.id,
+                  'has-swipe-transition': !isSwipingCard && swipedTransitionId === act.id
+                }
+              ]"
+              :style="{ transform: `translateX(${swipeOffsets[act.id] || 0}px)` }"
+              @pointerdown="onCardPointerDown($event, act.id)"
+              @pointermove="onCardPointerMove($event, act.id)"
+              @pointerup="onCardPointerUp($event, act.id)"
+              @pointercancel="onCardPointerUp($event, act.id)"
+              @click.stop="onActivityCardClick(act)"
+            >
+              <!-- 录音类型 -->
+              <template v-if="act.type === 'recorder'">
+                <div class="nc-rc-left">
+                  <div class="nc-rc-audio-bars">
+                    <span class="bar bar-1"></span>
+                    <span class="bar bar-2"></span>
+                    <span class="bar bar-3"></span>
+                    <span class="bar bar-main"></span>
+                    <span class="bar bar-5"></span>
+                    <span class="bar bar-6"></span>
+                    <span class="bar bar-7"></span>
+                  </div>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <button class="nc-rc-stop-btn" @click.stop="handleStopRecording" title="停止录音">
+                  <div class="nc-rc-stop-square"></div>
+                </button>
+              </template>
 
-            <!-- 右侧：圆形红色停止按钮 -->
-            <button class="nc-rc-stop-btn" @click.stop="handleStopRecording" title="停止录音">
-              <div class="nc-rc-stop-square"></div>
-            </button>
+              <!-- 定时器类型 -->
+              <template v-else-if="act.type === 'timer'">
+                <div class="nc-act-icon-wrap icon-timer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="nc-act-ctrls">
+                  <button class="nc-act-ctrl-btn btn-cancel" @click.stop="clock.cancelTimer()" title="取消">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="nc-act-ctrl-btn btn-action"
+                    @click.stop="clock.timer.status === 'running' ? clock.pauseTimer() : clock.resumeTimer()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.timer.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 秒表类型 -->
+              <template v-else-if="act.type === 'stopwatch'">
+                <div class="nc-act-icon-wrap icon-stopwatch">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
+                  </svg>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="nc-act-ctrls">
+                  <button
+                    v-if="clock.stopwatch.status === 'running'"
+                    class="nc-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.recordLap()"
+                    title="计次"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.lap" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    v-else
+                    class="nc-act-ctrl-btn btn-cancel"
+                    @click.stop="clock.resetStopwatch()"
+                    title="重置"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                  <button
+                    class="nc-act-ctrl-btn btn-action"
+                    @click.stop="clock.stopwatch.status === 'running' ? clock.pauseStopwatch() : clock.startStopwatch()"
+                    title="暂停/开始"
+                  >
+                    <svg v-if="clock.stopwatch.status === 'running'" width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.pause" fill="#fff" /></svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.play" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
+              <!-- 礼拜模式类型 -->
+              <template v-else-if="act.type === 'prayer'">
+                <div class="nc-act-icon-wrap icon-prayer">
+                  <svg width="22" height="22" viewBox="0 0 24 24">
+                    <path :d="GLYPHS.moon" fill="#00C853" />
+                  </svg>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="nc-act-ctrls">
+                  <button class="nc-act-ctrl-btn btn-cancel" @click.stop="prayer.closeIsland()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+            </div>
           </div>
-        </div>
+        </template>
 
         <!-- 音乐播放器卡片 -->
-        <MusicPlayerCard class="nc-player-instance" />
+        <MusicPlayerCard v-if="control.mediaActive" class="nc-player-instance" />
 
         <!-- 通知列表 -->
         <template v-if="notifications.list.length">
@@ -378,10 +676,20 @@ function toggleExpand(id) {
           >
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[n.id] || 0) < -2 }">
-              <button class="nc-action-btn nc-btn-settings" @click.stop="onJumpSettings" :title="i18n.t('islandSettings')">
+              <button
+                class="nc-action-btn nc-btn-settings"
+                :style="getActionBtnStyle(n.id, 'settings')"
+                @click.stop="onJumpSettings"
+                :title="i18n.t('islandSettings')"
+              >
                 <LIcon name="headerSettings" :size="20" />
               </button>
-              <button class="nc-action-btn nc-btn-delete" @click.stop="onDeleteCard(n.id)" :title="i18n.t('delete')">
+              <button
+                class="nc-action-btn nc-btn-delete"
+                :style="getActionBtnStyle(n.id, 'delete')"
+                @click.stop="onDeleteCard(n.id)"
+                :title="i18n.t('delete')"
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M3 6h18"/>
                   <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -395,12 +703,16 @@ function toggleExpand(id) {
             <!-- 表层通知卡片主体 -->
             <div
               class="nc-card"
-              :class="{ expanded: expandedId === n.id, 'is-swiping': isSwipingCard && activeCardId === n.id }"
+              :class="{
+                expanded: expandedId === n.id,
+                'is-swiping': isSwipingCard && activeCardId === n.id,
+                'has-swipe-transition': !isSwipingCard && swipedTransitionId === n.id
+              }"
               @pointerdown="onCardPointerDown($event, n.id)"
               @pointermove="onCardPointerMove($event, n.id)"
               @pointerup="onCardPointerUp($event, n.id)"
               @pointercancel="onCardPointerUp($event, n.id)"
-              @click="toggleExpand(n.id)"
+              @click.stop="toggleExpand(n.id)"
             >
               <NotificationIcon :type="n.iconType" />
               <div class="nc-card-body">
@@ -429,6 +741,15 @@ function toggleExpand(id) {
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
     </button>
+
+    <!-- 灵动岛关闭确认弹窗 -->
+    <IslandCloseModal
+      :visible="isIslandModalVisible"
+      :act="pendingIslandAct"
+      @close-once="handleCloseOnce"
+      @close-permanent="handleClosePermanent"
+      @cancel="handleCancelIslandModal"
+    />
   </div>
 </template>
 
@@ -475,14 +796,16 @@ function toggleExpand(id) {
   font: 500 15px/1.3 var(--font-stack);
 }
 
-/* 贯通式列表 */
+/* 贯通式列表：全屏边缘贴合，卡片滑动至屏幕边缘直接被视口裁切，允许与底部删除按钮重叠 */
 .nc-list {
+  position: relative;
   flex: 1;
-  margin: 4px 14px 0;
-  border-radius: 24px 24px 0 0;
+  margin: 4px 0 0;
+  padding: 6px 14px 130px;
+  box-sizing: border-box;
   overflow-y: auto;
+  overflow-x: clip;
   overscroll-behavior-y: contain;
-  padding-bottom: 130px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -490,6 +813,7 @@ function toggleExpand(id) {
 .nc-list::-webkit-scrollbar { display: none; }
 .nc-list { scrollbar-width: none; }
 
+.nc-activity-card,
 .nc-recorder-card {
   flex: none;
   position: relative;
@@ -497,11 +821,9 @@ function toggleExpand(id) {
   width: 100%;
   height: 84px;
   border-radius: 26px;
-  background: rgba(14, 14, 16, 0.92);
-  backdrop-filter: blur(36px);
-  -webkit-backdrop-filter: blur(36px);
+  background: rgba(20, 20, 24, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -512,8 +834,55 @@ function toggleExpand(id) {
   touch-action: pan-y;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
 }
+.nc-activity-card:active,
 .nc-recorder-card:active {
   background: rgba(22, 22, 26, 0.95);
+}
+
+.nc-act-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.nc-act-icon-wrap.icon-timer,
+.nc-act-icon-wrap.icon-stopwatch {
+  background: rgba(255, 149, 0, 0.16);
+}
+.nc-act-icon-wrap.icon-prayer {
+  background: rgba(0, 200, 83, 0.16);
+}
+
+.nc-act-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.nc-act-ctrl-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.nc-act-ctrl-btn:active {
+  transform: scale(0.92);
+}
+.nc-act-ctrl-btn.btn-cancel {
+  background: rgba(255, 255, 255, 0.16);
+}
+.nc-act-ctrl-btn.btn-action {
+  background: #ff9500;
+  box-shadow: 0 4px 14px rgba(255, 149, 0, 0.4);
 }
 
 .nc-rc-left {
@@ -617,7 +986,8 @@ function toggleExpand(id) {
   flex: none;
   position: relative;
   z-index: 5;
-  margin-bottom: 3px;
+  margin-bottom: 0;
+  box-shadow: none !important;
 }
 
 /* ---- 滑动容器与底层操作按钮 ---- */
@@ -625,7 +995,7 @@ function toggleExpand(id) {
   flex: none;
   position: relative;
   border-radius: 24px;
-  overflow: hidden;
+  overflow: visible;
   will-change: transform;
 }
 
@@ -656,7 +1026,7 @@ function toggleExpand(id) {
 }
 
 .nc-action-btn {
-  border: none;
+  border: 0.5px solid rgba(255, 255, 255, 0.28);
   width: 44px;
   height: 44px;
   min-width: 44px;
@@ -665,32 +1035,39 @@ function toggleExpand(id) {
   max-height: 44px;
   border-radius: 50%;
   flex: none;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: transform 0.12s ease, opacity 0.15s ease;
   padding: 0;
   box-sizing: border-box;
+  will-change: transform, opacity;
 }
 .nc-action-btn:active {
   transform: scale(0.92);
-  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.38);
 }
 .nc-action-btn svg,
 .nc-action-btn :deep(svg) {
   display: block;
   flex: none;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
 }
 
 .nc-btn-settings {
-  background: rgba(80, 80, 86, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  color: #ffffff;
 }
 .nc-btn-delete {
-  background: #ff3b30;
+  color: #ff3b30;
 }
 
 /* ---- 通知卡片 ---- */
@@ -714,20 +1091,25 @@ function toggleExpand(id) {
   gap: 12px;
   padding: 13px 14px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, var(--nc-card-bg-alpha, 0.14));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: none;
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
-  transform-origin: top;
+  transition: background 0.2s ease;
+  transform-origin: center center;
 }
 .nc-card.is-swiping,
+.nc-activity-card.is-swiping,
 .nc-recorder-card.is-swiping {
   transition: none !important;
 }
-.nc-card:hover { background: rgba(255, 255, 255, 0.12); }
+.nc-card.has-swipe-transition,
+.nc-activity-card.has-swipe-transition {
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+.nc-card:hover { background: rgba(255, 255, 255, 0.18); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .nc-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
 .nc-card-title {
