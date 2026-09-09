@@ -625,33 +625,24 @@ function onCopyFineTune() {
             </div>
           </div>
 
-          <!-- 隐私指示 + 双卡显示（一行两块底板） -->
-          <div class="pc-card-duo">
-            <div class="pc-card pc-card-single">
-              <div class="pc-card-header">
-                <span class="pc-card-title">隐私指示</span>
-                <label class="pc-switch-wrap">
-                  <input
-                    type="checkbox"
-                    :checked="control.showPrivacyIndicators"
-                    @change="control.setShowPrivacyIndicators($event.target.checked)"
-                  />
-                  <div class="pc-switch"></div>
-                </label>
-              </div>
-            </div>
-            <div class="pc-card pc-card-single">
-              <div class="pc-card-header">
-                <span class="pc-card-title">双卡显示</span>
-                <label class="pc-switch-wrap">
-                  <input
-                    type="checkbox"
-                    :checked="control.showDualSim"
-                    @change="control.setShowDualSim($event.target.checked)"
-                  />
-                  <div class="pc-switch"></div>
-                </label>
-              </div>
+          <!-- 隐私指示 / 双卡显示：合并为一张卡片，两个独立双态按钮
+               （各自点击选中/取消选中，互不排斥；默认都不选中，见 controlStore 默认值 false） -->
+          <div class="pc-card pc-card-single">
+            <div class="pc-toggle-row">
+              <button
+                class="pc-toggle-btn"
+                :class="{ on: control.showPrivacyIndicators }"
+                @click="control.setShowPrivacyIndicators(!control.showPrivacyIndicators)"
+              >
+                隐私指示
+              </button>
+              <button
+                class="pc-toggle-btn"
+                :class="{ on: control.showDualSim }"
+                @click="control.setShowDualSim(!control.showDualSim)"
+              >
+                双卡显示
+              </button>
             </div>
           </div>
 
@@ -985,33 +976,24 @@ function onCopyFineTune() {
                     </div>
                   </div>
 
-                  <!-- 隐私指示 + 双卡显示（一行两块底板） -->
-                  <div class="pc-card-duo">
-                    <div class="pc-card pc-card-single">
-                      <div class="pc-card-header">
-                        <span class="pc-card-title">隐私指示</span>
-                        <label class="pc-switch-wrap">
-                          <input
-                            type="checkbox"
-                            :checked="control.showPrivacyIndicators"
-                            @change="control.setShowPrivacyIndicators($event.target.checked)"
-                          />
-                          <div class="pc-switch"></div>
-                        </label>
-                      </div>
-                    </div>
-                    <div class="pc-card pc-card-single">
-                      <div class="pc-card-header">
-                        <span class="pc-card-title">双卡显示</span>
-                        <label class="pc-switch-wrap">
-                          <input
-                            type="checkbox"
-                            :checked="control.showDualSim"
-                            @change="control.setShowDualSim($event.target.checked)"
-                          />
-                          <div class="pc-switch"></div>
-                        </label>
-                      </div>
+                  <!-- 隐私指示 / 双卡显示：合并为一张卡片，两个独立双态按钮
+                       （各自点击选中/取消选中，互不排斥；默认都不选中） -->
+                  <div class="pc-card pc-card-single">
+                    <div class="pc-toggle-row">
+                      <button
+                        class="pc-toggle-btn"
+                        :class="{ on: control.showPrivacyIndicators }"
+                        @click="control.setShowPrivacyIndicators(!control.showPrivacyIndicators)"
+                      >
+                        隐私指示
+                      </button>
+                      <button
+                        class="pc-toggle-btn"
+                        :class="{ on: control.showDualSim }"
+                        @click="control.setShowDualSim(!control.showDualSim)"
+                      >
+                        双卡显示
+                      </button>
                     </div>
                   </div>
 
@@ -1186,7 +1168,7 @@ function onCopyFineTune() {
   margin-bottom: 9px;
 }
 
-/* 只有标题一行的卡片（隐私指示/双卡显示单行底板 / 微调图标尺寸收起态）：
+/* 只有标题一行的卡片（微调图标尺寸收起态）与单行内容卡片（隐私指示/双卡显示合并卡）：
    通用卡片 padding 是 11px 13px 13px（上小下大，为多行内容留呼吸感），
    单行卡片改用对称的 12px，标题+开关正好落在卡片垂直中心（卡片总高不变） */
 .pc-card.pc-card-single {
@@ -1197,18 +1179,9 @@ function onCopyFineTune() {
   margin-bottom: 0;
 }
 
-/* 一行放两块底板（隐私指示 / 双卡显示）：
-   两块各占一半（flex 1:1，min-width 0 防止长标题把格子撑歪），
-   高度 stretch 对齐，间距 10 与其它卡片之间的间距同档 */
-.pc-card-duo {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-}
-.pc-card-duo > .pc-card {
-  flex: 1 1 0;
-  min-width: 0;
-}
+/* 注：原「一行放两块底板」的 .pc-card-duo 已废弃 ——
+   隐私指示 / 双卡显示 合并成一张卡片后不再需要，样式随 DOM 一并移除。 */
+
 /* 微调面板展开态：面板自带 margin/padding-top 间距，标题与面板之间保持原有的 0 间隙 */
 .pc-card.pc-card-expanded .pc-card-header {
   margin-bottom: 0;
@@ -1376,6 +1349,41 @@ function onCopyFineTune() {
 .pc-seg-btn.on {
   color: #ffffff;
   font-weight: 700;
+}
+
+/* 隐私指示 / 双卡显示：一张卡片内两个**独立**双态按钮。
+   底板/圆角/字号沿用 .pc-seg + .pc-seg-btn，但刻意不复用 .pc-seg-thumb 滑块：
+   滑块语义是「互斥切换」，这里两个按钮各自可点选/取消（可同选、可同不选），
+   所以选中态直接落在按钮自身的背景色上，用同一个 0.2,0.8,0.2,1 缓动保持一致手感。 */
+.pc-toggle-row {
+  display: flex;
+  gap: 8px;
+  background: #101014;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  padding: 3px;
+}
+.pc-toggle-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 0;
+  font: 500 12px/1 var(--font-stack);
+  border-radius: 9px;
+  color: #a1a1aa;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), color 0.2s ease, box-shadow 0.28s ease;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none;
+}
+.pc-toggle-btn:hover { color: #f4f4f5; }
+.pc-toggle-btn.on {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
 }
 
 /* 操作按钮 */
