@@ -727,6 +727,7 @@ watch(expandedId, async () => {
               :class="{
                 expanded: expandedId === n.id,
                 'is-swiping': isSwipingCard && activeCardId === n.id,
+                'has-horizontal-offset': (swipeOffsets[n.id] || 0) < 0,
                 'has-swipe-transition': !isSwipingCard && swipedTransitionId === n.id
               }"
               @pointerdown="onCardPointerDown($event, n.id)"
@@ -1142,6 +1143,13 @@ watch(expandedId, async () => {
 .nc-card.has-swipe-transition,
 .nc-activity-card.has-swipe-transition {
   transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+.nc-card.has-horizontal-offset {
+  /* Chromium paints a dark sampling fringe when a moving backdrop-filter
+     crosses the viewport clip. Keep the same glass tint while displaced,
+     but stop sampling pixels outside the screen edge. */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .nc-card:hover { background: rgba(255, 255, 255, 0.18); }
 .nc-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
