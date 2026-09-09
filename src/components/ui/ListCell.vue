@@ -9,24 +9,33 @@ const props = defineProps({
   glyph: { type: String, default: '' },
   iconBg: { type: String, default: '#8E8E93' },
   iconText: { type: String, default: '' },  // 无 glyph 时显示首字符
-  title: { type: String, required: true },
+  title: { type: String, default: '' },
+  subtitle: { type: String, default: '' },
   value: { type: String, default: '' },
   chevron: { type: Boolean, default: false },
+  clickable: { type: Boolean, default: false },
   last: { type: Boolean, default: false }   // 组内最后一条：无分隔线
 })
 const emit = defineEmits(['click'])
 </script>
 
 <template>
-  <div class="list-cell" :class="{ clickable: chevron }" @click="emit('click')">
-    <div v-if="glyph || iconText" class="lc-icon" :style="{ background: iconBg }">
-      <svg v-if="glyph" width="17" height="17" viewBox="0 0 24 24">
-        <path :d="GLYPHS[glyph]" fill="#fff" />
-      </svg>
-      <span v-else class="lc-icon-text">{{ iconText }}</span>
-    </div>
+  <div class="list-cell" :class="{ clickable: chevron || clickable }" @click="emit('click')">
+    <slot name="icon">
+      <div v-if="glyph || iconText" class="lc-icon" :style="{ background: iconBg }">
+        <svg v-if="glyph" width="17" height="17" viewBox="0 0 24 24">
+          <path :d="GLYPHS[glyph]" fill="#fff" />
+        </svg>
+        <span v-else class="lc-icon-text">{{ iconText }}</span>
+      </div>
+    </slot>
     <div class="lc-main" :class="{ 'no-sep': last }">
-      <span class="lc-title">{{ title }}</span>
+      <div class="lc-title-col">
+        <slot name="title">
+          <span class="lc-title">{{ title }}</span>
+        </slot>
+        <span v-if="subtitle" class="lc-subtitle">{{ subtitle }}</span>
+      </div>
       <div class="lc-right">
         <slot name="right">
           <span v-if="value" class="lc-value">{{ value }}</span>
@@ -77,12 +86,24 @@ const emit = defineEmits(['click'])
 }
 .lc-main.no-sep { border-bottom: none; }
 
+.lc-title-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
 .lc-title {
   font: 400 15px/1.25 var(--font-stack);
   color: var(--label);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.lc-subtitle {
+  font: 400 13px/1.35 var(--font-stack);
+  color: var(--label-secondary);
+  white-space: normal;
 }
 .lc-right {
   display: flex;
