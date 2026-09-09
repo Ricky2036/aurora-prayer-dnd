@@ -299,6 +299,8 @@ const TOGGLES = [
   { id: 'motionComfort', icon: 'motionComfort', iconOff: 'motionComfortOff', activeBg: '#fff', activeColor: '#1A88FF' },
   { id: 'liquidCooling', icon: 'liquidCooling', activeBg: '#fff', activeColor: '#1A88FF' },
   { id: 'shoulderKey', icon: 'shoulderKey', activeBg: '#fff', activeColor: '#258FFF' },
+  /* EE1 系列新增：VPN（插在 快速分享(cast) 之前，见 presetItems 的 extra 处理） */
+  { id: 'vpn', icon: 'vpn', activeBg: '#fff', activeColor: '#258FFF' },
   // 已从默认布局下线（Ricky 2026-09-08）：定义保留，方便以后一键恢复。
   // 恢复方式 = 同时做两件事：把 'jbl' 加回下面的 DEFAULT_TOGGLE_IDS，
   //   并把 'jbl' 加回 controlStore 里 NOTE 的 only —— 只加一处不会生效。
@@ -378,16 +380,33 @@ const HIOS17_ITEMS = [
    baseItems 是全量清单，PRESET_EXCLUSIVE_IDS 里的条目只有命中该机型的 only 才留下 */
 const presetItems = computed(() => {
   const preset = LAYOUT_PRESETS.find((p) => p.id === control.layoutPreset) || LAYOUT_PRESETS[0]
+  let items
   // HiOS 17 走完全自定义的磁贴清单（顺序与尺寸由 HIOS17_ITEMS 决定，
-  //   packLayout 按数组顺序紧凑填入 4 列网格，恰好复刻截图里的排版）
-  if (preset.id === 'hios17') return HIOS17_ITEMS
-  const only = new Set(preset.only)
-  let items = baseItems.filter((i) => !PRESET_EXCLUSIVE_IDS.includes(i.id) || only.has(i.id))
-  // tOS17 系列在「基础布局」之上额外剔除指定开关（如 NOTE/GT 的 17 版去掉
-  // 深色模式 / 红外遥控 / 晕动舒缓）。removed 缺省则不过滤。
-  if (preset.removed && preset.removed.length) {
-    const removed = new Set(preset.removed)
-    items = items.filter((i) => !removed.has(i.id))
+  //   packLayout 按数组顺序紧凑填入 4 列网格，恰好复刻截图里的排版）。
+  //   EE1 的 CAMON 版用 layout:'hios17' 复用同一份清单。
+  if (preset.id === 'hios17' || preset.layout === 'hios17') {
+    items = HIOS17_ITEMS
+  } else {
+    const only = new Set(preset.only)
+    items = baseItems.filter((i) => !PRESET_EXCLUSIVE_IDS.includes(i.id) || only.has(i.id))
+    // tOS17 系列在「基础布局」之上额外剔除指定开关（如 NOTE/GT 的 17 版去掉
+    // 深色模式 / 红外遥控 / 晕动舒缓）。removed 缺省则不过滤。
+    if (preset.removed && preset.removed.length) {
+      const removed = new Set(preset.removed)
+      items = items.filter((i) => !removed.has(i.id))
+    }
+  }
+  // EE1 系列：在 快速分享(cast) 之前插入额外磁贴（VPN）。
+  //   extra 是通用的，将来要插别的图标只改 LAYOUT_PRESETS 即可。
+  if (preset.extra && preset.extra.length) {
+    const at = items.findIndex((i) => i.id === 'cast')
+    const insertAt = at < 0 ? items.length : at
+    const extra = preset.extra.map((id) => {
+      const size = (TOGGLES.find((t) => t.id === id) || {}).defaultSize || '1x1'
+      const [w, h] = size.split('x').map(Number)
+      return { id, type: 'toggle', size, w, h }
+    })
+    items = [...items.slice(0, insertAt), ...extra, ...items.slice(insertAt)]
   }
   return items
 })

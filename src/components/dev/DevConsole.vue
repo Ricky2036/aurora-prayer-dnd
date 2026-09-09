@@ -59,10 +59,14 @@ const presetIndex = computed(() =>
   Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset))
 )
 
-/** tOS16 预设（顶行）与 tOS17 预设（底行，用于与 tOS16 对比）。
- *  按 preset.series 分流；series 缺省时归入 tOS16，避免新预设掉出控件。 */
-const tos16Presets = computed(() => LAYOUT_PRESETS.filter((p) => (p.series || '16') === '16'))
-const tos17Presets = computed(() => LAYOUT_PRESETS.filter((p) => p.series === '17'))
+/** 默认布局按「系列」分行：tOS 16 / tOS 17 / EE1，每行同样是 CAMON / NOTE / GT。
+ *  行是数据驱动的 —— 将来再加系列只改这个数组，模板和滑块动效都不用动。
+ *  滑块是整张卡片唯一一个，靠实测按钮位置在 9 个格子间连续移动。 */
+const presetSeries = computed(() => [
+  { key: '16', tag: 'tOS 16', presets: LAYOUT_PRESETS.filter((p) => (p.series || '16') === '16') },
+  { key: '17', tag: 'tOS 17', presets: LAYOUT_PRESETS.filter((p) => p.series === '17') },
+  { key: 'ee1', tag: 'EE1', presets: LAYOUT_PRESETS.filter((p) => p.series === 'ee1') }
+])
 /* 默认布局两行共 6 个按钮 —— 整张卡片只保留「一个」滑块，
    切换时靠实测目标按钮相对容器的偏移连续移动（含跨行），
    而不是两行各一个滑块各自淡出/归位（那样跨行切换会先从行首闪一下）。
@@ -577,25 +581,11 @@ function onCopyFineTune() {
                 :class="{ 'is-ready': desktopPresetThumb.ready.value }"
                 :style="desktopPresetThumb.thumbStyle.value"
               ></div>
-              <div class="pc-preset-row">
-                <span class="pc-preset-tag">tOS 16</span>
+              <div class="pc-preset-row" v-for="s in presetSeries" :key="s.key">
+                <span class="pc-preset-tag">{{ s.tag }}</span>
                 <div class="pc-seg">
                   <button
-                    v-for="p in tos16Presets"
-                    :key="p.id"
-                    class="pc-seg-btn"
-                    :class="{ on: control.layoutPreset === p.id }"
-                    @click="control.setLayoutPreset(p.id)"
-                  >
-                    {{ p.shortLabel || p.label }}
-                  </button>
-                </div>
-              </div>
-              <div class="pc-preset-row">
-                <span class="pc-preset-tag">tOS 17</span>
-                <div class="pc-seg">
-                  <button
-                    v-for="p in tos17Presets"
+                    v-for="p in s.presets"
                     :key="p.id"
                     class="pc-seg-btn"
                     :class="{ on: control.layoutPreset === p.id }"
@@ -951,25 +941,11 @@ function onCopyFineTune() {
                         :class="{ 'is-ready': mobilePresetThumb.ready.value }"
                         :style="mobilePresetThumb.thumbStyle.value"
                       ></div>
-                      <div class="pc-preset-row">
-                        <span class="pc-preset-tag">tOS 16</span>
+                      <div class="pc-preset-row" v-for="s in presetSeries" :key="s.key">
+                        <span class="pc-preset-tag">{{ s.tag }}</span>
                         <div class="pc-seg">
                           <button
-                            v-for="p in tos16Presets"
-                            :key="p.id"
-                            class="pc-seg-btn"
-                            :class="{ on: control.layoutPreset === p.id }"
-                            @click="control.setLayoutPreset(p.id)"
-                          >
-                            {{ p.shortLabel || p.label }}
-                          </button>
-                        </div>
-                      </div>
-                      <div class="pc-preset-row">
-                        <span class="pc-preset-tag">tOS 17</span>
-                        <div class="pc-seg">
-                          <button
-                            v-for="p in tos17Presets"
+                            v-for="p in s.presets"
                             :key="p.id"
                             class="pc-seg-btn"
                             :class="{ on: control.layoutPreset === p.id }"

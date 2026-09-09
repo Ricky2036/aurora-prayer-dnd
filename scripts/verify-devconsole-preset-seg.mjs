@@ -23,7 +23,10 @@ const PRESETS = [
   { id: 'gt', row: 'tOS 16', label: 'GT' },
   { id: 'hios17', row: 'tOS 17', label: 'CAMON' },
   { id: 'note17', row: 'tOS 17', label: 'NOTE' },
-  { id: 'gt17', row: 'tOS 17', label: 'GT' }
+  { id: 'gt17', row: 'tOS 17', label: 'GT' },
+  { id: 'ee1Camon', row: 'EE1', label: 'CAMON' },
+  { id: 'ee1Note', row: 'EE1', label: 'NOTE' },
+  { id: 'ee1Gt', row: 'EE1', label: 'GT' }
 ]
 let ok = true
 const check = (n, c, d) => { if (!c) ok = false; console.log(`${c ? 'PASS' : 'FAIL'}  ${n}${d ? '  — ' + d : ''}`) }
@@ -67,10 +70,11 @@ if (struct.missingCard) {
   check('默认布局卡片存在', false, '找不到标题为「默认布局」的卡片')
 } else {
   check('默认布局合并为一张卡片', struct.cardCount === 1, `匹配卡片数=${struct.cardCount}`)
-  check('含 tOS16 / tOS17 两行', struct.rows.length === 2, `行数=${struct.rows.length}`)
+  check('含 tOS16 / tOS17 / EE1 三行', struct.rows.length === 3, `行数=${struct.rows.length}`)
   check('第 1 行文案 = tOS 16', struct.rows[0]?.tag === 'tOS 16', `actual=${struct.rows[0]?.tag}`)
   check('第 2 行文案 = tOS 17', struct.rows[1]?.tag === 'tOS 17', `actual=${struct.rows[1]?.tag}`)
-  check('6 个按钮共用 1 个滑块', struct.thumbs === 1, `滑块数=${struct.thumbs}`)
+  check('第 3 行文案 = EE1', struct.rows[2]?.tag === 'EE1', `actual=${struct.rows[2]?.tag}`)
+  check('9 个按钮共用 1 个滑块', struct.thumbs === 1, `滑块数=${struct.thumbs}`)
   check('不再有分行滑块 (.pc-seg-thumb-3)', struct.legacyThumbs === 0, `残留=${struct.legacyThumbs}`)
   const want = ['CAMON', 'NOTE', 'GT']
   for (const [i, r] of struct.rows.entries()) {
