@@ -361,7 +361,7 @@ function updateStacking() {
   const containerHeight = container.clientHeight
   if (!containerHeight) return
 
-  const wrappers = container.querySelectorAll('.nc-item-wrapper')
+  const wrappers = container.querySelectorAll('.nc-stack-item')
   if (!wrappers.length) return
 
   const scrollTop = container.scrollTop
@@ -370,8 +370,9 @@ function updateStacking() {
   const items = []
   for (let i = 0; i < wrappers.length; i++) {
     const w = wrappers[i]
-    const card = w.querySelector('.nc-card')
+    const card = w.querySelector('.nc-card, .nc-activity-card, .nc-player-instance')
     items.push({
+      wrapper: w,
       card,
       content: card ? card.querySelector('.nc-card-body') : null,
       icon: card ? card.querySelector('.notif-icon') : null,
@@ -385,6 +386,7 @@ function updateStacking() {
   // 批量样式写入：整卡保持完整自然圆角矩形，随滑入深度平滑调节内容与卡片透明度，彻底避免透底
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
+    item.wrapper.style.zIndex = String(items.length - i)
     const card = item.card
     if (!card) continue
 
@@ -422,6 +424,11 @@ watch(() => notifications.list.length, async () => {
 })
 
 watch(() => activeActivities.value.length, async () => {
+  await nextTick()
+  updateStacking()
+})
+
+watch(() => control.mediaActive, async () => {
   await nextTick()
   updateStacking()
 })
@@ -500,7 +507,7 @@ watch(expandedId, async () => {
       <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
         <!-- 灵动岛活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个） -->
         <template v-for="act in activeActivities" :key="act.id">
-          <div class="nc-swipe-card-wrapper nc-activity-wrapper">
+          <div class="nc-swipe-card-wrapper nc-stack-item nc-activity-wrapper" :data-id="act.id">
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[act.id] || 0) < -2 }">
               <button
@@ -689,7 +696,7 @@ watch(expandedId, async () => {
         </template>
 
         <!-- 音乐播放器卡片：与其他灵动岛活动共用横滑操作 -->
-        <div v-if="control.mediaActive" class="nc-swipe-card-wrapper nc-media-wrapper">
+        <div v-if="control.mediaActive" class="nc-swipe-card-wrapper nc-stack-item nc-media-wrapper" data-id="media">
           <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets.media || 0) < -2 }">
             <button
               class="nc-action-btn nc-btn-settings"
@@ -733,10 +740,10 @@ watch(expandedId, async () => {
           <div
             v-for="(n, idx) in notifications.list"
             :key="n.id"
-            class="nc-item-wrapper nc-swipe-card-wrapper"
+            class="nc-item-wrapper nc-swipe-card-wrapper nc-stack-item"
             :class="{ clearing: isClearing }"
             :data-id="n.id"
-            :style="{ transitionDelay: isClearing ? idx * 40 + 'ms' : '0ms', zIndex: notifications.list.length - idx }"
+            :style="{ transitionDelay: isClearing ? idx * 40 + 'ms' : '0ms' }"
           >
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[n.id] || 0) < -2 }">

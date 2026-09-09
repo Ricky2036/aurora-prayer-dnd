@@ -19,7 +19,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Alarm dynamic island reminder, snooze countdown, auto re-trigger, and dismiss matching reference design | `antigravity/lane` | `src/stores/clockStore.js`; `src/stores/notificationsStore.js`; `src/composables/useActiveActivities.js`; `src/components/system/DynamicIsland.vue`; `src/components/system/NotificationCenter.vue`; `src/components/system/LockScreen.vue`; `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `1f89b21` | `afa08ef` |
 | Merged | Antigravity | Redesign Settings home menu with 8 card groups, new styling norms, and floating search bar matching latest screen recording | `antigravity/lane` | `src/components/apps/settings/SettingsApp.vue`; `src/components/ui/SettingsSearchBar.vue`; `src/components/ui/ListCell.vue`; `tests/settingsMenu.test.js` | `a6dc102` | `572d962` |
 | Merged | Workbuddy | Polish HomeIndicator bottom navigation bar opacity to 30% for dark/light states | `workbuddy/lane` | `src/components/phone/HomeIndicator.vue` | `57e0e1f` | `28c0c91` |
-
+| Merged | Codex | LockScreen native stack scrolling, clock compression (220 to 110), unlock surface separation, and card overlap opacity | `codex/lane` | `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `src/utils/notificationStack.js`; `tests/notificationStack.test.js` | `622a79a` | `ca22154` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
