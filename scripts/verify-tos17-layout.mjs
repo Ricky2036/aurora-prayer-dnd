@@ -70,6 +70,24 @@ for (const id of ['camon', 'note', 'gt', 'hios17', 'note17', 'gt17']) {
   )
 }
 
+// ---- 倒数第二排顺序：肩键 → 液冷散热 → 灯效 → 晕动舒缓（GT / GT 17 一致）----
+const SECOND_LAST = ['shoulderKey', 'liquidCooling', 'boost', 'motionComfort']
+// GT 17 按 tOS17 规则去掉了 晕动舒缓，所以只校验前三个的相对顺序
+const WANT_SECOND_LAST = {
+  gt: ['shoulderKey', 'liquidCooling', 'boost', 'motionComfort'],
+  gt17: ['shoulderKey', 'liquidCooling', 'boost']
+}
+for (const [id, want] of Object.entries(WANT_SECOND_LAST)) {
+  await setPreset(id)
+  const ids = await readCells()
+  const got = ids.filter((x) => SECOND_LAST.includes(x))
+  check(
+    `${id}: 倒数第二排 = 肩键/液冷散热/灯效${want.length === 4 ? '/晕动舒缓' : ''}`,
+    JSON.stringify(got) === JSON.stringify(want),
+    `actual=${got.join('/')}`
+  )
+}
+
 await page.screenshot({ path: 'shots/tos17-cc.png' })
 console.log('\n截图: shots/tos17-cc.png')
 console.log(errs.length ? '\n控制台错误: ' + errs.join('; ') : '\n无控制台错误')

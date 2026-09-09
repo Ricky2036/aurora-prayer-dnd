@@ -310,7 +310,10 @@ const DEFAULT_TOGGLE_IDS = [
   'bluetooth', 'hotspot', 'airplane', 'location',
   'screenshot', 'darkMode', 'dnd', 'rotationLock',
   'screenRecord', 'batterySaver', 'autoRotate', 'share',
-  'boost', 'motionComfort', 'liquidCooling', 'shoulderKey',
+  /* 倒数第二排顺序（Ricky 2026-09-09）：肩键 → 液冷散热 → 灯效 → 晕动舒缓。
+     GT / GT 17 都按这个相对顺序；CAMON、NOTE 没有肩键和液冷，剩下的
+     灯效 → 晕动舒缓 相对顺序不变，所以不受影响。 */
+  'shoulderKey', 'liquidCooling', 'boost', 'motionComfort',
   /* 收尾三个固定为 快速分享 / 扫一扫 / 钱包 —— 所有默认布局统一（Ricky 2026-09-08）。
      注意要放在机型独占项之后，否则 GT 的液冷/肩键会插到末尾把它们挤掉。 */
   'cast', 'scan', 'calculator'
