@@ -448,7 +448,7 @@ onBeforeUnmount(() => {
 
 /* 星期/日期 */
 /* 星期与月日走 i18n：英文是 Tue / Sep 8，中文是 周二 / 9月8日 */
-const weekday = computed(() => (i18n.currentWeekDays || [])[now.value.getDay()] || '')
+const weekday = computed(() => (i18n.calWeekDays || [])[now.value.getDay()] || '')
 const monthDay = computed(() => i18n.t('monthDay')(i18n.monthNames[now.value.getMonth()] || now.value.getMonth() + 1, now.value.getDate()))
 
 /* 卡片点击展开描述 */
@@ -798,12 +798,12 @@ watch(expandedId, async () => {
   flex: none;
   display: flex;
   align-items: flex-end;
-  padding: calc(var(--safe-top) + 10px) 24px 8px 24px;
+  padding: calc(var(--safe-top) - 16px) 24px 8px 24px;
   color: #fff;
   z-index: 2;
 }
 .nc-title-time {
-  font: 300 62px/1 var(--font-stack);
+  font: 300 52px/1 var(--font-stack);
   letter-spacing: -2px;
   text-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
   font-variant-numeric: tabular-nums;
