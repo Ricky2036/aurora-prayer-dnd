@@ -120,7 +120,9 @@ export const ITEM_LABELS = {
  *   CAMON 的 tOS17 走 HIOS17_ITEMS 固定清单：去掉 深色主题(darkMode) / 红外遥控(autoRotate)，
  *   加回 tOS16 有而它缺的 截屏(screenshot) / 灯效(boost)（Ricky 2026-09-08）。
  * EE1 系列（Ricky 2026-09-09）：在 tOS 17 布局基础上，于 快速分享(cast) 之前
- *   插入 VPN —— 用 layout:'hios17' 表明确走 HiOS 清单，用 extra 声明插入项。 */
+ *   插入 VPN —— 用 extra 声明插入项。
+ *   ee1Camon 额外用 layout:'ee1' 走 ControlCenter 的 EE1_ITEMS：
+ *   热点 2x1→1x1、定位上移补位、后续图标整体前移一格。 */
 const TOS17_REMOVED = ['darkMode', 'autoRotate', 'motionComfort']
 export const LAYOUT_PRESETS = [
   { id: 'camon', label: 'CAMON', shortLabel: 'CAMON', series: '16', only: [] },
@@ -129,7 +131,7 @@ export const LAYOUT_PRESETS = [
   { id: 'hios17', label: 'CAMON 17', shortLabel: 'CAMON', series: '17', only: [] },
   { id: 'note17', label: 'NOTE 17', shortLabel: 'NOTE', series: '17', only: ['joyHeart'], removed: TOS17_REMOVED },
   { id: 'gt17', label: 'GT 17', shortLabel: 'GT', series: '17', only: ['liquidCooling', 'shoulderKey'], removed: TOS17_REMOVED },
-  { id: 'ee1Camon', label: 'CAMON EE1', shortLabel: 'CAMON', series: 'ee1', layout: 'hios17', extra: ['vpn'] },
+  { id: 'ee1Camon', label: 'CAMON EE1', shortLabel: 'CAMON', series: 'ee1', layout: 'ee1', extra: ['vpn'] },
   { id: 'ee1Note', label: 'NOTE EE1', shortLabel: 'NOTE', series: 'ee1', only: ['joyHeart'], removed: TOS17_REMOVED, extra: ['vpn'] },
   {
     id: 'ee1Gt',

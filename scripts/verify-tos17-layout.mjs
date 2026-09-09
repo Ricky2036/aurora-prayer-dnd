@@ -70,6 +70,33 @@ for (const id of ['camon', 'note', 'gt', 'hios17', 'note17', 'gt17']) {
   )
 }
 
+// ---- EE1 CAMON：热点 2x1 → 1x1，定位上移补位，后续图标整体前移 ----
+await setPreset('ee1Camon')
+{
+  const cells = await page.evaluate(() =>
+    [...document.querySelectorAll('.cc-grid .cc-cell')].map((c) => {
+      const s = getComputedStyle(c)
+      return {
+        id: c.dataset.id,
+        col: s.gridColumnStart,
+        span: s.gridColumnEnd,
+        row: s.gridRowStart,
+        w: c.getBoundingClientRect().width
+      }
+    })
+  )
+  const hotspot = cells.find((c) => c.id === 'hotspot')
+  const location = cells.find((c) => c.id === 'location')
+  const airplane = cells.find((c) => c.id === 'airplane')
+  check('EE1: 热点 = 1x1（宽度与飞行模式一致）', Math.abs(hotspot.w - airplane.w) <= 1, `hotspot=${hotspot.w}px airplane=${airplane.w}px`)
+  check('EE1: 热点 与 定位 同一行', hotspot && location && hotspot.row === location.row, `hotspot r${hotspot && hotspot.row} location r${location && location.row}`)
+  check('EE1: 定位紧接热点（列 +1）', hotspot && location && Number(location.col) === Number(hotspot.col) + 1, `hotspot c${hotspot && hotspot.col} location c${location && location.col}`)
+  const ids = cells.map((c) => c.id)
+  check('EE1: 定位排序在 热点 之后、设备中心 之前', ids.indexOf('location') === ids.indexOf('hotspot') + 1 && ids.indexOf('location') < ids.indexOf('joyConnect'), `order=${ids.join('>')}`)
+  check('EE1: 手电筒前移补上定位原位（在 热点 之后的第二排首位）', ids.indexOf('flashlight') > ids.indexOf('hotspot'), `flashlight@${ids.indexOf('flashlight')}`)
+  await page.screenshot({ path: 'shots/ee1-cc.png' })
+}
+
 // ---- EE1 系列：在 tOS17 基础上，快速分享(cast) 之前插入 VPN ----
 const EE1_REMOVED = ['darkMode', 'autoRotate', 'motionComfort']
 for (const [id, exclusive] of Object.entries({
