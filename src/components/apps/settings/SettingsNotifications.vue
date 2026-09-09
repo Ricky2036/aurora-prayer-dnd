@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import NotificationIcon from '../../ui/NotificationIcon.vue'
@@ -25,13 +25,35 @@ function tFn(key) {
 }
 
 /* ---------- 子视图栈 ---------- */
-const subView = ref(notificationsStore.targetSubView === 'dynamicBar' ? 'dynamicBar' : 'main')
+const initialSubView = notificationsStore.targetSubView === 'dynamicBar' ? 'dynamicBar' : 'main'
 if (notificationsStore.targetSubView === 'dynamicBar') {
   notificationsStore.setTargetView('notifications', null)
 }
-function go(v) { subView.value = v }
+const subStack = ref([initialSubView])
+const subView = computed(() => subStack.value[subStack.value.length - 1] || 'main')
+const isBack = ref(false)
+
+watch(
+  () => notificationsStore.targetSubView,
+  (newSub) => {
+    if (newSub === 'dynamicBar') {
+      isBack.value = false
+      subStack.value = ['main', 'dynamicBar']
+      notificationsStore.setTargetView('notifications', null)
+    }
+  }
+)
+
+function go(v) {
+  isBack.value = false
+  subStack.value.push(v)
+}
 function back() {
-  if (subView.value !== 'main') { subView.value = 'main'; return true }
+  if (subStack.value.length > 1) {
+    isBack.value = true
+    subStack.value.pop()
+    return true
+  }
   return false
 }
 defineExpose({ back })
@@ -108,8 +130,8 @@ const emit = defineEmits(['back-to-settings'])
 
 <template>
   <div class="notif-settings">
-    <!-- ============ 主视图 ============ -->
-    <Transition name="fade" mode="out-in">
+    <!-- ============ 主视图与子视图统一切换 ============ -->
+    <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <div v-if="subView === 'main'" key="main" class="ns-page scrollable">
         <div class="ns-sticky">
           <button class="ns-back" @click="emit('back-to-settings')">
@@ -483,9 +505,53 @@ const emit = defineEmits(['back-to-settings'])
 .ns-page::-webkit-scrollbar { display: none; }
 .ns-page { scrollbar-width: none; }
 
-/* 子页切换 */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.22s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+/* ================= 统一设置极速丝滑进退动画 (与 SettingsApp 一致) ================= */
+.slide-enter-active,
+.slide-back-enter-active {
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.16s ease;
+}
+.slide-leave-active,
+.slide-back-leave-active {
+  transition: transform 0.12s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
+}
+
+/* 进入：新页从右滑入 */
+.slide-enter-from {
+  transform: translateX(36px);
+  opacity: 0;
+}
+.slide-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+/* 离开：旧页向左微移退出 */
+.slide-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+.slide-leave-to {
+  transform: translateX(-24px);
+  opacity: 0;
+}
+
+/* 返回进入：旧页从左侧滑回 */
+.slide-back-enter-from {
+  transform: translateX(-24px);
+  opacity: 0;
+}
+.slide-back-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+/* 返回离开：顶页向右滑出 */
+.slide-back-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+.slide-back-leave-to {
+  transform: translateX(36px);
+  opacity: 0;
+}
 
 /* 顶部返回条：sticky 吸顶覆盖整个顶部（含状态栏区），
    高度包含状态栏安全区，内容底部对齐，避免与状态栏重叠。 */

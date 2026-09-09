@@ -1023,6 +1023,7 @@ watch(expandedId, async () => {
 .nc-swipe-actions.is-active {
   opacity: 1;
   pointer-events: auto;
+  z-index: 3;
 }
 
 .nc-action-btn {
