@@ -376,6 +376,28 @@ const HIOS17_ITEMS = [
   return { ...i, w, h }
 })
 
+/* EE1 布局（Ricky 2026-09-09）：在 HiOS 17 清单基础上只做两处改动 ——
+   ① 热点从 2x1 胶囊改成 1x1 圆砖（占 r4c1）；
+   ② 定位上移到热点旁边补上空位（r4c2），它原本的位置由后面的图标整体前移一格填满。
+   用「派生」而不是再抄一份清单，避免两份清单以后各改各的对不上。
+   VPN 仍由 LAYOUT_PRESETS 的 extra:['vpn'] 机制插到 快速分享 之前。 */
+const EE1_ITEMS = (() => {
+  const list = HIOS17_ITEMS.map((i) => ({ ...i }))
+  const hotspot = list.find((i) => i.id === 'hotspot')
+  if (hotspot) {
+    hotspot.size = '1x1'
+    hotspot.w = 1
+    hotspot.h = 1
+  }
+  const locAt = list.findIndex((i) => i.id === 'location')
+  if (locAt >= 0) {
+    const [location] = list.splice(locAt, 1)
+    const hsAt = list.findIndex((i) => i.id === 'hotspot')
+    list.splice(hsAt + 1, 0, location)
+  }
+  return list
+})()
+
 /* 按当前「默认布局」机型过滤掉别家独有的磁贴：
    baseItems 是全量清单，PRESET_EXCLUSIVE_IDS 里的条目只有命中该机型的 only 才留下 */
 const presetItems = computed(() => {
@@ -383,9 +405,11 @@ const presetItems = computed(() => {
   let items
   // HiOS 17 走完全自定义的磁贴清单（顺序与尺寸由 HIOS17_ITEMS 决定，
   //   packLayout 按数组顺序紧凑填入 4 列网格，恰好复刻截图里的排版）。
-  //   EE1 的 CAMON 版用 layout:'hios17' 复用同一份清单。
+  //   EE1 的 CAMON 版用 layout:'ee1' 走 EE1_ITEMS（HiOS 清单 + 热点/定位微调）。
   if (preset.id === 'hios17' || preset.layout === 'hios17') {
     items = HIOS17_ITEMS
+  } else if (preset.layout === 'ee1') {
+    items = EE1_ITEMS
   } else {
     const only = new Set(preset.only)
     items = baseItems.filter((i) => !PRESET_EXCLUSIVE_IDS.includes(i.id) || only.has(i.id))
