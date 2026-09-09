@@ -36,6 +36,14 @@ const prayer = usePrayerStore()
 const control = useControlStore()
 const { activeActivities } = useActiveActivities()
 const { timeShort, now } = useClock()
+const mediaActivity = computed(() => ({
+  id: 'media',
+  type: 'media',
+  appId: 'music',
+  title: control.mediaTitle,
+  subtitle: control.mediaArtist,
+  status: control.mediaPlaying ? 'playing' : 'paused'
+}))
 
 const overlay = computed(() => system.overlays.notificationCenter)
 const visible = computed(() => overlay.value.status !== 'closed')
@@ -204,6 +212,8 @@ function stopActivityInstance(act) {
     clock.resetStopwatch()
   } else if (act.type === 'prayer' || act.id === 'prayer') {
     prayer.closeIsland()
+  } else if (act.type === 'media' || act.id === 'media') {
+    control.dismissMediaImmediately()
   }
 }
 
@@ -244,6 +254,8 @@ function onDeleteCard(id) {
     clock.resetStopwatch()
   } else if (id === 'prayer') {
     prayer.closeIsland()
+  } else if (id === 'media') {
+    control.dismissMediaImmediately()
   } else {
     notifications.remove(id)
   }
@@ -661,8 +673,45 @@ watch(expandedId, async () => {
           </div>
         </template>
 
-        <!-- 音乐播放器卡片 -->
-        <MusicPlayerCard v-if="control.mediaActive" class="nc-player-instance" />
+        <!-- 音乐播放器卡片：与其他灵动岛活动共用横滑操作 -->
+        <div v-if="control.mediaActive" class="nc-swipe-card-wrapper nc-media-wrapper">
+          <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets.media || 0) < -2 }">
+            <button
+              class="nc-action-btn nc-btn-settings"
+              :style="getActionBtnStyle('media', 'settings')"
+              @click.stop="onJumpSettings"
+              :title="i18n.t('islandSettings')"
+            >
+              <LIcon name="headerSettings" :size="20" />
+            </button>
+            <button
+              class="nc-action-btn nc-btn-delete"
+              :style="getActionBtnStyle('media', 'delete')"
+              @click.stop="onRequestDeleteActivity(mediaActivity)"
+              :title="i18n.t('delete')"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+          </div>
+          <MusicPlayerCard
+            class="nc-player-instance"
+            :class="{
+              'is-swiping': isSwipingCard && activeCardId === 'media',
+              'has-swipe-transition': !isSwipingCard && swipedTransitionId === 'media'
+            }"
+            :style="{ transform: `translateX(${swipeOffsets.media || 0}px)` }"
+            @pointerdown="onCardPointerDown($event, 'media')"
+            @pointermove="onCardPointerMove($event, 'media')"
+            @pointerup="onCardPointerUp($event, 'media')"
+            @pointercancel="onCardPointerUp($event, 'media')"
+          />
+        </div>
 
         <!-- 通知列表 -->
         <template v-if="notifications.list.length">
@@ -988,6 +1037,15 @@ watch(expandedId, async () => {
   z-index: 5;
   margin-bottom: 0;
   box-shadow: none !important;
+}
+.nc-media-wrapper {
+  height: 164px;
+}
+.nc-player-instance.is-swiping {
+  transition: none !important;
+}
+.nc-player-instance.has-swipe-transition {
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
 /* ---- 滑动容器与底层操作按钮 ---- */
