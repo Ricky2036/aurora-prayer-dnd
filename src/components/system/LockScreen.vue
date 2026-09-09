@@ -16,6 +16,7 @@ import { GLYPHS } from '../../assets/icons/glyphs'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
 import { clamp } from '../../utils/math'
+import { getNotificationStackLayout } from '../../utils/notificationStack'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import albumArt from '../../assets/img/album-2.jpg'
 
@@ -97,8 +98,21 @@ const PLAYER_NOTIF_GAP = 8
 const PLAYER_START_Y = computed(() => BASE_Y.value - PLAYER_HEIGHT - PLAYER_NOTIF_GAP)
 const ACTIVITY_CARD_HEIGHT = 84
 const ACTIVITY_GAP = 10
+const DATE_TOP = 55
+const DATE_HEIGHT = 28
+const CLOCK_TOP = DATE_TOP + DATE_HEIGHT - 6 // 77
+const TOP_GAP = 16
+const CLOCK_MIN_HEIGHT = 140
+const SAFE_GAP = TOP_GAP
+const activityBottomY = computed(() => control.mediaActive ? PLAYER_START_Y.value : BASE_Y.value)
+const standaloneActivityCapacity = computed(() => {
+  const available = activityBottomY.value - (CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP + 4)
+  return Math.max(0, Math.floor((available + ACTIVITY_GAP) / (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)))
+})
+const standaloneActivities = computed(() => activeActivities.value.slice(0, standaloneActivityCapacity.value))
+const overflowActivities = computed(() => activeActivities.value.slice(standaloneActivityCapacity.value))
 const totalActivitiesHeight = computed(() => {
-  const count = activeActivities.value.length
+  const count = standaloneActivities.value.length
   return count > 0 ? count * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP) : 0
 })
 
@@ -110,7 +124,8 @@ const PLAYER_COLLAPSED_Y = computed(() => {
 // 活动卡片队列在折叠态的起始 Y 坐标：位于播放器卡片正上方；若活动较多则自 clipTop 下方自然排布
 function getActivityCollapsedY(index) {
   const totalH = totalActivitiesHeight.value
-  const idealStart = PLAYER_COLLAPSED_Y.value - totalH
+  const bottomY = control.mediaActive ? PLAYER_COLLAPSED_Y.value : BASE_Y.value
+  const idealStart = bottomY - totalH
   const minStart = clipTop.value + 4
   const startY = Math.max(minStart, idealStart)
   return startY + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
@@ -119,33 +134,33 @@ function getActivityCollapsedY(index) {
 // 活动卡片队列在展开态的起始 Y 坐标：紧贴在音乐播放器上方，随通知队列平滑滚动
 function getActivityStartY(index) {
   const totalH = totalActivitiesHeight.value
-  const baseY = Math.max(clipTop.value + 4, PLAYER_START_Y.value - totalH) + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
+  const baseY = Math.max(clipTop.value + 4, activityBottomY.value - totalH) + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
   return isCollapsed.value ? getActivityCollapsedY(index) : baseY - scrollOffset.value - playerStretch.value
 }
 
-const DATE_TOP = 55
-const DATE_HEIGHT = 28
-const CLOCK_TOP = DATE_TOP + DATE_HEIGHT - 6 // 77
-const TOP_GAP = 16
-// 有活动时，顶部可用空间需考虑活动卡片总高度
+// 有独立展示活动时，顶部可用空间需考虑其总高度；溢出活动进入通知堆叠。
 const TOP_WIDGET_START_Y = computed(() => {
-  return activeActivities.value.length > 0
-    ? PLAYER_START_Y.value - totalActivitiesHeight.value
-    : PLAYER_START_Y.value
+  return standaloneActivities.value.length > 0
+    ? activityBottomY.value - totalActivitiesHeight.value
+    : activityBottomY.value
 })
 const CLOCK_INITIAL_HEIGHT = computed(() => Math.max(140, TOP_WIDGET_START_Y.value - CLOCK_TOP - TOP_GAP))
-const CLOCK_MIN_HEIGHT = 140
-const SAFE_GAP = TOP_GAP
 const HIT_DISTANCE = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP))
 const EXPAND_SCROLL_Y = computed(() => CLOCK_INITIAL_HEIGHT.value - CLOCK_MIN_HEIGHT)
 const STRETCH_FACTOR = 0.15
 const COLLAPSE_THRESHOLD = -26
 
-/* 锁屏只展示最新 6 条通知（与 TSX 一致） */
+/* 锁屏队列最多容纳 6 项；空间不足的灵动岛活动优先进入队列。 */
 const lockNotifs = computed(() => notifications.list.slice(0, 6))
-/* 普通通知列表（录音卡片作为独立默认展开卡片，类似音乐播放器） */
+/* 溢出活动与普通通知共用同一队列和堆叠动画。 */
 const lockItems = computed(() => {
-  return lockNotifs.value.map(n => ({ id: n.id, isRecorder: false, raw: n }))
+  const activities = overflowActivities.value.map(activity => ({
+    id: activity.id,
+    isActivity: true,
+    activity
+  }))
+  const notificationItems = lockNotifs.value.map(n => ({ id: n.id, isActivity: false, raw: n }))
+  return [...activities, ...notificationItems].slice(0, 6)
 })
 /* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
 const notifCountLabel = computed(() => i18n.t('notifCount')(lockItems.value.length))
@@ -508,6 +523,10 @@ function handleCardClick(item) {
     swipeOffsets.value = next
     return
   }
+  if (item.isActivity) {
+    handleActivityCardClick(item.activity)
+    return
+  }
   handleExpand()
 }
 
@@ -604,7 +623,7 @@ const playerStretch = computed(() => lockItems.value.length * overscroll.value *
 const scrollOffset = computed(() => (scrollY.value < 0 ? scrollY.value : effectiveScrollY.value))
 const currentPlayerY = computed(() => {
   if (isCollapsed.value) {
-    if (activeActivities.value.length > 0) {
+    if (standaloneActivities.value.length > 0) {
       const activitiesBottom = getActivityCollapsedY(0) + totalActivitiesHeight.value
       return Math.max(PLAYER_COLLAPSED_Y.value, activitiesBottom)
     }
@@ -640,41 +659,37 @@ const clockStyle = computed(() => ({
 }))
 const pillStyle = computed(() => ({
   transform: `translateY(${isCollapsed.value ? 0 : 30}px) scale(${isCollapsed.value ? 1 : 0.85})`,
-  opacity: isCollapsed.value && activeActivities.value.length < 4 ? 1 : 0,
+  opacity: isCollapsed.value ? 1 : 0,
   transition: 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease-out',
-  pointerEvents: isCollapsed.value && activeActivities.value.length < 4 ? 'auto' : 'none'
+  pointerEvents: isCollapsed.value ? 'auto' : 'none'
 }))
 
 function notifStyle(i) {
   const currentY = i * NOTIF_SPACING - notifScrollY.value
-  const isStacked = currentY > 0
-  const depth = currentY / NOTIF_SPACING
-  const clampedDepth = Math.min(depth, 3)
   const distanceFromBottom = lockItems.value.length - 1 - i
   const stretchAmount = distanceFromBottom * overscroll.value * STRETCH_FACTOR
+  const naturalY = BASE_Y.value + currentY - stretchAmount
+  const layout = getNotificationStackLayout({
+    cardBottom: naturalY + 90,
+    viewportHeight: screenHeight.value
+  })
   let yPos, scale, opacity
   if (isCollapsed.value) {
     yPos = BASE_Y.value + 140
     scale = 0.7
     opacity = 0
-  } else if (isStacked) {
-    yPos = BASE_Y.value + clampedDepth * 9
-    scale = Math.max(1 - clampedDepth * 0.05, 0.85)
-    if (depth <= 1) opacity = 1 - depth * 0.15
-    else if (depth <= 2) opacity = 0.85 - (depth - 1) * 0.35
-    else if (depth <= 3) opacity = 0.5 - (depth - 2) * 0.5
-    else opacity = 0
   } else {
-    yPos = BASE_Y.value + currentY - stretchAmount
-    scale = 1
-    opacity = 1
+    yPos = naturalY + layout.translateY
+    scale = layout.scale
+    opacity = layout.opacity
   }
   return {
     transform: `translateY(${yPos}px) scale(${scale})`,
     opacity,
     zIndex: 100 - i,
     transition: transitionStyle.value,
-    pointerEvents: opacity === 0 ? 'none' : 'auto'
+    pointerEvents: opacity === 0 || !layout.interactive ? 'none' : 'auto',
+    '--ls-card-bg-alpha': layout.backgroundAlpha == null ? 0.7 : layout.backgroundAlpha
   }
 }
 </script>
@@ -706,7 +721,7 @@ function notifStyle(i) {
         @touchcancel.passive="handleTouchEnd"
       >
         <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
-        <template v-for="(act, actIdx) in activeActivities" :key="act.id">
+        <template v-for="(act, actIdx) in standaloneActivities" :key="act.id">
           <div
             class="ls-card-wrapper ls-activity-standalone"
             :style="activityCardStyle(actIdx)"
@@ -889,7 +904,7 @@ function notifStyle(i) {
             <button
               class="ls-action-btn ls-btn-delete"
               :style="getActionBtnStyle(item.id, 'delete')"
-              @click.stop="onDeleteCard(item)"
+              @click.stop="item.isActivity ? onRequestDeleteActivity(item.activity) : onDeleteCard(item)"
               :title="i18n.t('delete')"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -905,10 +920,13 @@ function notifStyle(i) {
           <!-- 表层卡片主体（横滑） -->
           <div
             class="ls-card-front"
-            :class="{
-              'is-swiping': isSwipingCard && activeCardId === item.id,
-              'has-swipe-transition': !isSwipingCard && swipedTransitionId === item.id
-            }"
+            :class="[
+              item.isActivity ? ['ls-activity-card', `is-${item.activity.type}`] : null,
+              {
+                'is-swiping': isSwipingCard && activeCardId === item.id,
+                'has-swipe-transition': !isSwipingCard && swipedTransitionId === item.id
+              }
+            ]"
             :style="{ transform: `translateX(${swipeOffsets[item.id] || 0}px)` }"
             @pointerdown="onCardPointerDown($event, item.id)"
             @pointermove="onCardPointerMove($event, item.id)"
@@ -916,14 +934,36 @@ function notifStyle(i) {
             @pointercancel="onCardPointerUp($event, item.id)"
             @click="handleCardClick(item)"
           >
-            <NotificationIcon :type="item.raw.iconType" :size="38" />
-            <div class="ls-notif-body">
-              <div class="ls-notif-head">
-                <span class="ls-notif-title">{{ i18n.notifTitle(item.raw.appId) }}</span>
-                <span class="ls-notif-time">{{ formatRelativeTime(item.raw.time, i18n.t) }}</span>
+            <template v-if="item.isActivity">
+              <div v-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
+                <div class="ls-rc-audio-bars">
+                  <span class="bar bar-1"></span><span class="bar bar-2"></span><span class="bar bar-3"></span>
+                  <span class="bar bar-main"></span><span class="bar bar-5"></span><span class="bar bar-6"></span><span class="bar bar-7"></span>
+                </div>
               </div>
-              <p class="ls-notif-desc">{{ i18n.notifBody(item.raw.appId) }}</p>
-            </div>
+              <div v-else class="ls-act-icon-wrap" :class="`icon-${item.activity.type}`">
+                <svg width="22" height="22" viewBox="0 0 24 24">
+                  <path
+                    :d="item.activity.type === 'timer' ? CLOCK_ICONS.timer : item.activity.type === 'stopwatch' ? CLOCK_ICONS.stopwatch : GLYPHS.moon"
+                    :fill="item.activity.type === 'prayer' ? '#00C853' : '#ff9500'"
+                  />
+                </svg>
+              </div>
+              <div class="ls-rc-info">
+                <div class="ls-overflow-activity-title">{{ item.activity.title }}</div>
+                <div class="ls-rc-sub">{{ item.activity.subtitle }}</div>
+              </div>
+            </template>
+            <template v-else>
+              <NotificationIcon :type="item.raw.iconType" :size="38" />
+              <div class="ls-notif-body">
+                <div class="ls-notif-head">
+                  <span class="ls-notif-title">{{ i18n.notifTitle(item.raw.appId) }}</span>
+                  <span class="ls-notif-time">{{ formatRelativeTime(item.raw.time, i18n.t) }}</span>
+                </div>
+                <p class="ls-notif-desc">{{ i18n.notifBody(item.raw.appId) }}</p>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -932,7 +972,7 @@ function notifStyle(i) {
       <div v-if="lockItems.length" class="ls-pill ls-interact" :style="pillStyle" @click="handleExpand">
         <div class="lp-mini">
           <template v-for="(item, idx) in lockItems.slice(0, 3)" :key="item.id">
-            <div v-if="item.isRecorder" class="lp-mini-rec">
+            <div v-if="item.isActivity" class="lp-mini-rec">
               <span class="rec-dot"></span>
             </div>
             <NotificationIcon v-else :type="item.raw.iconType" :size="22" />
@@ -1057,7 +1097,7 @@ function notifStyle(i) {
   border-radius: 22px;
   overflow: hidden;
   will-change: transform, opacity;
-  transform-origin: bottom center;
+  transform-origin: top center;
 }
 
 /* 底层操作按钮区域（默认隐藏，滑动展开时显现） */
@@ -1132,7 +1172,7 @@ function notifStyle(i) {
 .ls-card-front {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, var(--ls-card-bg-alpha, 0.7));
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border: 1px solid rgba(255, 255, 255, 0.5);
@@ -1272,6 +1312,11 @@ function notifStyle(i) {
   letter-spacing: -0.5px;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+}
+.ls-overflow-activity-title {
+  color: #ffffff;
+  font: 700 20px/1.15 var(--font-stack);
+  font-variant-numeric: tabular-nums;
 }
 .ls-rc-sub {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
