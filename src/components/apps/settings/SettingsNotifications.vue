@@ -231,7 +231,7 @@ const emit = defineEmits(['back-to-settings'])
       <div v-else-if="subView === 'lockScreen'" key="lock" class="ns-page scrollable">
         <AppNavBar :title="i18n.t('nsLockScreenNotif')" @back="back()" />
 
-        <div class="group-header">{{ i18n.t('nsLockStyle') }}</div>
+        <div class="group-header mt-first">{{ i18n.t('nsLockStyle') }}</div>
         <div class="ns-style-cards">
           <div class="ns-style-card" :class="{ active: lockScreenStyle === 'stacked' }" @click="lockScreenStyle = 'stacked'">
             <div class="phone-big">
@@ -320,7 +320,7 @@ const emit = defineEmits(['back-to-settings'])
         <AppNavBar :title="i18n.t('nsDynamicBar')" @back="back()" />
 
         <!-- 卡片左上方小标题：系统应用 -->
-        <div class="group-header">{{ (i18n.t('nsSystemApps') && i18n.t('nsSystemApps') !== 'nsSystemApps') ? i18n.t('nsSystemApps') : '系统应用' }}</div>
+        <div class="group-header mt-first">{{ (i18n.t('nsSystemApps') && i18n.t('nsSystemApps') !== 'nsSystemApps') ? i18n.t('nsSystemApps') : '系统应用' }}</div>
 
         <!-- 所有开关集中放置在规范 cell-group 中 -->
         <div class="cell-group">
