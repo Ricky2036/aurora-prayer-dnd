@@ -111,8 +111,8 @@ export const usePrayerStore = defineStore('prayer', {
       selectedContactIds: ['c1', 'c2', 'c3'], // 默认选择：老婆、老板、妈妈 (3人)
 
       /* ---- 闹钟与唤礼提醒联动 ---- */
-      alarmLinkageEnabled: true, // 礼拜前闹钟提醒联动总开关
-      alarmAdvanceMinutes: 15,    // 提前提醒时间 (分钟：0=准点, 10, 15, 30)
+      alarmLinkageEnabled: false, // 默认不提醒
+      alarmAdvanceMinutes: -1,     // 提醒时间 (分钟：-1=不提醒, 5=提前5分钟, 10=提前10分钟, 15=提前15分钟)
       alarmRingtone: '麦加唤礼声', // 默认唤礼铃声
 
       /* ---- 灵动岛与控制台模拟状态 ---- */
@@ -267,12 +267,28 @@ export const usePrayerStore = defineStore('prayer', {
     },
 
     /* ---- 闹钟与唤礼提醒联动 ---- */
+    setAlarmReminder(mins) {
+      if (mins === -1 || mins === 'none') {
+        this.alarmLinkageEnabled = false
+        this.alarmAdvanceMinutes = -1
+      } else {
+        this.alarmLinkageEnabled = true
+        this.alarmAdvanceMinutes = mins
+      }
+    },
+
     setAlarmLinkage(enabled) {
       this.alarmLinkageEnabled = enabled
+      if (!enabled) {
+        this.alarmAdvanceMinutes = -1
+      } else if (this.alarmAdvanceMinutes <= 0) {
+        this.alarmAdvanceMinutes = 15
+      }
     },
 
     setAlarmAdvanceMinutes(mins) {
       this.alarmAdvanceMinutes = mins
+      this.alarmLinkageEnabled = mins > 0
     },
 
     setAlarmRingtone(ringtone) {
@@ -282,8 +298,8 @@ export const usePrayerStore = defineStore('prayer', {
     resetDefaults() {
       this.prayers = JSON.parse(JSON.stringify(DEFAULT_PRAYERS))
       this.masterEnabled = true
-      this.alarmLinkageEnabled = true
-      this.alarmAdvanceMinutes = 15
+      this.alarmLinkageEnabled = false
+      this.alarmAdvanceMinutes = -1
       this.alarmRingtone = '麦加唤礼声'
       this.simulatedPrayerId = 'fajr'
       this.dismissedIslandPrayerId = null

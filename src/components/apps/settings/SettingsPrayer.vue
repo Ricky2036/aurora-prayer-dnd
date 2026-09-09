@@ -23,107 +23,81 @@ function tr(key, zhFallback, enFallback, bnFallback) {
   return zhFallback
 }
 
-/* 闹钟提醒联动总开关（双向同步 clockStore.settings.muslimAlarmEnabled，带高可用兜底） */
-const alarmLinkageEnabled = computed({
-  get: () => {
-    if (typeof prayerStore?.alarmLinkageEnabled === 'boolean') {
-      return prayerStore.alarmLinkageEnabled
-    }
-    if (typeof clockStore?.settings?.muslimAlarmEnabled === 'boolean') {
-      return clockStore.settings.muslimAlarmEnabled
-    }
-    return true
-  },
-  set: (val) => {
+/* 提醒时间二级页面选项定义与状态计算 */
+const reminderOptions = [
+  { value: -1, labelKey: 'noReminder', zh: '不提醒', en: 'None', bn: 'কোনোটি নয়' },
+  { value: 5, labelKey: 'advance5Min', zh: '提前 5 分钟', en: '5 minutes before', bn: '৫ মিনিট আগে' },
+  { value: 10, labelKey: 'advance10Min', zh: '提前 10 分钟', en: '10 minutes before', bn: '১০ মিনিট আগে' },
+  { value: 15, labelKey: 'advance15Min', zh: '提前 15 分钟', en: '15 minutes before', bn: '১৫ মিনিট আগে' }
+]
+
+const currentReminderValue = computed(() => {
+  if (prayerStore?.alarmLinkageEnabled === false || prayerStore?.alarmAdvanceMinutes === -1) {
+    return -1
+  }
+  const mins = prayerStore?.alarmAdvanceMinutes
+  if (mins === 5 || mins === 10 || mins === 15) return mins
+  if (prayerStore?.alarmLinkageEnabled) return 15
+  return -1
+})
+
+const currentReminderLabel = computed(() => {
+  const val = currentReminderValue.value
+  const opt = reminderOptions.find((o) => o.value === val)
+  if (opt) return tr(opt.labelKey, opt.zh, opt.en, opt.bn)
+  return tr('noReminder', '不提醒', 'None', 'কোনোটি নয়')
+})
+
+function openReminderSubpage() {
+  isBack.value = false
+  currentView.value = 'reminder'
+}
+
+function handleReminderBack() {
+  isBack.value = true
+  currentView.value = 'list'
+}
+
+function selectReminderOption(val) {
+  if (val === -1) {
     if (prayerStore) {
-      prayerStore.alarmLinkageEnabled = val
-      if (typeof prayerStore.setAlarmLinkage === 'function') {
-        prayerStore.setAlarmLinkage(val)
+      prayerStore.alarmLinkageEnabled = false
+      prayerStore.alarmAdvanceMinutes = -1
+      if (typeof prayerStore.setAlarmReminder === 'function') {
+        prayerStore.setAlarmReminder(-1)
+      } else {
+        if (typeof prayerStore.setAlarmLinkage === 'function') prayerStore.setAlarmLinkage(false)
+        if (typeof prayerStore.setAlarmAdvanceMinutes === 'function') prayerStore.setAlarmAdvanceMinutes(-1)
       }
     }
     if (clockStore?.settings) {
-      clockStore.settings.muslimAlarmEnabled = val
+      clockStore.settings.muslimAlarmEnabled = false
+    }
+  } else {
+    if (prayerStore) {
+      prayerStore.alarmLinkageEnabled = true
+      prayerStore.alarmAdvanceMinutes = val
+      if (typeof prayerStore.setAlarmReminder === 'function') {
+        prayerStore.setAlarmReminder(val)
+      } else {
+        if (typeof prayerStore.setAlarmLinkage === 'function') prayerStore.setAlarmLinkage(true)
+        if (typeof prayerStore.setAlarmAdvanceMinutes === 'function') prayerStore.setAlarmAdvanceMinutes(val)
+      }
+    }
+    if (clockStore?.settings) {
+      clockStore.settings.muslimAlarmEnabled = true
     }
   }
+}
+
+/* 兼容性保留字段与方法 */
+const alarmLinkageEnabled = computed({
+  get: () => currentReminderValue.value !== -1,
+  set: (val) => selectReminderOption(val ? 15 : -1)
 })
-
-/* 提前提醒时间状态与配置（含多语言安全兜底） */
-const showAdvancePicker = ref(false)
-const advanceOptions = [
-  { mins: 0, labelKey: 'advance0Min', zh: '准点提醒', en: 'On time', bn: 'ঠিক সময়ে' },
-  { mins: 10, labelKey: 'advance10Min', zh: '提前 10 分钟', en: '10 minutes before', bn: '১০ মিনিট আগে' },
-  { mins: 15, labelKey: 'advance15Min', zh: '提前 15 分钟', en: '15 minutes before', bn: '১৫ মিনিট আগে', recommended: true },
-  { mins: 30, labelKey: 'advance30Min', zh: '提前 30 分钟', en: '30 minutes before', bn: '৩০ মিনিট আগে' }
-]
-
-function formatAdvanceTime(mins) {
-  const m = mins ?? prayerStore?.alarmAdvanceMinutes ?? 15
-  const opt = advanceOptions.find((o) => o.mins === m)
-  if (opt) return tr(opt.labelKey, opt.zh, opt.en, opt.bn)
-  return `${m} min`
-}
-
-function openAdvancePicker() {
-  showAdvancePicker.value = true
-}
-
-function closeAdvancePicker() {
-  showAdvancePicker.value = false
-}
-
-function selectAdvance(mins) {
-  if (prayerStore) {
-    prayerStore.alarmAdvanceMinutes = mins
-    if (typeof prayerStore.setAlarmAdvanceMinutes === 'function') {
-      prayerStore.setAlarmAdvanceMinutes(mins)
-    }
-  }
-  showAdvancePicker.value = false
-}
-
-/* 唤礼铃声状态与配置（含多语言安全兜底） */
-const showRingtonePicker = ref(false)
-const ringtoneOptions = [
-  { id: 'mecca', labelKey: 'ringtoneMecca', name: '麦加唤礼声', zh: '麦加唤礼声', en: 'Makkah Adhan', bn: 'মক্কা আযান' },
-  { id: 'medina', labelKey: 'ringtoneMedina', name: '麦地那唤礼声', zh: '麦地那唤礼声', en: 'Madinah Adhan', bn: 'মদিনা আযান' },
-  { id: 'aqsa', labelKey: 'ringtoneAqsa', name: '阿克萨唤礼声', zh: '阿克萨唤礼声', en: 'Al-Aqsa Adhan', bn: 'আল-আকসা আযান' },
-  { id: 'dawn', labelKey: 'ringtoneDawn', name: '平静晨鸣', zh: '平静晨鸣', en: 'Peaceful Dawn', bn: 'শান্ত ভোর' },
-  { id: 'default', labelKey: 'ringtoneDefault', name: '默认铃声', zh: '默认铃声', en: 'Default Alarm', bn: 'ডিফল্ট অ্যালার্ম' }
-]
-
-function formatRingtone(rt) {
-  const cur = rt || prayerStore?.alarmRingtone || clockStore?.settings?.ringtone || '麦加唤礼声'
-  const opt = ringtoneOptions.find((o) => o.name === cur || o.id === cur)
-  if (opt) return tr(opt.labelKey, opt.zh, opt.en, opt.bn)
-  return cur
-}
-
-function openRingtonePicker() {
-  showRingtonePicker.value = true
-}
-
-function closeRingtonePicker() {
-  showRingtonePicker.value = false
-}
-
-function selectRingtone(rt) {
-  const name = typeof rt === 'string' ? rt : rt.name
-  if (prayerStore) {
-    prayerStore.alarmRingtone = name
-    if (typeof prayerStore.setAlarmRingtone === 'function') {
-      prayerStore.setAlarmRingtone(name)
-    }
-  }
-  if (clockStore?.settings) {
-    clockStore.settings.ringtone = name
-  }
-  showRingtonePicker.value = false
-}
-
-/* 联动跳转到时钟 App 穆斯林页面 */
 function jumpToClockMuslim() {
-  clockStore.setActiveTab('muslim')
-  systemStore.openApp('clock')
+  clockStore?.setActiveTab?.('muslim')
+  systemStore?.openApp?.('clock')
 }
 
 /* 页面视图层级：'list'（礼拜勿扰列表） | 'edit'（单项全屏设置页） */
@@ -408,72 +382,25 @@ function saveEdit() {
             </div>
           </div>
 
-          <!-- 闹钟与唤礼提醒联动卡片 -->
-          <div class="group-header">{{ tr('prayerAlarmHeader', '闹钟与唤礼提醒', 'ALARM & ADHAN', 'অ্যালার্ম ও আযান') }}</div>
+          <!-- 闹钟提醒入口（开关改为箭头，点击进入二级页面） -->
+          <div class="group-header">{{ tr('prayerAlarmHeader', '闹钟提醒', 'ALARM REMINDER', 'অ্যালার্ম স্মারক') }}</div>
           <div class="cell-group">
-            <!-- 一级总开关 -->
-            <div class="list-cell">
+            <div class="list-cell clickable" @click="openReminderSubpage">
               <div class="lc-icon" style="background: #FF9500;">
                 <svg width="17" height="17" viewBox="0 0 24 24">
                   <path :d="GLYPHS.bell" fill="#fff" />
                 </svg>
               </div>
-              <div class="lc-main" :class="{ 'no-sep': !alarmLinkageEnabled }">
-                <div class="lc-title-col">
-                  <span class="lc-title">{{ tr('prayerAlarmLinkage', '礼拜前闹钟提醒', 'Prayer Alarm Reminder', 'নামাজের পূর্বের অ্যালার্ম') }}</span>
-                  <span class="lc-sub-desc">{{ tr('prayerAlarmLinkageDesc', '各时段开始前响铃或播放唤礼声', 'Ring or play Adhan before each prayer time', 'প্রতিটি নামাজের পূর্বে অ্যালার্ম বা আযান বাজবে') }}</span>
-                </div>
+              <div class="lc-main no-sep">
+                <span class="lc-title">{{ tr('prayerAlarmLinkage', '礼拜前闹钟提醒', 'Prayer Alarm Reminder', 'নামাজের পূর্বের অ্যালার্ম') }}</span>
                 <div class="lc-right">
-                  <ToggleSwitch v-model="alarmLinkageEnabled" />
+                  <span class="lc-sub-val dark-text">{{ currentReminderLabel }}</span>
+                  <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
                 </div>
               </div>
             </div>
-
-            <!-- 二级展开项（开启时渐进式展开） -->
-            <Transition name="subgroup-expand">
-              <div v-if="alarmLinkageEnabled" class="alarm-linkage-subgroup">
-                <!-- 提前提醒时间 -->
-                <div class="list-cell clickable" @click="openAdvancePicker">
-                  <div class="lc-main">
-                    <span class="lc-title">{{ tr('alarmAdvanceTime', '提前提醒时间', 'Advance Notice', 'অগ্রিম সতর্কতার সময়') }}</span>
-                    <div class="lc-right">
-                      <span class="lc-sub-val dark-text">{{ formatAdvanceTime(prayerStore?.alarmAdvanceMinutes) }}</span>
-                      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-                        <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 唤礼铃声 -->
-                <div class="list-cell clickable" @click="openRingtonePicker">
-                  <div class="lc-main">
-                    <span class="lc-title">{{ tr('alarmRingtone', '唤礼铃声', 'Adhan Ringtone', 'আযানের রিংটোন') }}</span>
-                    <div class="lc-right">
-                      <span class="lc-sub-val dark-text">{{ formatRingtone(prayerStore?.alarmRingtone) }}</span>
-                      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-                        <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 前往时钟 App -->
-                <div class="list-cell clickable" @click="jumpToClockMuslim">
-                  <div class="lc-main no-sep">
-                    <div class="lc-title-col">
-                      <span class="lc-title">{{ tr('openClockApp', '前往时钟 App', 'Open Clock App', 'ঘড়ি অ্যাপে যান') }}</span>
-                      <span class="lc-sub-desc">{{ tr('openClockAppDesc', '查看朝拜罗盘与更多闹钟细节', 'View Qibla compass & alarm details', 'কিবলা কম্পাস ও অ্যালার্মের বিস্তারিত দেখুন') }}</span>
-                    </div>
-                    <div class="lc-right">
-                      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-                        <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Transition>
           </div>
 
           <!-- 功能：AI 自动接听 -->
@@ -602,6 +529,36 @@ function saveEdit() {
           </div>
         </div>
       </div>
+
+      <!-- ================= 3. 提醒时间全屏二级页 ================= -->
+      <div v-else-if="currentView === 'reminder'" key="reminder" class="prayer-subpage">
+        <!-- 顶部导航：当前菜单名称「提醒时间」，左侧返回按钮「< 礼拜模式」 -->
+        <AppNavBar :title="tr('alarmAdvanceTime', '提醒时间', 'Reminder Time', 'স্মারক সময়')" :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')" @back="handleReminderBack" />
+
+        <div class="scrollable detail-body">
+          <div class="group-header">{{ tr('alarmAdvanceTime', '提醒时间', 'REMINDER TIME', 'স্মারক সময়') }}</div>
+          <div class="cell-group">
+            <div
+              v-for="(opt, idx) in reminderOptions"
+              :key="opt.value"
+              class="list-cell clickable"
+              @click="selectReminderOption(opt.value)"
+            >
+              <div class="lc-main" :class="{ 'no-sep': idx === reminderOptions.length - 1 }">
+                <span class="lc-title">{{ tr(opt.labelKey, opt.zh, opt.en, opt.bn) }}</span>
+                <div class="lc-right">
+                  <svg v-if="currentReminderValue === opt.value" width="18" height="18" viewBox="0 0 24 24">
+                    <path :d="GLYPHS.check" fill="#007AFF" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="group-footer">
+            {{ tr('reminderDesc', '开启后将在每个礼拜时段开始前收到闹钟或唤礼提醒。', 'You will receive an alarm or adhan reminder before each prayer time begins.', 'প্রতিটি নামাজের সময় শুরু হওয়ার পূর্বে অ্যালার্ম বা আযানের স্মারক পাবেন।') }}
+          </div>
+        </div>
+      </div>
     </Transition>
 
     <!-- ================= 时间选择滚轮弹窗（图 1 控件样式，位于屏幕底部） ================= -->
@@ -676,66 +633,6 @@ function saveEdit() {
       </div>
     </Transition>
 
-    <!-- ================= 提前提醒时间选择弹窗 ================= -->
-    <Transition name="picker-bottom">
-      <div v-if="showAdvancePicker" class="picker-backdrop" @click="closeAdvancePicker">
-        <div class="picker-bottom-sheet selection-sheet" @click.stop>
-          <div class="pd-header">
-            <div class="pd-type-label">{{ tr('alarmAdvanceTime', '提前提醒时间', 'Advance Notice', 'অগ্রিম সতর্কতার সময়') }}</div>
-          </div>
-          <div class="selection-options-list">
-            <div
-              v-for="opt in advanceOptions"
-              :key="opt.mins"
-              class="selection-option-item"
-              :class="{ 'is-active': (prayerStore?.alarmAdvanceMinutes ?? 15) === opt.mins }"
-              @click="selectAdvance(opt.mins)"
-            >
-              <div class="soi-label-col">
-                <span class="soi-label">{{ tr(opt.labelKey, opt.zh, opt.en, opt.bn) }}</span>
-                <span v-if="opt.recommended" class="soi-badge">{{ tr('recommended', '推荐', 'Recommended', 'প্রস্তাবিত') }}</span>
-              </div>
-              <svg v-if="(prayerStore?.alarmAdvanceMinutes ?? 15) === opt.mins" width="18" height="18" viewBox="0 0 24 24">
-                <path :d="GLYPHS.check" fill="#007AFF" />
-              </svg>
-            </div>
-          </div>
-          <div class="pd-actions">
-            <button class="pd-btn pd-cancel" @click="closeAdvancePicker">{{ tr('cancel', '取消', 'Cancel', 'বাতিল') }}</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- ================= 唤礼铃声选择弹窗 ================= -->
-    <Transition name="picker-bottom">
-      <div v-if="showRingtonePicker" class="picker-backdrop" @click="closeRingtonePicker">
-        <div class="picker-bottom-sheet selection-sheet" @click.stop>
-          <div class="pd-header">
-            <div class="pd-type-label">{{ tr('alarmRingtone', '唤礼铃声', 'Adhan Ringtone', 'আযানের রিংটোন') }}</div>
-          </div>
-          <div class="selection-options-list">
-            <div
-              v-for="rt in ringtoneOptions"
-              :key="rt.id"
-              class="selection-option-item"
-              :class="{ 'is-active': (prayerStore?.alarmRingtone || '麦加唤礼声') === rt.name }"
-              @click="selectRingtone(rt)"
-            >
-              <div class="soi-label-col">
-                <span class="soi-label">{{ tr(rt.labelKey, rt.zh, rt.en, rt.bn) }}</span>
-              </div>
-              <svg v-if="(prayerStore?.alarmRingtone || '麦加唤礼声') === rt.name" width="18" height="18" viewBox="0 0 24 24">
-                <path :d="GLYPHS.check" fill="#007AFF" />
-              </svg>
-            </div>
-          </div>
-          <div class="pd-actions">
-            <button class="pd-btn pd-cancel" @click="closeRingtonePicker">{{ tr('cancel', '取消', 'Cancel', 'বাতিল') }}</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -1208,91 +1105,5 @@ function saveEdit() {
   transform: translateY(100%);
 }
 
-/* ================= 闹钟联动二级项展开折叠动画 ================= */
-.subgroup-expand-enter-active,
-.subgroup-expand-leave-active {
-  transition: max-height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease, transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
-  overflow: hidden;
-}
 
-.subgroup-expand-enter-from,
-.subgroup-expand-leave-to {
-  opacity: 0;
-  max-height: 0;
-  transform: translateY(-8px);
-}
-
-.subgroup-expand-enter-to,
-.subgroup-expand-leave-from {
-  opacity: 1;
-  max-height: 220px;
-  transform: translateY(0);
-}
-
-.alarm-linkage-subgroup {
-  background: var(--bg-cell);
-}
-
-/* ================= 提前提醒与铃声选择弹窗 ================= */
-.selection-sheet {
-  max-height: 80%;
-  padding: 22px 18px 20px;
-}
-
-.selection-options-list {
-  width: 100%;
-  margin-top: 14px;
-  display: flex;
-  flex-direction: column;
-  background: #f2f2f7;
-  border-radius: 16px;
-  overflow: hidden;
-}
-
-.selection-option-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 0.5px solid rgba(60, 60, 67, 0.08);
-  cursor: pointer;
-  background: #ffffff;
-  transition: background 0.15s ease;
-}
-
-.selection-option-item:last-child {
-  border-bottom: none;
-}
-
-.selection-option-item:active {
-  background: #f2f2f7;
-}
-
-.soi-label-col {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.soi-label {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  font-size: 15.5px;
-  font-weight: 500;
-  color: #000000;
-}
-
-.selection-option-item.is-active .soi-label {
-  color: #007AFF;
-  font-weight: 600;
-}
-
-.soi-badge {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  color: #FF9500;
-  background: rgba(255, 149, 0, 0.12);
-  padding: 2px 7px;
-  border-radius: 6px;
-}
 </style>

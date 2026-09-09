@@ -10,42 +10,47 @@ import { useI18nStore } from '../src/stores/i18nStore.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-test('prayerStore initializes alarm linkage default state properly', () => {
+test('prayerStore initializes reminder default state to None (不提醒)', () => {
   setActivePinia(createPinia())
   const prayerStore = usePrayerStore()
 
-  assert.equal(prayerStore.alarmLinkageEnabled, true)
-  assert.equal(prayerStore.alarmAdvanceMinutes, 15)
+  // 默认不提醒，符合用户明确指定“不提醒（默认）”
+  assert.equal(prayerStore.alarmLinkageEnabled, false)
+  assert.equal(prayerStore.alarmAdvanceMinutes, -1)
   assert.equal(prayerStore.alarmRingtone, '麦加唤礼声')
 })
 
-test('prayerStore mutates alarm linkage properties and resets properly', () => {
+test('prayerStore mutates reminder properties and resets properly', () => {
   setActivePinia(createPinia())
   const prayerStore = usePrayerStore()
 
-  prayerStore.setAlarmLinkage(false)
+  prayerStore.setAlarmReminder(5)
+  assert.equal(prayerStore.alarmLinkageEnabled, true)
+  assert.equal(prayerStore.alarmAdvanceMinutes, 5)
+
+  prayerStore.setAlarmReminder(10)
+  assert.equal(prayerStore.alarmLinkageEnabled, true)
+  assert.equal(prayerStore.alarmAdvanceMinutes, 10)
+
+  prayerStore.setAlarmReminder(15)
+  assert.equal(prayerStore.alarmLinkageEnabled, true)
+  assert.equal(prayerStore.alarmAdvanceMinutes, 15)
+
+  prayerStore.setAlarmReminder(-1)
   assert.equal(prayerStore.alarmLinkageEnabled, false)
-
-  prayerStore.setAlarmAdvanceMinutes(30)
-  assert.equal(prayerStore.alarmAdvanceMinutes, 30)
-
-  prayerStore.setAlarmRingtone('麦地那唤礼声')
-  assert.equal(prayerStore.alarmRingtone, '麦地那唤礼声')
+  assert.equal(prayerStore.alarmAdvanceMinutes, -1)
 
   // Reset to defaults
   prayerStore.resetDefaults()
-  assert.equal(prayerStore.alarmLinkageEnabled, true)
-  assert.equal(prayerStore.alarmAdvanceMinutes, 15)
-  assert.equal(prayerStore.alarmRingtone, '麦加唤礼声')
+  assert.equal(prayerStore.alarmLinkageEnabled, false)
+  assert.equal(prayerStore.alarmAdvanceMinutes, -1)
 })
 
 test('clockStore settings and tabs support Muslim mode and alarm linkage', () => {
   setActivePinia(createPinia())
   const clockStore = useClockStore()
 
-  assert.equal(clockStore.settings.muslimAlarmEnabled, true)
   assert.equal(typeof clockStore.setActiveTab, 'function')
-
   clockStore.setActiveTab('muslim')
   assert.equal(clockStore.activeTab, 'muslim')
 })
@@ -57,20 +62,12 @@ test('i18nStore defines all required keys across zh, en, and bn locales', () => 
   const requiredKeys = [
     'prayerAlarmHeader',
     'prayerAlarmLinkage',
-    'prayerAlarmLinkageDesc',
     'alarmAdvanceTime',
-    'alarmRingtone',
-    'openClockApp',
-    'openClockAppDesc',
-    'advance0Min',
+    'noReminder',
+    'advance5Min',
     'advance10Min',
     'advance15Min',
-    'advance30Min',
-    'ringtoneMecca',
-    'ringtoneMedina',
-    'ringtoneAqsa',
-    'ringtoneDawn',
-    'ringtoneDefault'
+    'reminderDesc'
   ]
 
   for (const locale of ['zh', 'en', 'bn']) {
@@ -83,35 +80,27 @@ test('i18nStore defines all required keys across zh, en, and bn locales', () => 
   }
 })
 
-test('SettingsPrayer component template includes Option 2 alarm linkage elements', () => {
+test('SettingsPrayer component template includes simplified arrow entry and secondary reminder subpage', () => {
   const componentPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsPrayer.vue')
   const content = fs.readFileSync(componentPath, 'utf-8')
 
   // Section header
   assert.ok(content.includes('prayerAlarmHeader'), 'Must include prayerAlarmHeader')
 
-  // Master switch
-  assert.ok(content.includes('alarmLinkageEnabled'), 'Must bind alarmLinkageEnabled')
+  // Main page entry: arrow navigation instead of switch
+  assert.ok(content.includes('openReminderSubpage'), 'Must navigate via openReminderSubpage')
+  assert.ok(content.includes('currentReminderLabel'), 'Must display current reminder text on right')
   assert.ok(content.includes('prayerAlarmLinkage'), 'Must include prayerAlarmLinkage title')
-  assert.ok(content.includes('prayerAlarmLinkageDesc'), 'Must include prayerAlarmLinkageDesc')
 
-  // Subgroup transition
-  assert.ok(content.includes('name="subgroup-expand"'), 'Must have subgroup-expand transition')
+  // Secondary subpage: currentView === 'reminder'
+  assert.ok(content.includes("currentView === 'reminder'"), 'Must define secondary subpage for reminder')
+  assert.ok(content.includes('handleReminderBack'), 'Must handle returning back from subpage')
+  assert.ok(content.includes('reminderOptions'), 'Must define reminder options list')
+  assert.ok(content.includes('selectReminderOption'), 'Must handle option selection')
 
-  // Advance time cell & picker
-  assert.ok(content.includes('alarmAdvanceTime'), 'Must include alarmAdvanceTime')
-  assert.ok(content.includes('openAdvancePicker'), 'Must handle openAdvancePicker')
-  assert.ok(content.includes('showAdvancePicker'), 'Must have showAdvancePicker modal')
-
-  // Ringtone cell & picker
-  assert.ok(content.includes('alarmRingtone'), 'Must include alarmRingtone')
-  assert.ok(content.includes('openRingtonePicker'), 'Must handle openRingtonePicker')
-  assert.ok(content.includes('showRingtonePicker'), 'Must have showRingtonePicker modal')
-
-  // Clock App navigation jump
-  assert.ok(content.includes('openClockApp'), 'Must include openClockApp')
-  assert.ok(content.includes('openClockAppDesc'), 'Must include openClockAppDesc')
-  assert.ok(content.includes('jumpToClockMuslim'), 'Must call jumpToClockMuslim')
-  assert.ok(content.includes("clockStore.setActiveTab('muslim')"), 'jumpToClockMuslim must set active tab')
-  assert.ok(content.includes("systemStore.openApp('clock')"), 'jumpToClockMuslim must open clock app')
+  // Option keys in subpage
+  assert.ok(content.includes('noReminder'), 'Must include noReminder option')
+  assert.ok(content.includes('advance5Min'), 'Must include advance5Min option')
+  assert.ok(content.includes('advance10Min'), 'Must include advance10Min option')
+  assert.ok(content.includes('advance15Min'), 'Must include advance15Min option')
 })
