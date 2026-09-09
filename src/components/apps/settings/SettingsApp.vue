@@ -6,6 +6,7 @@ import { useBackHandler } from '../../../composables/backRegistry'
 import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
+import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
 import SettingsSound from './SettingsSound.vue'
 import SettingsDND from './SettingsDND.vue'
@@ -17,9 +18,8 @@ import { GLYPHS } from '../../../assets/icons/glyphs'
 import { clamp } from '../../../utils/math'
 
 /**
- * 设置：分组列表首页 + 可点入二级页（无线局域网/显示与亮度/通用/通知/声音与振动/勿扰模式/朝拜勿扰）。
- * 开关与控制中心共享 controlStore，亮度二级页滑块真实联动屏幕亮度。
- * 通知二级页为 settingsprototype.tsx 的完整移植（含子页栈）。
+ * 设置：8组规范卡片 + 底部悬浮搜索控件 + 二级页完整导航。
+ * 完全对齐 Infinix GT 50 Pro 最新录屏分组、文案、字号层级与圆角规范。
  */
 const props = defineProps({ app: Object })
 const control = useControlStore()
@@ -28,7 +28,7 @@ const notificationsStore = useNotificationsStore()
 const i18n = useI18nStore()
 const { timeShort } = useClock()
 
-/* 内部导航栈：若从礼拜卡片点入，则构建层级 [main, sound, prayer]；若从通知/灵动岛跳转，则构建 [main, notifications] */
+/* 内部导航栈：支持从礼拜卡片、通知灵动岛直接深链跳转 */
 let initialStack = ['main']
 if (prayerStore.targetView === 'prayer') {
   initialStack = ['main', 'sound', 'prayer']
@@ -61,12 +61,9 @@ watch(
   }
 )
 
-/* 蓝牙 / 蜂窝网络 / 墙纸 / 电池 四个二级页本原型未实现。
-   原先它们被硬编码路由到 wifi / display 页（点「蓝牙」跳到 Wi-Fi 页），
-   改为统一的占位页并显示正确标题，避免跳错页。 */
-const placeholderKey = ref('')
-function pushUnimplemented(v) {
-  placeholderKey.value = v
+const placeholderTitle = ref('')
+function pushUnimplemented(name) {
+  placeholderTitle.value = name
   push('placeholder')
 }
 
@@ -81,7 +78,7 @@ function pop() {
   }
 }
 
-/* 全局侧滑返回：子页（通知/礼拜模式） → 首页（逐层消费），最后交还系统回桌面 */
+/* 全局侧滑返回：子页 → 首页逐层消费 */
 const notifRef = ref(null)
 const prayerRef = ref(null)
 useBackHandler(() => {
@@ -92,14 +89,14 @@ useBackHandler(() => {
 })
 
 const viewTitles = computed(() => ({
-  wifi: i18n.t('wifi'),
-  display: i18n.t('displayAndBrightness'),
-  general: i18n.t('general'),
-  notifications: i18n.t('notifications'),
-  sound: i18n.t('soundAndVibration'),
-  dnd: i18n.t('dnd'),
-  prayer: i18n.t('prayerDnd'),
-  placeholder: i18n.t(placeholderKey.value) || i18n.t('general')
+  wifi: i18n.t('wifi') || 'WLAN',
+  display: i18n.t('displayAndBrightness') || '显示与亮度',
+  general: '系统',
+  notifications: i18n.t('notifications') || '通知与状态栏',
+  sound: i18n.t('soundAndVibration') || '声音与振动',
+  dnd: i18n.t('dnd') || '勿扰模式',
+  prayer: i18n.t('prayerDnd') || '礼拜模式',
+  placeholder: placeholderTitle.value || '设置'
 }))
 
 /* 显示与亮度：横向亮度滑块 */
@@ -117,57 +114,438 @@ function onSlideDown(e) {
 function onSlideMove(e) { if (sliding) setBrightness(e) }
 function onSlideUp() { sliding = false }
 
-const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi']
+const networks = ['Ricky_5G', 'Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G']
+
+/* 搜索功能 */
+const searchQuery = ref('')
+const searchActive = ref(false)
+
+const allSearchableItems = [
+  { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
+  { id: 'sim', title: 'SIM卡与网络设置', group: '网络与连接', action: () => pushUnimplemented('SIM卡与网络设置') },
+  { id: 'wifi', title: 'WLAN', group: '网络与连接', value: 'Ricky_5G', action: () => push('wifi') },
+  { id: 'bluetooth', title: '蓝牙', group: '网络与连接', action: () => pushUnimplemented('蓝牙') },
+  { id: 'multiDevice', title: '多设备连接', group: '网络与连接', action: () => pushUnimplemented('多设备连接') },
+  { id: 'infinixAi', title: 'Infinix AI', group: '特色功能', action: () => pushUnimplemented('Infinix AI') },
+  { id: 'wallpaper', title: '壁纸与个性化', group: '个性化', action: () => pushUnimplemented('壁纸与个性化') },
+  { id: 'display', title: '显示与亮度', group: '显示', action: () => push('display') },
+  { id: 'sound', title: '声音与振动', group: '声音', action: () => push('sound') },
+  { id: 'notifications', title: '通知与状态栏', group: '通知', action: () => push('notifications') },
+  { id: 'security', title: '密码与安全', group: '安全与隐私', action: () => pushUnimplemented('密码与安全') },
+  { id: 'privacy', title: '权限与隐私', group: '安全与隐私', action: () => pushUnimplemented('权限与隐私') },
+  { id: 'appManage', title: '应用管理', group: '应用', action: () => pushUnimplemented('应用管理') },
+  { id: 'location', title: '位置信息', group: '安全与隐私', action: () => pushUnimplemented('位置信息') },
+  { id: 'gtZone', title: 'GT Zone', group: '特色功能', action: () => pushUnimplemented('GT Zone') },
+  { id: 'accessibility', title: '辅助功能', group: '系统', action: () => pushUnimplemented('辅助功能') },
+  { id: 'battery', title: '电池与省电', group: '电量', action: () => pushUnimplemented('电池与省电') },
+  { id: 'storage', title: '存储', group: '系统', action: () => pushUnimplemented('存储') },
+  { id: 'digitalHealth', title: '数字健康与家长控制', group: '数字健康', action: () => pushUnimplemented('数字健康与家长控制') },
+  { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
+  { id: 'account', title: '用户与账号', group: '账号', action: () => pushUnimplemented('用户与账号') },
+  { id: 'google', title: 'Google', group: '服务', action: () => pushUnimplemented('Google') },
+  { id: 'system', title: '系统', group: '系统', action: () => push('general') }
+]
+
+const filteredSearchResults = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return []
+  return allSearchableItems.filter(item =>
+    item.title.toLowerCase().includes(q) ||
+    item.group.toLowerCase().includes(q)
+  )
+})
 </script>
 
 <template>
   <div class="settings-app">
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 首页 ================= -->
-      <div v-if="view === 'main'" key="main" class="settings-page scrollable">
-        <div class="large-title">{{ i18n.t('settings') }}</div>
+      <div v-if="view === 'main'" key="main" class="settings-page">
+        <div class="settings-scroll-container scrollable">
+          <!-- 顶部大标题 -->
+          <div class="large-title">设置</div>
 
-        <!-- Apple ID 卡 -->
-        <div class="apple-id-card" @click="push('general')">
-          <div class="aid-avatar">R</div>
-          <div class="aid-info">
-            <div class="aid-name">{{ i18n.t('appleIdName') }}</div>
-            <div class="aid-sub">{{ i18n.t('appleIdSub') }}</div>
+          <!-- 搜索结果列表（当有输入时激活） -->
+          <div v-if="searchQuery.trim()" class="search-results-wrap">
+            <div class="search-results-header">
+              搜索结果 ({{ filteredSearchResults.length }})
+            </div>
+            <div v-if="filteredSearchResults.length > 0" class="settings-card">
+              <ListCell
+                v-for="(item, idx) in filteredSearchResults"
+                :key="item.id"
+                :title="item.title"
+                :subtitle="item.group"
+                :value="item.value"
+                :chevron="!item.isToggle"
+                :last="idx === filteredSearchResults.length - 1"
+                @click="item.action()"
+              >
+                <template v-if="item.isToggle" #right>
+                  <ToggleSwitch v-model="control.airplane" />
+                </template>
+              </ListCell>
+            </div>
+            <div v-else class="search-empty">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span>未找到相关设置</span>
+            </div>
           </div>
-          <svg width="8" height="13" viewBox="0 0 8 13">
-            <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
+
+          <!-- 默认标准 8 组卡片列表 -->
+          <template v-else>
+            <!-- ================= 卡片 1: 个人账号卡 ================= -->
+            <div class="settings-card account-card" @click="pushUnimplemented('Ricky 账号')">
+              <div class="account-avatar">
+                <svg width="34" height="34" viewBox="0 0 44 44" fill="none">
+                  <path d="M16 6C26 12 30 28 20 40C34 38 42 26 36 12C31 3 20 4 16 6Z" fill="white" fill-opacity="0.32" />
+                  <path d="M12 14C20 20 23 34 16 42C28 40 36 30 30 18C25 9 17 11 12 14Z" fill="white" fill-opacity="0.55" />
+                </svg>
+              </div>
+              <div class="account-info">
+                <div class="account-name">Ricky</div>
+                <div class="account-sub">使用云服务、查找等</div>
+              </div>
+              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
+                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <!-- ================= 卡片 2: 手机型号卡 ================= -->
+            <div class="settings-card single-item-card" @click="push('general')">
+              <div class="device-item">
+                <div class="squircle-icon bg-device">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="5" y="2" width="14" height="20" rx="3" />
+                    <line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3" />
+                  </svg>
+                </div>
+                <span class="device-title">Infinix GT 50 Pro</span>
+              </div>
+              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
+                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <!-- ================= 卡片 3: 网络与连接 (5项) ================= -->
+            <div class="settings-card">
+              <!-- 飞行模式 -->
+              <ListCell title="飞行模式">
+                <template #icon>
+                  <div class="squircle-icon bg-airplane">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path :d="GLYPHS.airplane" />
+                    </svg>
+                  </div>
+                </template>
+                <template #right>
+                  <ToggleSwitch v-model="control.airplane" />
+                </template>
+              </ListCell>
+
+              <!-- SIM卡与网络设置 -->
+              <ListCell title="SIM卡与网络设置" chevron @click="pushUnimplemented('SIM卡与网络设置')">
+                <template #icon>
+                  <div class="squircle-icon bg-sim">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M7 4v13M7 4L4 7M7 4l3 3M17 20V7M17 20l-3-3M17 20l3-3" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- WLAN -->
+              <ListCell title="WLAN" value="Ricky_5G" chevron @click="push('wifi')">
+                <template #icon>
+                  <div class="squircle-icon bg-wifi">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path :d="GLYPHS.wifi" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 蓝牙 -->
+              <ListCell title="蓝牙" chevron @click="pushUnimplemented('蓝牙')">
+                <template #icon>
+                  <div class="squircle-icon bg-bluetooth">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path :d="GLYPHS.bluetooth" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 多设备连接 -->
+              <ListCell title="多设备连接" chevron last @click="pushUnimplemented('多设备连接')">
+                <template #icon>
+                  <div class="squircle-icon bg-multidevice">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="3" width="13" height="10" rx="2" />
+                      <rect x="9" y="11" width="13" height="10" rx="2" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+            </div>
+
+            <!-- ================= 卡片 4: AI、个性化与视听通知 (5项) ================= -->
+            <div class="settings-card">
+              <!-- Infinix AI -->
+              <ListCell title="Infinix AI" chevron @click="pushUnimplemented('Infinix AI')">
+                <template #icon>
+                  <div class="squircle-icon bg-infinix-ai">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="7" stroke="#fff" stroke-width="3" />
+                      <circle cx="12" cy="12" r="2.5" fill="#fff" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 壁纸与个性化 -->
+              <ListCell title="壁纸与个性化" chevron @click="pushUnimplemented('壁纸与个性化')">
+                <template #icon>
+                  <div class="squircle-icon bg-wallpaper">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
+                      <rect x="5" y="3.5" width="14" height="6.5" rx="2" fill="#fff" />
+                      <path d="M19 7h2v6.5a2 2 0 0 1-2 2h-6v4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      <rect x="11.5" y="17.5" width="3" height="4.5" rx="1" fill="#fff" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 显示与亮度 -->
+              <ListCell title="显示与亮度" chevron @click="push('display')">
+                <template #icon>
+                  <div class="squircle-icon bg-display">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path :d="GLYPHS.sun" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 声音与振动 -->
+              <ListCell title="声音与振动" chevron @click="push('sound')">
+                <template #icon>
+                  <div class="squircle-icon bg-sound">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path :d="GLYPHS.speaker" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 通知与状态栏 -->
+              <ListCell title="通知与状态栏" chevron last @click="push('notifications')">
+                <template #icon>
+                  <div class="squircle-icon bg-notifications">
+                    <div class="notif-bell-wrap">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                        <path :d="GLYPHS.bell" />
+                      </svg>
+                      <span class="red-badge-dot"></span>
+                    </div>
+                  </div>
+                </template>
+              </ListCell>
+            </div>
+
+            <!-- ================= 卡片 5: 安全与隐私 (4项) ================= -->
+            <div class="settings-card">
+              <!-- 密码与安全 -->
+              <ListCell title="密码与安全" chevron @click="pushUnimplemented('密码与安全')">
+                <template #icon>
+                  <div class="squircle-icon bg-security">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path :d="GLYPHS.lock" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 权限与隐私 -->
+              <ListCell title="权限与隐私" chevron @click="pushUnimplemented('权限与隐私')">
+                <template #icon>
+                  <div class="squircle-icon bg-privacy">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 应用管理 -->
+              <ListCell title="应用管理" chevron @click="pushUnimplemented('应用管理')">
+                <template #icon>
+                  <div class="squircle-icon bg-apps">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <circle cx="7" cy="7" r="3" />
+                      <circle cx="17" cy="7" r="3" />
+                      <circle cx="7" cy="17" r="3" />
+                      <circle cx="17" cy="17" r="3" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 位置信息 -->
+              <ListCell title="位置信息" chevron last @click="pushUnimplemented('位置信息')">
+                <template #icon>
+                  <div class="squircle-icon bg-location">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path :d="GLYPHS.location" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+            </div>
+
+            <!-- ================= 卡片 6: 系统特色与性能 (4项) ================= -->
+            <div class="settings-card">
+              <!-- GT Zone -->
+              <ListCell title="GT Zone" chevron @click="pushUnimplemented('GT Zone')">
+                <template #icon>
+                  <div class="squircle-icon bg-gt">
+                    <span class="gt-badge">GT</span>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 辅助功能 -->
+              <ListCell title="辅助功能" chevron @click="pushUnimplemented('辅助功能')">
+                <template #icon>
+                  <div class="squircle-icon bg-accessibility">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M10 2v5.5L4.5 18A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3L14 7.5V2" />
+                      <line x1="8.5" y1="2" x2="15.5" y2="2" />
+                      <line x1="7" y1="15" x2="17" y2="15" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 电池与省电 -->
+              <ListCell title="电池与省电" chevron @click="pushUnimplemented('电池与省电')">
+                <template #icon>
+                  <div class="squircle-icon bg-battery">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="7" width="16" height="10" rx="2" />
+                      <line x1="22" y1="11" x2="22" y2="13" stroke-width="2.5" />
+                      <path d="M10 9l-2 3h3l-1 3" fill="#fff" stroke="none" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 存储 -->
+              <ListCell title="存储" chevron last @click="pushUnimplemented('存储')">
+                <template #icon>
+                  <div class="squircle-icon bg-storage">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
+                      <path d="M22 12A10 10 0 0 0 12 2v10z" fill="#fff" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+            </div>
+
+            <!-- ================= 卡片 7: 数字健康与账号 (4项) ================= -->
+            <div class="settings-card">
+              <!-- 数字健康与家长控制 -->
+              <ListCell title="数字健康与家长控制" chevron @click="pushUnimplemented('数字健康与家长控制')">
+                <template #icon>
+                  <div class="squircle-icon bg-health">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 安全和紧急情况 -->
+              <ListCell title="安全和紧急情况" chevron @click="pushUnimplemented('安全和紧急情况')">
+                <template #icon>
+                  <div class="squircle-icon bg-emergency">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round">
+                      <line x1="12" y1="3" x2="12" y2="21" />
+                      <line x1="4.2" y1="7.5" x2="19.8" y2="16.5" />
+                      <line x1="4.2" y1="16.5" x2="19.8" y2="7.5" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- 用户与账号 -->
+              <ListCell title="用户与账号" chevron @click="pushUnimplemented('用户与账号')">
+                <template #icon>
+                  <div class="squircle-icon bg-user">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+
+              <!-- Google -->
+              <ListCell title="Google" chevron last @click="pushUnimplemented('Google')">
+                <template #icon>
+                  <div class="squircle-icon bg-google">
+                    <svg width="18" height="18" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                  </div>
+                </template>
+              </ListCell>
+            </div>
+
+            <!-- ================= 卡片 8: 系统 (1项) ================= -->
+            <div class="settings-card single-item-card" @click="push('general')">
+              <div class="device-item">
+                <div class="squircle-icon bg-system">
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="#fff">
+                    <path :d="GLYPHS.gear" />
+                  </svg>
+                </div>
+                <span class="device-title">系统</span>
+              </div>
+              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
+                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+          </template>
+
+          <!-- 列表底部安全留白（让最后一项可滚到浮动搜索栏上方） -->
+          <div class="scroll-bottom-spacer"></div>
         </div>
 
-        <div class="cell-group">
-          <ListCell glyph="airplane" icon-bg="#FF9F0A" :title="i18n.t('airplaneMode')">
-            <template #right><ToggleSwitch v-model="control.airplane" /></template>
-          </ListCell>
-          <ListCell glyph="wifi" icon-bg="#0A84FF" :title="i18n.t('wifi')" :value="control.wifi ? 'Aurora_5G' : i18n.t('off')" chevron @click="push('wifi')" />
-          <ListCell glyph="bluetooth" icon-bg="#0A84FF" :title="i18n.t('bluetooth')" :value="control.bluetooth ? i18n.t('on') : i18n.t('off')" chevron @click="pushUnimplemented('bluetooth')" />
-          <ListCell :icon-text="i18n.t('cellular').slice(0, 1)" icon-bg="#34C759" :title="i18n.t('cellular')" chevron last @click="pushUnimplemented('cellular')" />
+        <!-- ================= 底部悬浮搜索栏控件 ================= -->
+        <div class="settings-floating-search">
+          <SettingsSearchBar
+            v-model="searchQuery"
+            placeholder="搜索"
+            @focus="searchActive = true"
+            @blur="searchActive = false"
+            @clear="searchQuery = ''"
+          />
         </div>
-
-        <div class="cell-group">
-          <ListCell glyph="bell" icon-bg="#FF3B30" :title="i18n.t('notifications')" chevron @click="push('notifications')" />
-          <ListCell glyph="speaker" icon-bg="#FF2D55" :title="i18n.t('soundAndVibration')" chevron last @click="push('sound')" />
-        </div>
-
-        <div class="cell-group">
-          <ListCell glyph="gear" icon-bg="#8E8E93" :title="i18n.t('general')" chevron @click="push('general')" />
-          <ListCell glyph="sun" icon-bg="#0A84FF" :title="i18n.t('displayAndBrightness')" chevron @click="push('display')" />
-          <ListCell glyph="image" icon-bg="#5AC8FA" :title="i18n.t('wallpaper')" chevron @click="pushUnimplemented('wallpaper')" />
-          <ListCell glyph="battery" icon-bg="#34C759" :title="i18n.t('battery')" :value="Math.round(control.battery * 100) + '%'" chevron last @click="pushUnimplemented('battery')" />
-        </div>
-
       </div>
 
-      <!-- ================= 声音与振动 (图 1) ================= -->
+      <!-- ================= 声音与振动 ================= -->
       <div v-else-if="view === 'sound'" key="sound" class="settings-page">
         <SettingsSound @back="pop" @open-dnd="push('dnd')" @open-prayer="push('prayer')" />
       </div>
 
-      <!-- ================= 勿扰模式 (图 2 + 礼拜模式入口) ================= -->
+      <!-- ================= 勿扰模式 (含礼拜模式入口) ================= -->
       <div v-else-if="view === 'dnd'" key="dnd" class="settings-page">
         <SettingsDND @back="pop" @open-prayer="push('prayer')" />
       </div>
@@ -177,64 +555,72 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
         <SettingsPrayer ref="prayerRef" @back="pop" @back-to-dnd="pop" />
       </div>
 
-      <!-- ================= 通知（settingsprototype.tsx 移植） ================= -->
+      <!-- ================= 通知与状态栏 (含礼拜灵动岛与闹钟联动设置) ================= -->
       <div v-else-if="view === 'notifications'" key="notifications" class="settings-page">
         <SettingsNotifications ref="notifRef" @back-to-settings="pop" />
       </div>
 
-      <!-- ================= 二级页 ================= -->
+      <!-- ================= 其他二级页 ================= -->
       <div v-else :key="view" class="settings-page">
-        <AppNavBar :title="viewTitles[view]" :back-label="i18n.t('settings')" @back="pop" />
+        <AppNavBar :title="viewTitles[view]" :back-label="'设置'" @back="pop" />
 
-        <!-- 未实现页面的占位（蓝牙 / 蜂窝网络 / 墙纸 / 电池） -->
+        <!-- 未实现页面的优雅占位 -->
         <div v-if="view === 'placeholder'" class="scrollable detail-body">
-          <div class="placeholder-note">{{ i18n.t('notImplemented') }}</div>
+          <div class="placeholder-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" stroke-width="2.5" />
+            </svg>
+          </div>
+          <div class="placeholder-title">{{ placeholderTitle }}</div>
+          <div class="placeholder-note">该功能在当前原型版本中已收录，正在接入系统底层服务。</div>
         </div>
 
         <!-- 无线局域网 -->
         <div v-else-if="view === 'wifi'" class="scrollable detail-body">
-          <div class="cell-group">
-            <ListCell glyph="wifi" icon-bg="#0A84FF" :title="i18n.t('wifi')" last>
+          <div class="settings-card">
+            <ListCell glyph="wifi" icon-bg="#0088FF" title="WLAN" last>
               <template #right><ToggleSwitch v-model="control.wifi" /></template>
             </ListCell>
           </div>
           <template v-if="control.wifi">
-            <div class="group-header">{{ i18n.t('currentNetwork') }}</div>
-            <div class="cell-group">
-              <ListCell title="Aurora_5G" last>
+            <div class="group-header">当前网络</div>
+            <div class="settings-card">
+              <ListCell title="Ricky_5G" last>
                 <template #right>
                   <svg width="18" height="18" viewBox="0 0 24 24"><path :d="GLYPHS.check" fill="#007AFF" /></svg>
                   <svg width="18" height="18" viewBox="0 0 24 24"><path :d="GLYPHS.info" fill="#C7C7CC" /></svg>
                 </template>
               </ListCell>
             </div>
-            <div class="group-header">{{ i18n.t('otherNetworks') }}</div>
-            <div class="cell-group">
-              <ListCell v-for="(n, i) in networks" :key="n" :title="n" :last="i === networks.length - 1">
+            <div class="group-header">其他网络</div>
+            <div class="settings-card">
+              <ListCell v-for="(n, i) in networks.slice(1)" :key="n" :title="n" :last="i === networks.length - 2">
                 <template #right>
                   <svg width="18" height="18" viewBox="0 0 24 24"><path :d="GLYPHS.lock" fill="#C7C7CC" /></svg>
                 </template>
               </ListCell>
             </div>
           </template>
-          <div v-else class="empty-note">{{ i18n.t('wifiOffNote') }}</div>
+          <div v-else class="empty-note">已关闭 WLAN</div>
         </div>
 
         <!-- 显示与亮度 -->
         <div v-else-if="view === 'display'" class="scrollable detail-body">
-          <div class="group-header">{{ i18n.t('appearance') }}</div>
+          <div class="group-header">外观</div>
           <div class="appearance-row">
             <div class="appearance-card selected">
               <div class="appearance-preview light"></div>
-              <span>{{ i18n.t('light') }}</span>
+              <span>浅色模式</span>
             </div>
             <div class="appearance-card">
               <div class="appearance-preview dark"></div>
-              <span>{{ i18n.t('dark') }}</span>
+              <span>深色模式</span>
             </div>
           </div>
-          <div class="group-header">{{ i18n.t('brightnessLabel') }}</div>
-          <div class="brightness-card">
+          <div class="group-header">亮度</div>
+          <div class="settings-card brightness-card">
             <svg width="16" height="16" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
             <div
               ref="sliderRef"
@@ -248,28 +634,25 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
             </div>
             <svg width="22" height="22" viewBox="0 0 24 24"><path :d="GLYPHS.sun" fill="#8E8E93" /></svg>
           </div>
-          <div class="cell-group">
-            <ListCell :title="i18n.t('trueTone')">
+          <div class="settings-card">
+            <ListCell title="护眼模式">
               <template #right><ToggleSwitch :model-value="true" /></template>
             </ListCell>
-            <ListCell :title="i18n.t('nightShift')" :value="i18n.t('sunsetToSunrise')" chevron last />
+            <ListCell title="自适应刷新率" value="144Hz" chevron last />
           </div>
         </div>
 
-        <!-- 通用 -->
+        <!-- 系统与关于手机 -->
         <div v-else class="scrollable detail-body">
-          <div class="cell-group">
-            <ListCell :title="i18n.t('about')" chevron />
-            <ListCell :title="i18n.t('softwareUpdate')" :value="i18n.t('upToDate')" last />
+          <div class="settings-card">
+            <ListCell title="关于手机" value="Infinix GT 50 Pro" chevron />
+            <ListCell title="系统更新" value="tOS 16.0 最新版" last />
           </div>
-          <div class="group-header">{{ i18n.t('deviceInfo') }}</div>
-          <div class="cell-group">
-            <ListCell :title="i18n.t('deviceName')" value="Aurora One" />
-            <ListCell :title="i18n.t('model')" value="Aurora Phone" />
-            <ListCell :title="i18n.t('systemVersion')" value="26.0 (21A345)" last />
-          </div>
-          <div class="cell-group">
-            <ListCell :title="i18n.t('storage')" value="214 GB / 256 GB" last />
+          <div class="group-header">硬件与规格</div>
+          <div class="settings-card">
+            <ListCell title="处理器" value="Dimensity 9300+" />
+            <ListCell title="运行内存" value="16 GB + 12 GB 扩展" />
+            <ListCell title="机身存储" value="184 GB / 512 GB" last />
           </div>
         </div>
       </div>
@@ -280,17 +663,227 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
 <style scoped>
 .settings-app {
   height: 100%;
-  background: var(--bg-grouped);
+  background: #F4F5F7;
   overflow: hidden;
   position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
 .settings-page {
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-/* ================= 极速丝滑进退动画 (160ms 极速响应，无停滞) ================= */
+.settings-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ================= 顶层大标题 ================= */
+.large-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111111;
+  padding: calc(var(--safe-top, 20px) + 16px) 20px 14px 20px;
+  letter-spacing: -0.5px;
+}
+
+/* ================= 统一卡片规范 ================= */
+.settings-card {
+  margin: 0 16px 12px 16px;
+  background: #FFFFFF;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+/* 个人账号卡 */
+.account-card {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.account-card:active {
+  background: #F2F2F7;
+}
+
+.account-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00D2FF 0%, #0076FF 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-shadow: 0 3px 10px rgba(0, 118, 255, 0.25);
+}
+
+.account-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #111111;
+  line-height: 1.3;
+}
+
+.account-sub {
+  font-size: 13px;
+  color: #8E8E93;
+  margin-top: 3px;
+  line-height: 1.2;
+}
+
+/* 单项卡（机型卡与系统卡） */
+.single-item-card {
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  min-height: 58px;
+  box-sizing: border-box;
+}
+.single-item-card:active {
+  background: #F2F2F7;
+}
+
+.device-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.device-title {
+  font-size: 15.5px;
+  font-weight: 450;
+  color: #111111;
+}
+
+.chevron-icon {
+  flex: none;
+}
+
+/* ================= 统一 Squircle 图标规范 ================= */
+.squircle-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  margin-right: 14px;
+}
+
+.bg-device { background: #00C853; }
+.bg-airplane { background: #FFA000; }
+.bg-sim { background: #22C55E; }
+.bg-wifi { background: #0088FF; }
+.bg-bluetooth { background: #0088FF; }
+.bg-multidevice { background: #10B981; }
+
+.bg-infinix-ai { background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #EC4899 100%); }
+.bg-wallpaper { background: #F43F5E; }
+.bg-display { background: #F59E0B; }
+.bg-sound { background: #EF4444; }
+.bg-notifications { background: #8E9AA8; }
+
+.bg-security { background: #8E95A5; }
+.bg-privacy { background: #2563EB; }
+.bg-apps { background: #8E95A5; }
+.bg-location { background: #0EA5E9; }
+
+.bg-gt { background: #222226; }
+.gt-badge {
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+}
+
+.bg-accessibility { background: #EF4444; }
+.bg-battery { background: #22C55E; }
+.bg-storage { background: #3B82F6; }
+
+.bg-health { background: #4ADE80; }
+.bg-emergency { background: #EF4444; }
+.bg-user { background: #22C55E; }
+.bg-google {
+  background: #FFFFFF;
+  border: 0.5px solid #E5E7EB;
+  box-sizing: border-box;
+}
+
+.bg-system { background: #6B7280; }
+
+.notif-bell-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.red-badge-dot {
+  position: absolute;
+  top: -1px;
+  right: -2px;
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  background: #FF3B30;
+  border: 1px solid #8E9AA8;
+}
+
+/* ================= 底部悬浮搜索栏 ================= */
+.settings-floating-search {
+  position: absolute;
+  bottom: 20px;
+  left: 16px;
+  right: 16px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.scroll-bottom-spacer {
+  height: 86px;
+  width: 100%;
+  flex: none;
+}
+
+/* ================= 搜索结果面板 ================= */
+.search-results-wrap {
+  margin-top: 4px;
+}
+.search-results-header {
+  font-size: 13px;
+  color: #8E8E93;
+  margin: 0 20px 8px;
+  font-weight: 500;
+}
+.search-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: #8E8E93;
+  font-size: 14px;
+}
+
+/* ================= 极速丝滑进退动画 ================= */
 .slide-enter-active,
 .slide-back-enter-active {
   transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.16s ease;
@@ -300,7 +893,6 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
   transition: transform 0.12s cubic-bezier(0.4, 0, 1, 1), opacity 0.12s ease;
 }
 
-/* 进入：新页从右滑入 */
 .slide-enter-from {
   transform: translateX(36px);
   opacity: 0;
@@ -309,7 +901,6 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
   transform: translateX(0);
   opacity: 1;
 }
-/* 离开：旧页向左微移退出 */
 .slide-leave-from {
   transform: translateX(0);
   opacity: 1;
@@ -319,7 +910,6 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
   opacity: 0;
 }
 
-/* 返回进入：旧页从左侧滑回 */
 .slide-back-enter-from {
   transform: translateX(-24px);
   opacity: 0;
@@ -328,7 +918,6 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
   transform: translateX(0);
   opacity: 1;
 }
-/* 返回离开：顶页向右滑出 */
 .slide-back-leave-from {
   transform: translateX(0);
   opacity: 1;
@@ -338,113 +927,81 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
   opacity: 0;
 }
 
-.large-title {
-  font: var(--text-large-title);
-  color: var(--label);
-  padding: calc(var(--safe-top) + 18px) 20px 12px;
-  flex: none;
-}
-
-.apple-id-card {
-  margin: 0 16px 22px;
-  background: var(--bg-cell);
-  border-radius: var(--radius-cell-group);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  cursor: pointer;
-}
-.apple-id-card:active { background: #E9E9EB; }
-.aid-avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #5AC8FA, #0A84FF);
-  color: #fff;
-  font: 600 22px/1 var(--font-stack);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
-.aid-info { flex: 1; min-width: 0; }
-.aid-name { font: var(--text-headline); color: var(--label); }
-.aid-sub { font: var(--text-footnote); color: var(--label-secondary); margin-top: 2px; }
-
-.cell-group {
-  margin: 0 16px 22px;
-  border-radius: var(--radius-cell-group);
-  overflow: hidden;
-}
+/* ================= 二级页通用样式 ================= */
 .group-header {
-  font: var(--text-footnote);
-  color: var(--label-secondary);
+  font-size: 13px;
+  color: #8E8E93;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  margin: 0 20px 7px;
+  margin: 14px 20px 7px;
+  font-weight: 500;
 }
-.detail-body { flex: 1; padding-top: 14px; }
+.detail-body {
+  flex: 1;
+  padding-top: 10px;
+}
 .empty-note {
   text-align: center;
-  color: var(--label-secondary);
-  font: var(--text-subhead);
+  color: #8E8E93;
+  font-size: 14px;
   margin-top: 40px;
 }
 
-/* 未实现二级页的占位空状态 */
+.placeholder-icon {
+  display: flex;
+  justify-content: center;
+  margin-top: 60px;
+  margin-bottom: 16px;
+}
+.placeholder-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111111;
+  margin-bottom: 8px;
+}
 .placeholder-note {
   text-align: center;
-  color: var(--label-tertiary, var(--label-secondary));
-  font: var(--text-subhead);
-  margin-top: 120px;
+  color: #8E8E93;
+  font-size: 14px;
   padding: 0 40px;
   line-height: 1.6;
 }
-.settings-footer {
-  text-align: center;
-  font: var(--text-caption);
-  color: var(--label-tertiary);
-  padding-bottom: 30px;
-}
 
-/* 外观选择 */
+/* 外观模式 */
 .appearance-row {
   display: flex;
   gap: 14px;
-  margin: 0 16px 22px;
+  margin: 0 16px 12px;
 }
 .appearance-card {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
-  font: var(--text-subhead);
-  color: var(--label);
+  gap: 8px;
+  font-size: 13.5px;
+  color: #111111;
 }
 .appearance-preview {
   width: 100%;
-  height: 110px;
+  height: 100px;
   border-radius: 14px;
   border: 2.5px solid transparent;
 }
 .appearance-preview.light {
-  background: linear-gradient(180deg, #fff 60%, #E9E9EB 60%);
+  background: linear-gradient(180deg, #FFFFFF 60%, #E9E9EB 60%);
 }
 .appearance-preview.dark {
-  background: linear-gradient(180deg, #1c1c1e 60%, #3a3a3c 60%);
+  background: linear-gradient(180deg, #1C1C1E 60%, #3A3A3C 60%);
 }
 .appearance-card.selected .appearance-preview {
-  border-color: var(--ios-blue);
+  border-color: #007AFF;
   box-shadow: 0 2px 10px rgba(0, 122, 255, 0.25);
 }
 
-/* 横向亮度滑块 */
+/* 亮度滑块 */
 .brightness-card {
-  margin: 0 16px 22px;
-  background: var(--bg-cell);
-  border-radius: var(--radius-cell-group);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -463,7 +1020,7 @@ const networks = ['Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G', 'Neighbor_WiFi
 .h-slider-fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 14px;
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.1);
 }
