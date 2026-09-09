@@ -31,7 +31,7 @@ const initialSubView = notificationsStore.targetSubView === 'dynamicBar' ? 'dyna
 if (notificationsStore.targetSubView === 'dynamicBar') {
   notificationsStore.setTargetView('notifications', null)
 }
-const subStack = ref([initialSubView])
+const subStack = ref(initialSubView === 'dynamicBar' ? ['main', 'dynamicBar'] : ['main'])
 const subView = computed(() => subStack.value[subStack.value.length - 1] || 'main')
 const isBack = ref(false)
 
