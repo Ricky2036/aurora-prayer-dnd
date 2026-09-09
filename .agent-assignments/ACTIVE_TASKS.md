@@ -14,6 +14,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | Control Center EE1 presets, custom VPN icon & toggle, GT series row update, and CAMON 1x1 hotspot alignment | `workbuddy/lane` | `src/components/system/ControlCenter.vue`; `src/stores/controlStore.js`; `src/components/dev/DevConsole.vue`; `src/assets/icons/lucide.js`; `src/stores/i18nStore.js`; `scripts/verify-*` | `57e0e1f` | `180e991` |
 | Merged | Codex | Restore dynamic bar back navigation, keep swipe actions behind cards, and refine header clock layout | `codex/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue` | `79c6996` | `d4eca79` |
 | Merged | Antigravity | Control-layer normative optimization for AppNavBar sticky pinning to prevent title bar scrolling off screen in Settings | `antigravity/lane` | `src/components/ui/AppNavBar.vue`; `src/components/apps/settings/SettingsNotifications.vue`; `tests/appNavBar.test.js` | `cad1b2d` | `7fd45bd` |
+| Merged | Antigravity | Link Muslim Alarm with Prayer Mode in Settings (Option 2: progressive alarm linkage card, advance notice, ringtone preview, and clock app jump) | `antigravity/lane` | `src/components/apps/settings/SettingsPrayer.vue`; `src/stores/prayerStore.js`; `src/stores/i18nStore.js`; `tests/prayerAlarmLinkage.test.js` | `622a79a` | `15038f8` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
