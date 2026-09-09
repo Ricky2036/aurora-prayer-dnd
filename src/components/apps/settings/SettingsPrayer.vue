@@ -14,28 +14,53 @@ const clockStore = useClockStore()
 const systemStore = useSystemStore()
 const i18n = useI18nStore()
 
-/* 闹钟提醒联动总开关（双向同步 clockStore.settings.muslimAlarmEnabled） */
+/* 安全的多语言翻译辅助函数：缺失或未编译时自动降级兜底，绝不显示生硬英文 key */
+function tr(key, zhFallback, enFallback, bnFallback) {
+  const val = i18n?.t ? i18n.t(key) : null
+  if (val && val !== key) return val
+  if (i18n?.locale === 'en') return enFallback || zhFallback
+  if (i18n?.locale === 'bn') return bnFallback || enFallback || zhFallback
+  return zhFallback
+}
+
+/* 闹钟提醒联动总开关（双向同步 clockStore.settings.muslimAlarmEnabled，带高可用兜底） */
 const alarmLinkageEnabled = computed({
-  get: () => prayerStore.alarmLinkageEnabled,
+  get: () => {
+    if (typeof prayerStore?.alarmLinkageEnabled === 'boolean') {
+      return prayerStore.alarmLinkageEnabled
+    }
+    if (typeof clockStore?.settings?.muslimAlarmEnabled === 'boolean') {
+      return clockStore.settings.muslimAlarmEnabled
+    }
+    return true
+  },
   set: (val) => {
-    prayerStore.setAlarmLinkage(val)
-    clockStore.settings.muslimAlarmEnabled = val
+    if (prayerStore) {
+      prayerStore.alarmLinkageEnabled = val
+      if (typeof prayerStore.setAlarmLinkage === 'function') {
+        prayerStore.setAlarmLinkage(val)
+      }
+    }
+    if (clockStore?.settings) {
+      clockStore.settings.muslimAlarmEnabled = val
+    }
   }
 })
 
-/* 提前提醒时间状态与配置 */
+/* 提前提醒时间状态与配置（含多语言安全兜底） */
 const showAdvancePicker = ref(false)
 const advanceOptions = [
-  { mins: 0, labelKey: 'advance0Min' },
-  { mins: 10, labelKey: 'advance10Min' },
-  { mins: 15, labelKey: 'advance15Min', recommended: true },
-  { mins: 30, labelKey: 'advance30Min' }
+  { mins: 0, labelKey: 'advance0Min', zh: '准点提醒', en: 'On time', bn: 'ঠিক সময়ে' },
+  { mins: 10, labelKey: 'advance10Min', zh: '提前 10 分钟', en: '10 minutes before', bn: '১০ মিনিট আগে' },
+  { mins: 15, labelKey: 'advance15Min', zh: '提前 15 分钟', en: '15 minutes before', bn: '১৫ মিনিট আগে', recommended: true },
+  { mins: 30, labelKey: 'advance30Min', zh: '提前 30 分钟', en: '30 minutes before', bn: '৩০ মিনিট আগে' }
 ]
 
 function formatAdvanceTime(mins) {
-  const opt = advanceOptions.find((o) => o.mins === mins)
-  if (opt) return i18n.t(opt.labelKey)
-  return `${mins} min`
+  const m = mins ?? prayerStore?.alarmAdvanceMinutes ?? 15
+  const opt = advanceOptions.find((o) => o.mins === m)
+  if (opt) return tr(opt.labelKey, opt.zh, opt.en, opt.bn)
+  return `${m} min`
 }
 
 function openAdvancePicker() {
@@ -47,24 +72,30 @@ function closeAdvancePicker() {
 }
 
 function selectAdvance(mins) {
-  prayerStore.setAlarmAdvanceMinutes(mins)
+  if (prayerStore) {
+    prayerStore.alarmAdvanceMinutes = mins
+    if (typeof prayerStore.setAlarmAdvanceMinutes === 'function') {
+      prayerStore.setAlarmAdvanceMinutes(mins)
+    }
+  }
   showAdvancePicker.value = false
 }
 
-/* 唤礼铃声状态与配置 */
+/* 唤礼铃声状态与配置（含多语言安全兜底） */
 const showRingtonePicker = ref(false)
 const ringtoneOptions = [
-  { id: 'mecca', labelKey: 'ringtoneMecca', name: '麦加唤礼声' },
-  { id: 'medina', labelKey: 'ringtoneMedina', name: '麦地那唤礼声' },
-  { id: 'aqsa', labelKey: 'ringtoneAqsa', name: '阿克萨唤礼声' },
-  { id: 'dawn', labelKey: 'ringtoneDawn', name: '平静晨鸣' },
-  { id: 'default', labelKey: 'ringtoneDefault', name: '默认铃声' }
+  { id: 'mecca', labelKey: 'ringtoneMecca', name: '麦加唤礼声', zh: '麦加唤礼声', en: 'Makkah Adhan', bn: 'মক্কা আযান' },
+  { id: 'medina', labelKey: 'ringtoneMedina', name: '麦地那唤礼声', zh: '麦地那唤礼声', en: 'Madinah Adhan', bn: 'মদিনা আযান' },
+  { id: 'aqsa', labelKey: 'ringtoneAqsa', name: '阿克萨唤礼声', zh: '阿克萨唤礼声', en: 'Al-Aqsa Adhan', bn: 'আল-আকসা আযান' },
+  { id: 'dawn', labelKey: 'ringtoneDawn', name: '平静晨鸣', zh: '平静晨鸣', en: 'Peaceful Dawn', bn: 'শান্ত ভোর' },
+  { id: 'default', labelKey: 'ringtoneDefault', name: '默认铃声', zh: '默认铃声', en: 'Default Alarm', bn: 'ডিফল্ট অ্যালার্ম' }
 ]
 
 function formatRingtone(rt) {
-  const opt = ringtoneOptions.find((o) => o.name === rt || o.id === rt)
-  if (opt) return i18n.t(opt.labelKey)
-  return rt || i18n.t('ringtoneMecca')
+  const cur = rt || prayerStore?.alarmRingtone || clockStore?.settings?.ringtone || '麦加唤礼声'
+  const opt = ringtoneOptions.find((o) => o.name === cur || o.id === cur)
+  if (opt) return tr(opt.labelKey, opt.zh, opt.en, opt.bn)
+  return cur
 }
 
 function openRingtonePicker() {
@@ -76,8 +107,16 @@ function closeRingtonePicker() {
 }
 
 function selectRingtone(rt) {
-  prayerStore.setAlarmRingtone(rt.name)
-  clockStore.settings.ringtone = rt.name
+  const name = typeof rt === 'string' ? rt : rt.name
+  if (prayerStore) {
+    prayerStore.alarmRingtone = name
+    if (typeof prayerStore.setAlarmRingtone === 'function') {
+      prayerStore.setAlarmRingtone(name)
+    }
+  }
+  if (clockStore?.settings) {
+    clockStore.settings.ringtone = name
+  }
   showRingtonePicker.value = false
 }
 
@@ -370,7 +409,7 @@ function saveEdit() {
           </div>
 
           <!-- 闹钟与唤礼提醒联动卡片 -->
-          <div class="group-header">{{ i18n.t('prayerAlarmHeader') }}</div>
+          <div class="group-header">{{ tr('prayerAlarmHeader', '闹钟与唤礼提醒', 'ALARM & ADHAN', 'অ্যালার্ম ও আযান') }}</div>
           <div class="cell-group">
             <!-- 一级总开关 -->
             <div class="list-cell">
@@ -381,8 +420,8 @@ function saveEdit() {
               </div>
               <div class="lc-main" :class="{ 'no-sep': !alarmLinkageEnabled }">
                 <div class="lc-title-col">
-                  <span class="lc-title">{{ i18n.t('prayerAlarmLinkage') }}</span>
-                  <span class="lc-sub-desc">{{ i18n.t('prayerAlarmLinkageDesc') }}</span>
+                  <span class="lc-title">{{ tr('prayerAlarmLinkage', '礼拜前闹钟提醒', 'Prayer Alarm Reminder', 'নামাজের পূর্বের অ্যালার্ম') }}</span>
+                  <span class="lc-sub-desc">{{ tr('prayerAlarmLinkageDesc', '各时段开始前响铃或播放唤礼声', 'Ring or play Adhan before each prayer time', 'প্রতিটি নামাজের পূর্বে অ্যালার্ম বা আযান বাজবে') }}</span>
                 </div>
                 <div class="lc-right">
                   <ToggleSwitch v-model="alarmLinkageEnabled" />
@@ -396,9 +435,9 @@ function saveEdit() {
                 <!-- 提前提醒时间 -->
                 <div class="list-cell clickable" @click="openAdvancePicker">
                   <div class="lc-main">
-                    <span class="lc-title">{{ i18n.t('alarmAdvanceTime') }}</span>
+                    <span class="lc-title">{{ tr('alarmAdvanceTime', '提前提醒时间', 'Advance Notice', 'অগ্রিম সতর্কতার সময়') }}</span>
                     <div class="lc-right">
-                      <span class="lc-sub-val dark-text">{{ formatAdvanceTime(prayerStore.alarmAdvanceMinutes) }}</span>
+                      <span class="lc-sub-val dark-text">{{ formatAdvanceTime(prayerStore?.alarmAdvanceMinutes) }}</span>
                       <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
                         <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
@@ -409,9 +448,9 @@ function saveEdit() {
                 <!-- 唤礼铃声 -->
                 <div class="list-cell clickable" @click="openRingtonePicker">
                   <div class="lc-main">
-                    <span class="lc-title">{{ i18n.t('alarmRingtone') }}</span>
+                    <span class="lc-title">{{ tr('alarmRingtone', '唤礼铃声', 'Adhan Ringtone', 'আযানের রিংটোন') }}</span>
                     <div class="lc-right">
-                      <span class="lc-sub-val dark-text">{{ formatRingtone(prayerStore.alarmRingtone) }}</span>
+                      <span class="lc-sub-val dark-text">{{ formatRingtone(prayerStore?.alarmRingtone) }}</span>
                       <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
                         <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
@@ -423,8 +462,8 @@ function saveEdit() {
                 <div class="list-cell clickable" @click="jumpToClockMuslim">
                   <div class="lc-main no-sep">
                     <div class="lc-title-col">
-                      <span class="lc-title">{{ i18n.t('openClockApp') }}</span>
-                      <span class="lc-sub-desc">{{ i18n.t('openClockAppDesc') }}</span>
+                      <span class="lc-title">{{ tr('openClockApp', '前往时钟 App', 'Open Clock App', 'ঘড়ি অ্যাপে যান') }}</span>
+                      <span class="lc-sub-desc">{{ tr('openClockAppDesc', '查看朝拜罗盘与更多闹钟细节', 'View Qibla compass & alarm details', 'কিবলা কম্পাস ও অ্যালার্মের বিস্তারিত দেখুন') }}</span>
                     </div>
                     <div class="lc-right">
                       <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
@@ -642,27 +681,27 @@ function saveEdit() {
       <div v-if="showAdvancePicker" class="picker-backdrop" @click="closeAdvancePicker">
         <div class="picker-bottom-sheet selection-sheet" @click.stop>
           <div class="pd-header">
-            <div class="pd-type-label">{{ i18n.t('alarmAdvanceTime') }}</div>
+            <div class="pd-type-label">{{ tr('alarmAdvanceTime', '提前提醒时间', 'Advance Notice', 'অগ্রিম সতর্কতার সময়') }}</div>
           </div>
           <div class="selection-options-list">
             <div
               v-for="opt in advanceOptions"
               :key="opt.mins"
               class="selection-option-item"
-              :class="{ 'is-active': prayerStore.alarmAdvanceMinutes === opt.mins }"
+              :class="{ 'is-active': (prayerStore?.alarmAdvanceMinutes ?? 15) === opt.mins }"
               @click="selectAdvance(opt.mins)"
             >
               <div class="soi-label-col">
-                <span class="soi-label">{{ i18n.t(opt.labelKey) }}</span>
-                <span v-if="opt.recommended" class="soi-badge">推荐</span>
+                <span class="soi-label">{{ tr(opt.labelKey, opt.zh, opt.en, opt.bn) }}</span>
+                <span v-if="opt.recommended" class="soi-badge">{{ tr('recommended', '推荐', 'Recommended', 'প্রস্তাবিত') }}</span>
               </div>
-              <svg v-if="prayerStore.alarmAdvanceMinutes === opt.mins" width="18" height="18" viewBox="0 0 24 24">
+              <svg v-if="(prayerStore?.alarmAdvanceMinutes ?? 15) === opt.mins" width="18" height="18" viewBox="0 0 24 24">
                 <path :d="GLYPHS.check" fill="#007AFF" />
               </svg>
             </div>
           </div>
           <div class="pd-actions">
-            <button class="pd-btn pd-cancel" @click="closeAdvancePicker">{{ i18n.t('cancel') }}</button>
+            <button class="pd-btn pd-cancel" @click="closeAdvancePicker">{{ tr('cancel', '取消', 'Cancel', 'বাতিল') }}</button>
           </div>
         </div>
       </div>
@@ -673,26 +712,26 @@ function saveEdit() {
       <div v-if="showRingtonePicker" class="picker-backdrop" @click="closeRingtonePicker">
         <div class="picker-bottom-sheet selection-sheet" @click.stop>
           <div class="pd-header">
-            <div class="pd-type-label">{{ i18n.t('alarmRingtone') }}</div>
+            <div class="pd-type-label">{{ tr('alarmRingtone', '唤礼铃声', 'Adhan Ringtone', 'আযানের রিংটোন') }}</div>
           </div>
           <div class="selection-options-list">
             <div
               v-for="rt in ringtoneOptions"
               :key="rt.id"
               class="selection-option-item"
-              :class="{ 'is-active': prayerStore.alarmRingtone === rt.name }"
+              :class="{ 'is-active': (prayerStore?.alarmRingtone || '麦加唤礼声') === rt.name }"
               @click="selectRingtone(rt)"
             >
               <div class="soi-label-col">
-                <span class="soi-label">{{ i18n.t(rt.labelKey) }}</span>
+                <span class="soi-label">{{ tr(rt.labelKey, rt.zh, rt.en, rt.bn) }}</span>
               </div>
-              <svg v-if="prayerStore.alarmRingtone === rt.name" width="18" height="18" viewBox="0 0 24 24">
+              <svg v-if="(prayerStore?.alarmRingtone || '麦加唤礼声') === rt.name" width="18" height="18" viewBox="0 0 24 24">
                 <path :d="GLYPHS.check" fill="#007AFF" />
               </svg>
             </div>
           </div>
           <div class="pd-actions">
-            <button class="pd-btn pd-cancel" @click="closeRingtonePicker">{{ i18n.t('cancel') }}</button>
+            <button class="pd-btn pd-cancel" @click="closeRingtonePicker">{{ tr('cancel', '取消', 'Cancel', 'বাতিল') }}</button>
           </div>
         </div>
       </div>

@@ -88,29 +88,29 @@ test('SettingsPrayer component template includes Option 2 alarm linkage elements
   const content = fs.readFileSync(componentPath, 'utf-8')
 
   // Section header
-  assert.ok(content.includes("i18n.t('prayerAlarmHeader')"), 'Must include prayerAlarmHeader')
+  assert.ok(content.includes('prayerAlarmHeader'), 'Must include prayerAlarmHeader')
 
   // Master switch
   assert.ok(content.includes('alarmLinkageEnabled'), 'Must bind alarmLinkageEnabled')
-  assert.ok(content.includes("i18n.t('prayerAlarmLinkage')"), 'Must include prayerAlarmLinkage title')
-  assert.ok(content.includes("i18n.t('prayerAlarmLinkageDesc')"), 'Must include prayerAlarmLinkageDesc')
+  assert.ok(content.includes('prayerAlarmLinkage'), 'Must include prayerAlarmLinkage title')
+  assert.ok(content.includes('prayerAlarmLinkageDesc'), 'Must include prayerAlarmLinkageDesc')
 
   // Subgroup transition
   assert.ok(content.includes('name="subgroup-expand"'), 'Must have subgroup-expand transition')
 
   // Advance time cell & picker
-  assert.ok(content.includes("i18n.t('alarmAdvanceTime')"), 'Must include alarmAdvanceTime')
+  assert.ok(content.includes('alarmAdvanceTime'), 'Must include alarmAdvanceTime')
   assert.ok(content.includes('openAdvancePicker'), 'Must handle openAdvancePicker')
   assert.ok(content.includes('showAdvancePicker'), 'Must have showAdvancePicker modal')
 
   // Ringtone cell & picker
-  assert.ok(content.includes("i18n.t('alarmRingtone')"), 'Must include alarmRingtone')
+  assert.ok(content.includes('alarmRingtone'), 'Must include alarmRingtone')
   assert.ok(content.includes('openRingtonePicker'), 'Must handle openRingtonePicker')
   assert.ok(content.includes('showRingtonePicker'), 'Must have showRingtonePicker modal')
 
   // Clock App navigation jump
-  assert.ok(content.includes("i18n.t('openClockApp')"), 'Must include openClockApp')
-  assert.ok(content.includes("i18n.t('openClockAppDesc')"), 'Must include openClockAppDesc')
+  assert.ok(content.includes('openClockApp'), 'Must include openClockApp')
+  assert.ok(content.includes('openClockAppDesc'), 'Must include openClockAppDesc')
   assert.ok(content.includes('jumpToClockMuslim'), 'Must call jumpToClockMuslim')
   assert.ok(content.includes("clockStore.setActiveTab('muslim')"), 'jumpToClockMuslim must set active tab')
   assert.ok(content.includes("systemStore.openApp('clock')"), 'jumpToClockMuslim must open clock app')
