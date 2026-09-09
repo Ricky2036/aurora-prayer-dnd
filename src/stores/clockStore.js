@@ -1,6 +1,21 @@
 import { defineStore } from 'pinia'
 
 /**
+ * 辅助函数：将星期数组格式化为用户友好的重复描述
+ */
+export function formatDaysRepeat(days = []) {
+  if (!days || days.length === 0) return '仅一次'
+  if (days.length === 7) return '每天'
+  const sorted = [...days].sort((a, b) => a - b)
+  const isWorkdays = sorted.length === 5 && sorted.every((d, i) => d === i + 1)
+  if (isWorkdays) return '周一至周五'
+  const isWeekend = sorted.length === 2 && sorted.includes(0) && sorted.includes(6)
+  if (isWeekend) return '周日, 周六'
+  const DAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return sorted.map((d) => DAY_NAMES[d]).join(', ')
+}
+
+/**
  * 辅助函数：计算距离下一次响铃的分钟数与描述文本
  * 支持：仅一次、每天、工作日、周末或指定星期
  */
@@ -78,7 +93,13 @@ export const useClockStore = defineStore('clock', {
         days: [0, 6],
         repeatLabel: '周日, 周六',
         enabled: false,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a2',
@@ -86,7 +107,13 @@ export const useClockStore = defineStore('clock', {
         days: [1, 2, 3, 4, 5],
         repeatLabel: '周一至周五',
         enabled: true,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a3',
@@ -94,7 +121,13 @@ export const useClockStore = defineStore('clock', {
         days: [],
         repeatLabel: '仅一次',
         enabled: false,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a4',
@@ -102,7 +135,13 @@ export const useClockStore = defineStore('clock', {
         days: [0, 1, 2, 3, 4, 5, 6],
         repeatLabel: '每天',
         enabled: true,
-        label: '收菜'
+        label: '收菜',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a5',
@@ -110,7 +149,13 @@ export const useClockStore = defineStore('clock', {
         days: [0, 1, 2, 3, 4, 5, 6],
         repeatLabel: '每天',
         enabled: true,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a6',
@@ -118,7 +163,13 @@ export const useClockStore = defineStore('clock', {
         days: [],
         repeatLabel: '仅一次',
         enabled: false,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       }
     ],
 
@@ -230,14 +281,38 @@ export const useClockStore = defineStore('clock', {
     },
 
     addAlarm(alarm) {
-      this.alarms.push({
-        id: `a_${Date.now()}`,
+      const days = alarm.days || []
+      const repeatLabel = alarm.repeatLabel || formatDaysRepeat(days)
+      const newAlarm = {
+        id: alarm.id || `a_${Date.now()}`,
         time: alarm.time || '08:00',
-        days: alarm.days || [],
-        repeatLabel: alarm.repeatLabel || '仅一次',
-        enabled: true,
-        label: alarm.label || ''
-      })
+        days,
+        repeatLabel,
+        enabled: alarm.enabled ?? true,
+        label: alarm.label || '',
+        ringDateEnabled: alarm.ringDateEnabled ?? false,
+        ringDate: alarm.ringDate || '',
+        ringtone: alarm.ringtone || '默认铃声',
+        snooze: alarm.snooze || '10 分钟, 3 次',
+        vibration: alarm.vibration || '跟随音乐节奏',
+        folaxBroadcast: alarm.folaxBroadcast || '已关闭'
+      }
+      this.alarms.push(newAlarm)
+      return newAlarm
+    },
+
+    updateAlarm(id, patch) {
+      const idx = this.alarms.findIndex((a) => a.id === id)
+      if (idx !== -1) {
+        const current = this.alarms[idx]
+        const merged = { ...current, ...patch }
+        if (patch.days && !patch.repeatLabel) {
+          merged.repeatLabel = formatDaysRepeat(patch.days)
+        }
+        this.alarms[idx] = merged
+        return this.alarms[idx]
+      }
+      return null
     },
 
     deleteAlarm(id) {

@@ -516,7 +516,7 @@ export const MESSAGES = {
     // 闹钟提醒与时段联动
     prayerAlarmHeader: '唤礼提醒',
     prayerAlarmLinkage: '闹钟提醒',
-    prayerAlarmLinkageDesc: '各时段开始前响铃或播放唤礼声',
+    prayerAlarmLinkageDesc: '礼拜开始前，使用闹钟提醒',
     alarmAdvanceTime: '提醒时间',
     noReminder: '不提醒',
     advance5Min: '提前 5 分钟',
@@ -884,7 +884,7 @@ export const MESSAGES = {
     // Alarm Reminder
     prayerAlarmHeader: 'ADHAN REMINDER',
     prayerAlarmLinkage: 'Alarm Reminder',
-    prayerAlarmLinkageDesc: 'Ring or play Adhan before each prayer time',
+    prayerAlarmLinkageDesc: 'Use alarm reminder before prayer begins',
     alarmAdvanceTime: 'Reminder Time',
     noReminder: 'None',
     advance5Min: '5 minutes before',
@@ -1253,7 +1253,7 @@ export const MESSAGES = {
     // Alarm Reminder
     prayerAlarmHeader: 'আযান স্মারক',
     prayerAlarmLinkage: 'অ্যালার্ম স্মারক',
-    prayerAlarmLinkageDesc: 'প্রতিটি নামাজের পূর্বে অ্যালার্ম বা আযান বাজবে',
+    prayerAlarmLinkageDesc: 'নামাজ শুরুর পূর্বে অ্যালার্ম স্মারক ব্যবহার করুন',
     alarmAdvanceTime: 'স্মারক সময়',
     noReminder: 'কোনোটি নয়',
     advance5Min: '৫ মিনিট আগে',

@@ -6,6 +6,7 @@ import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import TimePickerModal from '../../ui/TimePickerModal.vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 
 const emit = defineEmits(['back-to-dnd', 'back'])
@@ -122,11 +123,10 @@ function formatRepeat(prayer) {
   return i18n.t('repeatCustom')
 }
 
-/* 时间滚轮弹窗状态（图 1 控件样式，屏幕底部弹出） */
+/* 时间滚轮弹窗状态（统一标准化控件） */
 const showTimePicker = ref(false)
 const timePickerType = ref('start') // 'start' | 'end'
-const pickerHour = ref(22)
-const pickerMinute = ref(0)
+const currentTimePickerVal = ref('05:15')
 
 /* 动态星期列表 */
 const weekDays = computed(() => {
@@ -187,13 +187,10 @@ function back() {
 
 defineExpose({ back })
 
-/* 时间滚轮弹窗控制（屏幕底部弹出） */
+/* 时间滚轮弹窗控制（使用标准化 TimePickerModal 控件） */
 function openTimePicker(type) {
   timePickerType.value = type
-  const targetTime = type === 'start' ? editForm.value.startTime : editForm.value.endTime
-  const [h, m] = targetTime.split(':').map(Number)
-  pickerHour.value = isNaN(h) ? 12 : h
-  pickerMinute.value = isNaN(m) ? 0 : m
+  currentTimePickerVal.value = type === 'start' ? editForm.value.startTime : editForm.value.endTime
   showTimePicker.value = true
 }
 
@@ -201,71 +198,13 @@ function closeTimePicker() {
   showTimePicker.value = false
 }
 
-function confirmTimePicker() {
-  const formatted = `${String(pickerHour.value).padStart(2, '0')}:${String(pickerMinute.value).padStart(2, '0')}`
+function handleTimePickerConfirm(val) {
   if (timePickerType.value === 'start') {
-    editForm.value.startTime = formatted
+    editForm.value.startTime = val
   } else {
-    editForm.value.endTime = formatted
+    editForm.value.endTime = val
   }
   showTimePicker.value = false
-}
-
-function changeHour(delta) {
-  pickerHour.value = (pickerHour.value + delta + 24) % 24
-}
-
-function changeMinute(delta) {
-  pickerMinute.value = (pickerMinute.value + delta + 60) % 60
-}
-
-/* 滚轮与拖拽 */
-function onWheelHour(e) {
-  e.preventDefault()
-  if (e.deltaY > 0) changeHour(1)
-  else if (e.deltaY < 0) changeHour(-1)
-}
-
-function onWheelMinute(e) {
-  e.preventDefault()
-  if (e.deltaY > 0) changeMinute(1)
-  else if (e.deltaY < 0) changeMinute(-1)
-}
-
-let dragStartY = 0
-let dragStartVal = 0
-let activeCol = null
-
-function startDragHour(e) {
-  dragStartY = e.clientY
-  dragStartVal = pickerHour.value
-  activeCol = 'hour'
-  window.addEventListener('pointermove', onPointerMove)
-  window.addEventListener('pointerup', onPointerUp)
-}
-
-function startDragMinute(e) {
-  dragStartY = e.clientY
-  dragStartVal = pickerMinute.value
-  activeCol = 'minute'
-  window.addEventListener('pointermove', onPointerMove)
-  window.addEventListener('pointerup', onPointerUp)
-}
-
-function onPointerMove(e) {
-  if (!activeCol) return
-  const diff = Math.round((dragStartY - e.clientY) / 22)
-  if (activeCol === 'hour') {
-    pickerHour.value = (dragStartVal + diff + 2400) % 24
-  } else if (activeCol === 'minute') {
-    pickerMinute.value = (dragStartVal + diff + 6000) % 60
-  }
-}
-
-function onPointerUp() {
-  activeCol = null
-  window.removeEventListener('pointermove', onPointerMove)
-  window.removeEventListener('pointerup', onPointerUp)
 }
 
 /* 重复模式选择：只有选择「自定义」时才显示周定制控件 */
@@ -392,7 +331,10 @@ function saveEdit() {
                 </svg>
               </div>
               <div class="lc-main no-sep">
-                <span class="lc-title">{{ tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক') }}</span>
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক') }}</span>
+                  <span class="lc-sub-desc">{{ tr('prayerAlarmLinkageDesc', '礼拜开始前，使用闹钟提醒', 'Use alarm reminder before prayer begins', 'নামাজ শুরুর পূর্বে অ্যালার্ম স্মারক ব্যবহার করুন') }}</span>
+                </div>
                 <div class="lc-right">
                   <span class="lc-sub-val dark-text">{{ currentReminderLabel }}</span>
                   <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
@@ -561,77 +503,15 @@ function saveEdit() {
       </div>
     </Transition>
 
-    <!-- ================= 时间选择滚轮弹窗（图 1 控件样式，位于屏幕底部） ================= -->
-    <Transition name="picker-bottom">
-      <div v-if="showTimePicker" class="picker-backdrop" @click="closeTimePicker">
-        <div class="picker-bottom-sheet" @click.stop>
-          <!-- 标题与当前时间展示 -->
-          <div class="pd-header">
-            <div class="pd-type-label">{{ timePickerType === 'start' ? i18n.t('startTime') : i18n.t('endTime') }}</div>
-            <div class="pd-time-display">
-              {{ String(pickerHour).padStart(2, '0') }}:{{ String(pickerMinute).padStart(2, '0') }}
-            </div>
-          </div>
-
-          <!-- 双列时间滚轮 -->
-          <div class="pd-wheel-container">
-            <div class="pd-wheel-highlight"></div>
-
-            <!-- 小时列 -->
-            <div
-              class="pd-wheel-column"
-              @wheel="onWheelHour"
-              @pointerdown="startDragHour"
-            >
-              <div class="wheel-item far" @click="changeHour(-2)">
-                {{ String((pickerHour - 2 + 24) % 24).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeHour(-1)">
-                {{ String((pickerHour - 1 + 24) % 24).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item center">
-                {{ String(pickerHour).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeHour(1)">
-                {{ String((pickerHour + 1 + 24) % 24).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item far" @click="changeHour(2)">
-                {{ String((pickerHour + 2 + 24) % 24).padStart(2, '0') }}
-              </div>
-            </div>
-
-            <!-- 分钟列 -->
-            <div
-              class="pd-wheel-column"
-              @wheel="onWheelMinute"
-              @pointerdown="startDragMinute"
-            >
-              <div class="wheel-item far" @click="changeMinute(-2)">
-                {{ String((pickerMinute - 2 + 60) % 60).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeMinute(-1)">
-                {{ String((pickerMinute - 1 + 60) % 60).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item center">
-                {{ String(pickerMinute).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeMinute(1)">
-                {{ String((pickerMinute + 1 + 60) % 60).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item far" @click="changeMinute(2)">
-                {{ String((pickerMinute + 2 + 60) % 60).padStart(2, '0') }}
-              </div>
-            </div>
-          </div>
-
-          <!-- 底部取消与确定胶囊按钮 -->
-          <div class="pd-actions">
-            <button class="pd-btn pd-cancel" @click="closeTimePicker">{{ i18n.t('cancel') }}</button>
-            <button class="pd-btn pd-confirm" @click="confirmTimePicker">{{ i18n.t('confirm') }}</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- ================= 时间选择滚轮弹窗（统一标准化控件） ================= -->
+    <TimePickerModal
+      v-if="showTimePicker"
+      :title="timePickerType === 'start' ? i18n.t('startTime') : i18n.t('endTime')"
+      :model-value="currentTimePickerVal"
+      :confirm-text="i18n.t('confirm')"
+      @confirm="handleTimePickerConfirm"
+      @cancel="closeTimePicker"
+    />
 
   </div>
 </template>

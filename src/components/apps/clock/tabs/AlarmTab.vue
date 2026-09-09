@@ -3,17 +3,16 @@ import { ref } from 'vue'
 import { useClockStore } from '../../../../stores/clockStore'
 import { CLOCK_ICONS } from '../clockIcons'
 import ToggleSwitch from '../../../ui/ToggleSwitch.vue'
+import AlarmEditModal from '../subpages/AlarmEditModal.vue'
 
 const emit = defineEmits(['open-subpage'])
 const clock = useClockStore()
 
 // 更多菜单显示状态
 const showMenu = ref(false)
-// 新增闹钟弹窗
-const showAddModal = ref(false)
-const newTime = ref('08:00')
-const newLabel = ref('')
-const newRepeat = ref('everyday') // 'once' | 'workday' | 'everyday'
+// 闹钟编辑/新建弹窗
+const showEditModal = ref(false)
+const currentEditingAlarm = ref(null)
 
 function toggleMenu() {
   showMenu.value = !showMenu.value
@@ -28,29 +27,28 @@ function navigateTo(page) {
   emit('open-subpage', page)
 }
 
-function handleAddAlarm() {
-  let days = []
-  let repeatLabel = '每天'
-  if (newRepeat.value === 'workday') {
-    days = [1, 2, 3, 4, 5]
-    repeatLabel = '周一至周五'
-  } else if (newRepeat.value === 'once') {
-    days = []
-    repeatLabel = '仅一次'
+function openAddAlarm() {
+  currentEditingAlarm.value = null
+  showEditModal.value = true
+}
+
+function openEditAlarm(alarm) {
+  currentEditingAlarm.value = alarm
+  showEditModal.value = true
+}
+
+function handleSaveAlarm(payload) {
+  if (currentEditingAlarm.value && currentEditingAlarm.value.id) {
+    clock.updateAlarm(currentEditingAlarm.value.id, payload)
   } else {
-    days = [0, 1, 2, 3, 4, 5, 6]
-    repeatLabel = '每天'
+    clock.addAlarm(payload)
   }
+  showEditModal.value = false
+}
 
-  clock.addAlarm({
-    time: newTime.value,
-    days,
-    repeatLabel,
-    label: newLabel.value
-  })
-
-  showAddModal.value = false
-  newLabel.value = ''
+function handleDeleteAlarm(id) {
+  clock.deleteAlarm(id)
+  showEditModal.value = false
 }
 </script>
 
@@ -60,7 +58,7 @@ function handleAddAlarm() {
     <header class="tab-header">
       <h1 class="header-title">闹钟</h1>
       <div class="header-actions" @click.stop>
-        <button class="icon-action-btn" title="添加闹钟" @click="showAddModal = true">
+        <button class="icon-action-btn" title="添加闹钟" @click="openAddAlarm">
           <svg width="24" height="24" viewBox="0 0 24 24">
             <path :d="CLOCK_ICONS.plus" fill="#fff" />
           </svg>
@@ -93,6 +91,7 @@ function handleAddAlarm() {
         :key="item.id"
         class="alarm-card"
         :class="{ active: item.enabled }"
+        @click="openEditAlarm(item)"
       >
         <div class="alarm-info">
           <div class="alarm-time-row">
@@ -107,7 +106,7 @@ function handleAddAlarm() {
           </div>
         </div>
 
-        <div class="alarm-action">
+        <div class="alarm-action" @click.stop>
           <ToggleSwitch
             :model-value="item.enabled"
             @update:model-value="clock.toggleAlarm(item.id)"
@@ -116,40 +115,14 @@ function handleAddAlarm() {
       </div>
     </div>
 
-    <!-- 新增闹钟弹窗 -->
-    <Transition name="fade">
-      <div v-if="showAddModal" class="modal-mask" @click.self="showAddModal = false">
-        <div class="modal-card">
-          <div class="modal-header">
-            <button class="modal-btn-cancel" @click="showAddModal = false">取消</button>
-            <span class="modal-title">添加闹钟</span>
-            <button class="modal-btn-confirm" @click="handleAddAlarm">保存</button>
-          </div>
-
-          <div class="modal-body">
-            <div class="time-picker-row">
-              <input type="time" v-model="newTime" class="time-input" />
-            </div>
-
-            <div class="modal-field-group">
-              <div class="field-item">
-                <span class="field-label">重复</span>
-                <select v-model="newRepeat" class="field-select">
-                  <option value="everyday">每天</option>
-                  <option value="workday">工作日 (周一至周五)</option>
-                  <option value="once">仅一次</option>
-                </select>
-              </div>
-              <div class="modal-divider"></div>
-              <div class="field-item">
-                <span class="field-label">标签</span>
-                <input v-model="newLabel" placeholder="闹钟" class="field-text-input" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- 闹钟新建与编辑高保真抽屉弹窗 -->
+    <AlarmEditModal
+      :visible="showEditModal"
+      :alarm="currentEditingAlarm"
+      @close="showEditModal = false"
+      @save="handleSaveAlarm"
+      @delete="handleDeleteAlarm"
+    />
   </div>
 </template>
 
@@ -278,11 +251,20 @@ function handleAddAlarm() {
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  transition: background 0.2s ease;
+  transition: background 0.18s ease;
+  cursor: pointer;
+}
+
+.alarm-card:active {
+  background: #242426;
 }
 
 .alarm-card.active {
   background: #1c1c1e;
+}
+
+.alarm-card.active:active {
+  background: #2a2a2e;
 }
 
 .alarm-info {
@@ -327,119 +309,5 @@ function handleAddAlarm() {
 
 .alarm-remaining {
   color: #8e8e93;
-}
-
-/* 模态弹窗 */
-.modal-mask {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(10px);
-  z-index: 200;
-  display: flex;
-  align-items: flex-end;
-}
-
-.modal-card {
-  width: 100%;
-  background: #1c1c1e;
-  border-radius: 24px 24px 0 0;
-  padding: 16px 20px 36px;
-  box-sizing: border-box;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.modal-title {
-  font-size: 17px;
-  font-weight: 600;
-}
-
-.modal-btn-cancel,
-.modal-btn-confirm {
-  background: transparent;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 6px;
-}
-
-.modal-btn-cancel {
-  color: #8e8e93;
-}
-
-.modal-btn-confirm {
-  color: #ff9500;
-  font-weight: 600;
-}
-
-.time-picker-row {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-}
-
-.time-input {
-  font-size: 40px;
-  background: transparent;
-  border: none;
-  color: #ff9500;
-  font-family: inherit;
-  font-weight: 300;
-}
-
-.modal-field-group {
-  background: #2c2c2e;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.field-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-}
-
-.field-label {
-  font-size: 15px;
-  color: #fff;
-}
-
-.field-select {
-  background: transparent;
-  border: none;
-  color: #ff9500;
-  font-size: 15px;
-  outline: none;
-}
-
-.field-text-input {
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-size: 15px;
-  text-align: right;
-  outline: none;
-}
-
-.modal-divider {
-  height: 0.5px;
-  background: rgba(255, 255, 255, 0.1);
-  margin-left: 16px;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
 }
 </style>
