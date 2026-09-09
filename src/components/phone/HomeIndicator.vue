@@ -74,7 +74,9 @@ const gesture = useSwipeGesture(rootRef, {
   }
 })
 
-const bg = computed(() => (props.dark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.88)'))
+/* 深色（浅色背景上，如白色设置页）：Ricky 2026-09-09 要求降到约 30% 透明，
+   原本 0.85 在白色界面上是纯黑一条，太抢眼；浅色态（深色背景）保持 0.88 不变。 */
+const bg = computed(() => (props.dark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.88)'))
 
 function onTap() {
   // 拖拽松手后浏览器会补发 click，350ms 内忽略防误回桌面
