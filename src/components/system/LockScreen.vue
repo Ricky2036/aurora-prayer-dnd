@@ -1120,7 +1120,7 @@ function notifStyle(i) {
 .ls-swipe-actions.is-active {
   opacity: 1;
   pointer-events: auto;
-  z-index: 3;
+  z-index: 1;
 }
 
 .ls-action-btn {
