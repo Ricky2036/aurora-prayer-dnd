@@ -295,9 +295,12 @@ const jbl = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="
 
 /* 30. VPN（EE1 系列新增）
    实心盾牌 + 挖空的 "VPN" 字母（fill-rule=evenodd，字母处镂空露出底板）。
-   注意：盾牌造型仍是**占位**，Ricky 会提供正式 SVG markup，
+   v2（Ricky 反馈 V 太丑）：V 加宽到与 P/N 同宽（顶部开口 14）、平底收尾
+   （底平台 2.6，不再针尖收底）、臂厚 3.5 与 P/N 竖笔一致，三字母等高
+   （y 34-52）等距（间隙 3），整体在盾牌内居中。
+   盾牌造型仍是**占位**，Ricky 会提供正式 SVG markup，
    到时直接替换下面这个 `vpn` 常量即可，其它代码一行都不用动。 */
-const vpn = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M42 6L74 17V42C74 60 60 73 42 78C24 73 10 60 10 42V17L42 6ZM20 33L26 48L32 33H28.8L26 41L23.2 33H20ZM36 33H44C47.5 33 49.5 35 49.5 38.5C49.5 42 47.5 44 44 44H39.2V49H36V33ZM39.2 36V41.5H43.5C44.8 41.5 45.7 40.3 45.7 38.8C45.7 37.2 44.8 36 43.5 36H39.2ZM52 49V33H55.2L60.8 42.5V33H64V49H60.8L55.2 39.5V49H52Z" fill="white"/></svg>`
+const vpn = `<svg width="32" height="32" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M42 6L74 17V42C74 60 60 73 42 78C24 73 10 60 10 42V17L42 6ZM19 34L24.7 52L27.3 52L33 34H29.7L26 43.5L22.3 34H19ZM36 34H44.2C47.8 34 50 36.2 50 39.8C50 43.4 47.8 45.6 44.2 45.6H39.8V52H36V34ZM39.8 37.5V42.6H44C45.4 42.6 46.3 41.4 46.3 39.9C46.3 38.4 45.4 37.5 44 37.5H39.8ZM53 52V34H56.3L61.7 43.8V34H65V52H61.7L56.3 42.2V52H53Z" fill="white"/></svg>`
 
 export const LUCIDE = {
   wifi, bluetooth, plane, mapPin, moon, rotationLock, lock: rotationLock,
