@@ -11,6 +11,7 @@ export const useNotificationsStore = defineStore('notifications', {
     targetSubView: null, // 'dynamicBar' | 'main' | null
     islandSettings: {
       master: true,
+      alarm: true,
       recorder: true,
       timer: true,
       stopwatch: true,

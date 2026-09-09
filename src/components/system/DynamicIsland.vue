@@ -28,7 +28,11 @@ if (typeof window !== 'undefined') {
   window.__control = control
 }
 
-/* 各独立活动项活跃判断（录音中/计时中/秒表中，且当前不在对应 App 内部，且灵动岛开关开启） */
+/* 各独立活动项活跃判断（闹钟/录音中/计时中/秒表中/礼拜/音乐） */
+const isAlarmActive = computed(() => {
+  return notificationsStore.isIslandEnabled('alarm') && clockStore.isAlarmActive
+})
+
 const isRecorderActive = computed(() => {
   return notificationsStore.isIslandEnabled('recorder') && recorderStore.isRecording && system.activeAppId !== 'voicememos'
 })
@@ -52,6 +56,7 @@ const isMediaActive = computed(() => {
 /* 是否有任意灵动岛活动 */
 const hasAnyIsland = computed(() => {
   return (
+    isAlarmActive.value ||
     isRecorderActive.value ||
     isTimerActive.value ||
     isStopwatchActive.value ||
@@ -60,9 +65,10 @@ const hasAnyIsland = computed(() => {
   )
 })
 
-/* 活跃项列表，按优先级排序：Timer > Stopwatch > Recorder > Media > Prayer */
+/* 活跃项列表，按优先级排序：Alarm > Timer > Stopwatch > Recorder > Media > Prayer */
 const activeList = computed(() => {
   const list = []
+  if (isAlarmActive.value) list.push('alarm')
   if (isTimerActive.value) list.push('timer')
   if (isStopwatchActive.value) list.push('stopwatch')
   if (isRecorderActive.value) list.push('recorder')
@@ -79,7 +85,7 @@ const subActiveItems = computed(() => activeList.value.slice(1, 4))
 const isExpanded = computed({
   get() {
     return (
-      (isTimerActive.value || isStopwatchActive.value ? clockStore.islandExpanded : false) ||
+      (isAlarmActive.value || isTimerActive.value || isStopwatchActive.value ? clockStore.islandExpanded : false) ||
       (isRecorderActive.value ? recorderStore.islandExpanded : false) ||
       (isPrayerActive.value ? prayerStore.islandExpanded : false) ||
       (isMediaActive.value ? mediaIslandExpanded.value : false)
@@ -101,9 +107,10 @@ watch(
   }
 )
 
-/* 祈祷倒计时轮询（由 prayerStore 全局托管，通知中心/锁屏展开时不中断） */
+/* 倒计时轮询（祈祷与闹钟由 store 全局托管，通知中心/锁屏展开时不中断） */
 onMounted(() => {
   prayerStore.startTicker()
+  clockStore.startAlarmTicker()
 })
 
 /* 格式化祈祷倒计时文本 */
@@ -126,6 +133,12 @@ const prayerSubtitle = computed(() => {
 
 /* 紧凑胶囊收起态显示的文本 */
 const compactCapsuleTime = computed(() => {
+  if (primaryActiveItem.value === 'alarm') {
+    if (clockStore.isAlarmSnoozing) {
+      return clockStore.formattedSnoozeCountdown
+    }
+    return clockStore.ringingAlarm?.time || '响铃'
+  }
   if (primaryActiveItem.value === 'timer') return clockStore.formattedTimerIsland
   if (primaryActiveItem.value === 'stopwatch') return clockStore.formattedStopwatchIsland
   if (primaryActiveItem.value === 'recorder') return recorderStore.formattedTime
@@ -135,7 +148,9 @@ const compactCapsuleTime = computed(() => {
 
 /* 点击卡片主体跳转至对应 App */
 function handleCardClick(item) {
-  if (item === 'timer') {
+  if (item === 'alarm') {
+    openClockTab('alarm')
+  } else if (item === 'timer') {
     openClockTab('timer')
   } else if (item === 'stopwatch') {
     openClockTab('stopwatch')
@@ -222,7 +237,14 @@ function handleClosePrayer(e) {
       <!-- ================= 1.1 收起态图层（顶部胶囊） ================= -->
       <div class="morph-layer compact-layer">
         <div class="cc-left">
-          <svg v-if="primaryActiveItem === 'timer'" width="13" height="13" viewBox="0 0 24 24">
+          <!-- 闹钟收起态图标 -->
+          <svg v-if="primaryActiveItem === 'alarm'" width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="7.5" fill="#ff9f0a" />
+            <path d="M12 8V12H9.5" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M4 8.5C3 10.5 3 13.5 4 15.5" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" />
+            <path d="M20 8.5C21 10.5 21 13.5 20 15.5" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+          <svg v-else-if="primaryActiveItem === 'timer'" width="13" height="13" viewBox="0 0 24 24">
             <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
           </svg>
           <svg v-else-if="primaryActiveItem === 'stopwatch'" width="13" height="13" viewBox="0 0 24 24">
@@ -254,8 +276,60 @@ function handleClosePrayer(e) {
         class="morph-layer expanded-layer"
         :class="{ 'is-media-layer': primaryActiveItem === 'media' }"
       >
+        <!-- 主项：闹钟（对齐 Screenshot_20260909-204420.jpg） -->
+        <template v-if="primaryActiveItem === 'alarm'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-alarm" :class="{ 'is-ringing': clockStore.isAlarmRinging }">
+              <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
+                <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="17" cy="17" r="1.3" fill="#000000" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">
+                {{ clockStore.isAlarmSnoozing ? clockStore.formattedSnoozeCountdown : (clockStore.ringingAlarm?.time || '20:44') }}
+              </span>
+              <span class="ilc-sub-label">
+                {{ clockStore.isAlarmSnoozing ? '稍后提醒倒计时' : (clockStore.ringingAlarm?.label || '闹钟') }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <!-- 延时按键 (时钟表盘与 zZ) -->
+            <button
+              class="ilc-btn btn-snooze"
+              @click.stop="clockStore.snoozeAlarm()"
+              :title="clockStore.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
+                <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+                <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
+                <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
+                <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+              </svg>
+            </button>
+
+            <!-- 关闭按键 -->
+            <button
+              class="ilc-btn btn-dismiss"
+              @click.stop="clockStore.dismissAlarm()"
+              title="关闭"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6L18 18" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
         <!-- 主项：定时器 -->
-        <template v-if="primaryActiveItem === 'timer'">
+        <template v-else-if="primaryActiveItem === 'timer'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-timer">
               <svg width="22" height="22" viewBox="0 0 24 24">
@@ -445,8 +519,58 @@ function handleClosePrayer(e) {
         :class="{ 'is-media-card': item === 'media' }"
         @click="handleCardClick(item)"
       >
+        <!-- 副项：闹钟 -->
+        <template v-if="item === 'alarm'">
+          <div class="ilc-left">
+            <div class="ilc-icon-wrap icon-alarm" :class="{ 'is-ringing': clockStore.isAlarmRinging }">
+              <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
+                <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="17" cy="17" r="1.3" fill="#000000" />
+              </svg>
+            </div>
+            <div class="ilc-time-col">
+              <span class="ilc-main-time">
+                {{ clockStore.isAlarmSnoozing ? clockStore.formattedSnoozeCountdown : (clockStore.ringingAlarm?.time || '20:44') }}
+              </span>
+              <span class="ilc-sub-label">
+                {{ clockStore.isAlarmSnoozing ? '稍后提醒倒计时' : (clockStore.ringingAlarm?.label || '闹钟') }}
+              </span>
+            </div>
+          </div>
+
+          <div class="ilc-actions">
+            <button
+              class="ilc-btn btn-snooze"
+              @click.stop="clockStore.snoozeAlarm()"
+              :title="clockStore.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
+                <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+                <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
+                <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
+                <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+              </svg>
+            </button>
+
+            <button
+              class="ilc-btn btn-dismiss"
+              @click.stop="clockStore.dismissAlarm()"
+              title="关闭"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M18 6L6 18M6 6L18 18" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </div>
+        </template>
+
         <!-- 副项：秒表 -->
-        <template v-if="item === 'stopwatch'">
+        <template v-else-if="item === 'stopwatch'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-stopwatch">
               <svg width="22" height="22" viewBox="0 0 24 24">
@@ -890,6 +1014,26 @@ function handleClosePrayer(e) {
   flex: none;
 }
 
+.icon-alarm {
+  background: transparent;
+}
+
+.icon-alarm.is-ringing svg {
+  animation: alarmRingWiggle 1.4s ease-in-out infinite;
+  transform-origin: 17px 17px;
+}
+
+@keyframes alarmRingWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-10deg) scale(1.05); }
+  20% { transform: rotate(10deg) scale(1.05); }
+  30% { transform: rotate(-8deg) scale(1.03); }
+  40% { transform: rotate(8deg) scale(1.03); }
+  50% { transform: rotate(-3deg); }
+  60% { transform: rotate(3deg); }
+  70% { transform: rotate(0deg); }
+}
+
 .icon-timer,
 .icon-stopwatch {
   background: rgba(255, 149, 0, 0.16);
@@ -1005,11 +1149,15 @@ function handleClosePrayer(e) {
   transform: scale(0.92);
 }
 
-.ilc-btn.btn-cancel {
+.ilc-btn.btn-cancel,
+.ilc-btn.btn-snooze,
+.ilc-btn.btn-dismiss {
   background: #333336;
 }
 
-.ilc-btn.btn-cancel:hover {
+.ilc-btn.btn-cancel:hover,
+.ilc-btn.btn-snooze:hover,
+.ilc-btn.btn-dismiss:hover {
   background: #444448;
 }
 

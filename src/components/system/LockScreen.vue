@@ -417,7 +417,9 @@ function onRequestDeleteActivity(act) {
 
 function stopActivityInstance(act) {
   if (!act) return
-  if (act.isRecorder || act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
+  if (act.type === 'alarm' || act.id === 'alarm') {
+    clock.dismissAlarm()
+  } else if (act.isRecorder || act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
     recorder.stopRecording()
   } else if (act.type === 'timer' || act.id === 'timer') {
     clock.cancelTimer()
@@ -457,7 +459,9 @@ function handleCancelIslandModal() {
 }
 
 function onDeleteCard(item) {
-  if (item.isRecorder || item.id === '__recorder__' || item.id === 'recorder') {
+  if (item.type === 'alarm' || item.id === 'alarm') {
+    clock.dismissAlarm()
+  } else if (item.isRecorder || item.id === '__recorder__' || item.id === 'recorder') {
     recorder.stopRecording()
   } else if (item.id === 'timer') {
     clock.cancelTimer()
@@ -492,7 +496,11 @@ function handleActivityCardClick(act) {
     swipeOffsets.value = next
     return
   }
-  if (act.type === 'recorder') {
+  if (act.type === 'alarm') {
+    clock.setActiveTab('alarm')
+    system.unlock()
+    system.openApp('clock')
+  } else if (act.type === 'recorder') {
     system.unlock()
     system.openApp('voicememos')
   } else if (act.type === 'timer') {
@@ -769,8 +777,44 @@ function notifStyle(i) {
               @pointercancel="onCardPointerUp($event, act.id)"
               @click="handleActivityCardClick(act)"
             >
+              <!-- 闹钟类型 -->
+              <template v-if="act.type === 'alarm'">
+                <div class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
+                  <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+                    <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                    <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                    <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
+                    <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ act.title }}</div>
+                  <div class="ls-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button
+                    class="ls-act-ctrl-btn btn-snooze"
+                    @click.stop="clock.snoozeAlarm()"
+                    :title="clock.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
+                      <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+                      <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
+                      <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
+                      <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+                    </svg>
+                  </button>
+                  <button class="ls-act-ctrl-btn btn-cancel" @click.stop="clock.dismissAlarm()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
               <!-- 录音类型 -->
-              <template v-if="act.type === 'recorder'">
+              <template v-else-if="act.type === 'recorder'">
                 <div class="ls-rc-icon-wrap">
                   <div class="ls-rc-audio-bars">
                     <span class="bar bar-1"></span>
@@ -935,7 +979,16 @@ function notifStyle(i) {
             @click="handleCardClick(item)"
           >
             <template v-if="item.isActivity">
-              <div v-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
+              <div v-if="item.activity.type === 'alarm'" class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
+                <svg width="26" height="26" viewBox="0 0 34 34" fill="none">
+                  <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                  <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                  <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
+                  <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                </svg>
+              </div>
+              <div v-else-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
                 <div class="ls-rc-audio-bars">
                   <span class="bar bar-1"></span><span class="bar bar-2"></span><span class="bar bar-3"></span>
                   <span class="bar bar-main"></span><span class="bar bar-5"></span><span class="bar bar-6"></span><span class="bar bar-7"></span>
@@ -1220,6 +1273,23 @@ function notifStyle(i) {
   align-items: center;
   justify-content: center;
 }
+.ls-act-icon-wrap.icon-alarm {
+  background: transparent;
+}
+.ls-act-icon-wrap.icon-alarm.is-ringing svg {
+  animation: alarmRingWiggle 1.4s ease-in-out infinite;
+  transform-origin: 17px 17px;
+}
+@keyframes alarmRingWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-10deg) scale(1.05); }
+  20% { transform: rotate(10deg) scale(1.05); }
+  30% { transform: rotate(-8deg) scale(1.03); }
+  40% { transform: rotate(8deg) scale(1.03); }
+  50% { transform: rotate(-3deg); }
+  60% { transform: rotate(3deg); }
+  70% { transform: rotate(0deg); }
+}
 .ls-act-icon-wrap.icon-timer,
 .ls-act-icon-wrap.icon-stopwatch {
   background: rgba(255, 149, 0, 0.16);
@@ -1249,7 +1319,8 @@ function notifStyle(i) {
 .ls-act-ctrl-btn:active {
   transform: scale(0.92);
 }
-.ls-act-ctrl-btn.btn-cancel {
+.ls-act-ctrl-btn.btn-cancel,
+.ls-act-ctrl-btn.btn-snooze {
   background: rgba(255, 255, 255, 0.16);
 }
 .ls-act-ctrl-btn.btn-action {

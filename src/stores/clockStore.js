@@ -215,6 +215,11 @@ export const useClockStore = defineStore('clock', {
     // 灵动岛展开状态
     islandExpanded: false,
 
+    // 闹钟响铃与灵动岛提醒状态
+    ringingAlarm: null, // null | { id, time, label, snooze, remainingSnoozeSeconds, status: 'ringing' | 'snoozing', snoozeCount }
+    _lastTriggeredMinute: '',
+    _alarmTickerId: null,
+
     // 设置项
     settings: {
       muslimAlarmEnabled: true,
@@ -248,9 +253,21 @@ export const useClockStore = defineStore('clock', {
       return state.timer.remainingSeconds / state.timer.totalDuration
     },
 
+    isAlarmActive: (state) => Boolean(state.ringingAlarm),
+    isAlarmRinging: (state) => state.ringingAlarm?.status === 'ringing',
+    isAlarmSnoozing: (state) => state.ringingAlarm?.status === 'snoozing',
+    formattedSnoozeCountdown: (state) => {
+      if (!state.ringingAlarm || state.ringingAlarm.status !== 'snoozing') return ''
+      const s = Math.max(0, state.ringingAlarm.remainingSnoozeSeconds || 0)
+      const m = Math.floor(s / 60)
+      const sec = s % 60
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    },
+
     isTimerActive: (state) => state.timer.status === 'running' || state.timer.status === 'paused',
     isStopwatchActive: (state) => state.stopwatch.status === 'running' || state.stopwatch.status === 'paused',
     hasActiveClockIsland: (state) =>
+      Boolean(state.ringingAlarm) ||
       state.timer.status === 'running' ||
       state.timer.status === 'paused' ||
       state.stopwatch.status === 'running' ||
@@ -319,6 +336,106 @@ export const useClockStore = defineStore('clock', {
       const idx = this.alarms.findIndex((a) => a.id === id)
       if (idx !== -1) {
         this.alarms.splice(idx, 1)
+      }
+    },
+
+    /* ---- 闹钟响铃与灵动岛联动 ---- */
+    triggerAlarm(alarmOrId = null) {
+      let target = null
+      if (typeof alarmOrId === 'string') {
+        target = this.alarms.find((a) => a.id === alarmOrId)
+      } else if (alarmOrId && typeof alarmOrId === 'object') {
+        target = alarmOrId
+      }
+      if (!target) {
+        // 优先使用启用的闹钟，兜底 20:44（对齐最新参考截图）
+        target = this.alarms.find((a) => a.enabled) || {
+          id: 'alarm_2044',
+          time: '20:44',
+          label: '闹钟',
+          snooze: '10 分钟, 3 次'
+        }
+      }
+
+      this.ringingAlarm = {
+        id: target.id || 'alarm_active',
+        time: target.time || '20:44',
+        label: target.label || '闹钟',
+        snooze: target.snooze || '10 分钟, 3 次',
+        status: 'ringing',
+        remainingSnoozeSeconds: 0,
+        snoozeCount: (this.ringingAlarm?.id === target.id ? this.ringingAlarm.snoozeCount : 0) || 0
+      }
+      this.islandExpanded = true
+      this.startAlarmTicker()
+      return this.ringingAlarm
+    },
+
+    snoozeAlarm(customSeconds = null) {
+      if (!this.ringingAlarm) return
+      let duration = 600 // 默认 10 分钟
+      if (typeof customSeconds === 'number' && customSeconds > 0) {
+        duration = customSeconds
+      } else {
+        const match = String(this.ringingAlarm.snooze).match(/(\d+)\s*分钟/)
+        if (match) {
+          duration = parseInt(match[1], 10) * 60
+        }
+      }
+
+      this.ringingAlarm.status = 'snoozing'
+      this.ringingAlarm.remainingSnoozeSeconds = duration
+      this.ringingAlarm.totalSnoozeSeconds = duration
+      this.ringingAlarm.snoozeCount = (this.ringingAlarm.snoozeCount || 0) + 1
+      this.islandExpanded = false // 延时后收起为灵动岛胶囊倒计时
+      this.startAlarmTicker()
+    },
+
+    dismissAlarm() {
+      if (this.ringingAlarm) {
+        const target = this.alarms.find((a) => a.id === this.ringingAlarm.id)
+        if (target && (!target.days || target.days.length === 0)) {
+          target.enabled = false
+        }
+      }
+      this.ringingAlarm = null
+      this.islandExpanded = false
+    },
+
+    startAlarmTicker() {
+      if (this._alarmTickerId) return
+      this._alarmTickerId = setInterval(() => {
+        // 1. 处理延时倒计时
+        if (this.ringingAlarm && this.ringingAlarm.status === 'snoozing') {
+          if (this.ringingAlarm.remainingSnoozeSeconds > 1) {
+            this.ringingAlarm.remainingSnoozeSeconds--
+          } else {
+            // 倒计时完成，再次触发响铃提醒！
+            this.ringingAlarm.remainingSnoozeSeconds = 0
+            this.ringingAlarm.status = 'ringing'
+            this.islandExpanded = true
+          }
+        }
+
+        // 2. 检查真实时间是否触发已启用的闹钟
+        const now = new Date()
+        const hh = String(now.getHours()).padStart(2, '0')
+        const mm = String(now.getMinutes()).padStart(2, '0')
+        const currentHM = `${hh}:${mm}`
+        if (now.getSeconds() === 0 && this._lastTriggeredMinute !== currentHM) {
+          const matched = this.alarms.find((a) => a.enabled && a.time === currentHM)
+          if (matched && !this.ringingAlarm) {
+            this._lastTriggeredMinute = currentHM
+            this.triggerAlarm(matched)
+          }
+        }
+      }, 1000)
+    },
+
+    stopAlarmTicker() {
+      if (this._alarmTickerId) {
+        clearInterval(this._alarmTickerId)
+        this._alarmTickerId = null
       }
     },
 
