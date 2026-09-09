@@ -1165,6 +1165,9 @@ function notifStyle(i) {
   color: #ffffff;
 }
 .ls-btn-delete {
+  color: #ffffff;
+}
+.ls-btn-delete:active {
   color: #ff3b30;
 }
 

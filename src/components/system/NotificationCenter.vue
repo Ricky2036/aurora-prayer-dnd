@@ -1098,6 +1098,9 @@ watch(expandedId, async () => {
   color: #ffffff;
 }
 .nc-btn-delete {
+  color: #ffffff;
+}
+.nc-btn-delete:active {
   color: #ff3b30;
 }
 
