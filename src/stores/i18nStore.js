@@ -513,6 +513,24 @@ export const MESSAGES = {
     aiDesignatedContacts: '选择联系人',
     aiContactsCount: '老婆、老板等3人',
 
+    // 闹钟与唤礼提醒联动
+    prayerAlarmHeader: '闹钟与唤礼提醒',
+    prayerAlarmLinkage: '礼拜前闹钟提醒',
+    prayerAlarmLinkageDesc: '各时段开始前响铃或播放唤礼声',
+    alarmAdvanceTime: '提前提醒时间',
+    alarmRingtone: '唤礼铃声',
+    openClockApp: '前往时钟 App',
+    openClockAppDesc: '查看朝拜罗盘与更多闹钟细节',
+    advance0Min: '准点提醒',
+    advance10Min: '提前 10 分钟',
+    advance15Min: '提前 15 分钟',
+    advance30Min: '提前 30 分钟',
+    ringtoneMecca: '麦加唤礼声',
+    ringtoneMedina: '麦地那唤礼声',
+    ringtoneAqsa: '阿克萨唤礼声',
+    ringtoneDawn: '平静晨鸣',
+    ringtoneDefault: '默认铃声',
+
     // 联系人选择
     searchContactsPlaceholder: '搜索姓名或电话号码',
     selectedCountLabel: (n) => `已选择 ${n} 人`,
@@ -859,6 +877,24 @@ export const MESSAGES = {
     aiAutoAnswerTitle: 'AI Auto-Answer',
     aiDesignatedContacts: 'Select Contacts',
     aiContactsCount: 'Wife, Boss & 1 other',
+
+    // Alarm & Adhan Linkage
+    prayerAlarmHeader: 'ALARM & ADHAN',
+    prayerAlarmLinkage: 'Prayer Alarm Reminder',
+    prayerAlarmLinkageDesc: 'Ring or play Adhan before each prayer time',
+    alarmAdvanceTime: 'Advance Notice',
+    alarmRingtone: 'Adhan Ringtone',
+    openClockApp: 'Open Clock App',
+    openClockAppDesc: 'View Qibla compass & alarm details',
+    advance0Min: 'On time',
+    advance10Min: '10 minutes before',
+    advance15Min: '15 minutes before',
+    advance30Min: '30 minutes before',
+    ringtoneMecca: 'Makkah Adhan',
+    ringtoneMedina: 'Madinah Adhan',
+    ringtoneAqsa: 'Al-Aqsa Adhan',
+    ringtoneDawn: 'Peaceful Dawn',
+    ringtoneDefault: 'Default Alarm',
 
     // Contacts
     searchContactsPlaceholder: 'Search name or phone number',
@@ -1207,6 +1243,24 @@ export const MESSAGES = {
     aiAutoAnswerTitle: 'এআই স্বয়ংক্রিয় উত্তর',
     aiDesignatedContacts: 'পরিচিতি নির্বাচন',
     aiContactsCount: 'স্ত্রী, বসসহ ৩ জন',
+
+    // Alarm & Adhan Linkage
+    prayerAlarmHeader: 'অ্যালার্ম ও আযান',
+    prayerAlarmLinkage: 'নামাজের পূর্বের অ্যালার্ম',
+    prayerAlarmLinkageDesc: 'প্রতিটি নামাজের পূর্বে অ্যালার্ম বা আযান বাজবে',
+    alarmAdvanceTime: 'অগ্রিম সতর্কতার সময়',
+    alarmRingtone: 'আযানের রিংটোন',
+    openClockApp: 'ঘড়ি অ্যাপে যান',
+    openClockAppDesc: 'কিবলা কম্পাস ও অ্যালার্মের বিস্তারিত দেখুন',
+    advance0Min: 'ঠিক সময়ে',
+    advance10Min: '১০ মিনিট আগে',
+    advance15Min: '১৫ মিনিট আগে',
+    advance30Min: '৩০ মিনিট আগে',
+    ringtoneMecca: 'মক্কা আযান',
+    ringtoneMedina: 'মদিনা আযান',
+    ringtoneAqsa: 'আল-আকসা আযান',
+    ringtoneDawn: 'শান্ত ভোর',
+    ringtoneDefault: 'ডিফল্ট অ্যালার্ম',
 
     // Contacts
     searchContactsPlaceholder: 'নাম বা ফোন নম্বর খুঁজুন',

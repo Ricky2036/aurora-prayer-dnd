@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
+import { useClockStore } from '../../../stores/clockStore'
+import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
@@ -8,7 +10,82 @@ import { GLYPHS } from '../../../assets/icons/glyphs'
 
 const emit = defineEmits(['back-to-dnd', 'back'])
 const prayerStore = usePrayerStore()
+const clockStore = useClockStore()
+const systemStore = useSystemStore()
 const i18n = useI18nStore()
+
+/* 闹钟提醒联动总开关（双向同步 clockStore.settings.muslimAlarmEnabled） */
+const alarmLinkageEnabled = computed({
+  get: () => prayerStore.alarmLinkageEnabled,
+  set: (val) => {
+    prayerStore.setAlarmLinkage(val)
+    clockStore.settings.muslimAlarmEnabled = val
+  }
+})
+
+/* 提前提醒时间状态与配置 */
+const showAdvancePicker = ref(false)
+const advanceOptions = [
+  { mins: 0, labelKey: 'advance0Min' },
+  { mins: 10, labelKey: 'advance10Min' },
+  { mins: 15, labelKey: 'advance15Min', recommended: true },
+  { mins: 30, labelKey: 'advance30Min' }
+]
+
+function formatAdvanceTime(mins) {
+  const opt = advanceOptions.find((o) => o.mins === mins)
+  if (opt) return i18n.t(opt.labelKey)
+  return `${mins} min`
+}
+
+function openAdvancePicker() {
+  showAdvancePicker.value = true
+}
+
+function closeAdvancePicker() {
+  showAdvancePicker.value = false
+}
+
+function selectAdvance(mins) {
+  prayerStore.setAlarmAdvanceMinutes(mins)
+  showAdvancePicker.value = false
+}
+
+/* 唤礼铃声状态与配置 */
+const showRingtonePicker = ref(false)
+const ringtoneOptions = [
+  { id: 'mecca', labelKey: 'ringtoneMecca', name: '麦加唤礼声' },
+  { id: 'medina', labelKey: 'ringtoneMedina', name: '麦地那唤礼声' },
+  { id: 'aqsa', labelKey: 'ringtoneAqsa', name: '阿克萨唤礼声' },
+  { id: 'dawn', labelKey: 'ringtoneDawn', name: '平静晨鸣' },
+  { id: 'default', labelKey: 'ringtoneDefault', name: '默认铃声' }
+]
+
+function formatRingtone(rt) {
+  const opt = ringtoneOptions.find((o) => o.name === rt || o.id === rt)
+  if (opt) return i18n.t(opt.labelKey)
+  return rt || i18n.t('ringtoneMecca')
+}
+
+function openRingtonePicker() {
+  showRingtonePicker.value = true
+}
+
+function closeRingtonePicker() {
+  showRingtonePicker.value = false
+}
+
+function selectRingtone(rt) {
+  prayerStore.setAlarmRingtone(rt.name)
+  clockStore.settings.ringtone = rt.name
+  showRingtonePicker.value = false
+}
+
+/* 联动跳转到时钟 App 穆斯林页面 */
+function jumpToClockMuslim() {
+  clockStore.setActiveTab('muslim')
+  systemStore.openApp('clock')
+}
 
 /* 页面视图层级：'list'（礼拜勿扰列表） | 'edit'（单项全屏设置页） */
 const currentView = ref('list')
@@ -76,6 +153,18 @@ function handleEditBack() {
 }
 
 function back() {
+  if (showAdvancePicker.value) {
+    closeAdvancePicker()
+    return true
+  }
+  if (showRingtonePicker.value) {
+    closeRingtonePicker()
+    return true
+  }
+  if (showTimePicker.value) {
+    closeTimePicker()
+    return true
+  }
   if (currentView.value === 'edit') {
     handleEditBack()
     return true
@@ -280,6 +369,74 @@ function saveEdit() {
             </div>
           </div>
 
+          <!-- 闹钟与唤礼提醒联动卡片 -->
+          <div class="group-header">{{ i18n.t('prayerAlarmHeader') }}</div>
+          <div class="cell-group">
+            <!-- 一级总开关 -->
+            <div class="list-cell">
+              <div class="lc-icon" style="background: #FF9500;">
+                <svg width="17" height="17" viewBox="0 0 24 24">
+                  <path :d="GLYPHS.bell" fill="#fff" />
+                </svg>
+              </div>
+              <div class="lc-main" :class="{ 'no-sep': !alarmLinkageEnabled }">
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ i18n.t('prayerAlarmLinkage') }}</span>
+                  <span class="lc-sub-desc">{{ i18n.t('prayerAlarmLinkageDesc') }}</span>
+                </div>
+                <div class="lc-right">
+                  <ToggleSwitch v-model="alarmLinkageEnabled" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 二级展开项（开启时渐进式展开） -->
+            <Transition name="subgroup-expand">
+              <div v-if="alarmLinkageEnabled" class="alarm-linkage-subgroup">
+                <!-- 提前提醒时间 -->
+                <div class="list-cell clickable" @click="openAdvancePicker">
+                  <div class="lc-main">
+                    <span class="lc-title">{{ i18n.t('alarmAdvanceTime') }}</span>
+                    <div class="lc-right">
+                      <span class="lc-sub-val dark-text">{{ formatAdvanceTime(prayerStore.alarmAdvanceMinutes) }}</span>
+                      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                        <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 唤礼铃声 -->
+                <div class="list-cell clickable" @click="openRingtonePicker">
+                  <div class="lc-main">
+                    <span class="lc-title">{{ i18n.t('alarmRingtone') }}</span>
+                    <div class="lc-right">
+                      <span class="lc-sub-val dark-text">{{ formatRingtone(prayerStore.alarmRingtone) }}</span>
+                      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                        <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 前往时钟 App -->
+                <div class="list-cell clickable" @click="jumpToClockMuslim">
+                  <div class="lc-main no-sep">
+                    <div class="lc-title-col">
+                      <span class="lc-title">{{ i18n.t('openClockApp') }}</span>
+                      <span class="lc-sub-desc">{{ i18n.t('openClockAppDesc') }}</span>
+                    </div>
+                    <div class="lc-right">
+                      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                        <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+          </div>
+
           <!-- 功能：AI 自动接听 -->
           <div class="group-header">{{ i18n.t('aiAnswerHeader') }}</div>
           <div class="cell-group">
@@ -475,6 +632,67 @@ function saveEdit() {
           <div class="pd-actions">
             <button class="pd-btn pd-cancel" @click="closeTimePicker">{{ i18n.t('cancel') }}</button>
             <button class="pd-btn pd-confirm" @click="confirmTimePicker">{{ i18n.t('confirm') }}</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ================= 提前提醒时间选择弹窗 ================= -->
+    <Transition name="picker-bottom">
+      <div v-if="showAdvancePicker" class="picker-backdrop" @click="closeAdvancePicker">
+        <div class="picker-bottom-sheet selection-sheet" @click.stop>
+          <div class="pd-header">
+            <div class="pd-type-label">{{ i18n.t('alarmAdvanceTime') }}</div>
+          </div>
+          <div class="selection-options-list">
+            <div
+              v-for="opt in advanceOptions"
+              :key="opt.mins"
+              class="selection-option-item"
+              :class="{ 'is-active': prayerStore.alarmAdvanceMinutes === opt.mins }"
+              @click="selectAdvance(opt.mins)"
+            >
+              <div class="soi-label-col">
+                <span class="soi-label">{{ i18n.t(opt.labelKey) }}</span>
+                <span v-if="opt.recommended" class="soi-badge">推荐</span>
+              </div>
+              <svg v-if="prayerStore.alarmAdvanceMinutes === opt.mins" width="18" height="18" viewBox="0 0 24 24">
+                <path :d="GLYPHS.check" fill="#007AFF" />
+              </svg>
+            </div>
+          </div>
+          <div class="pd-actions">
+            <button class="pd-btn pd-cancel" @click="closeAdvancePicker">{{ i18n.t('cancel') }}</button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- ================= 唤礼铃声选择弹窗 ================= -->
+    <Transition name="picker-bottom">
+      <div v-if="showRingtonePicker" class="picker-backdrop" @click="closeRingtonePicker">
+        <div class="picker-bottom-sheet selection-sheet" @click.stop>
+          <div class="pd-header">
+            <div class="pd-type-label">{{ i18n.t('alarmRingtone') }}</div>
+          </div>
+          <div class="selection-options-list">
+            <div
+              v-for="rt in ringtoneOptions"
+              :key="rt.id"
+              class="selection-option-item"
+              :class="{ 'is-active': prayerStore.alarmRingtone === rt.name }"
+              @click="selectRingtone(rt)"
+            >
+              <div class="soi-label-col">
+                <span class="soi-label">{{ i18n.t(rt.labelKey) }}</span>
+              </div>
+              <svg v-if="prayerStore.alarmRingtone === rt.name" width="18" height="18" viewBox="0 0 24 24">
+                <path :d="GLYPHS.check" fill="#007AFF" />
+              </svg>
+            </div>
+          </div>
+          <div class="pd-actions">
+            <button class="pd-btn pd-cancel" @click="closeRingtonePicker">{{ i18n.t('cancel') }}</button>
           </div>
         </div>
       </div>
@@ -949,5 +1167,93 @@ function saveEdit() {
 
 .picker-bottom-leave-to .picker-bottom-sheet {
   transform: translateY(100%);
+}
+
+/* ================= 闹钟联动二级项展开折叠动画 ================= */
+.subgroup-expand-enter-active,
+.subgroup-expand-leave-active {
+  transition: max-height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease, transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow: hidden;
+}
+
+.subgroup-expand-enter-from,
+.subgroup-expand-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-8px);
+}
+
+.subgroup-expand-enter-to,
+.subgroup-expand-leave-from {
+  opacity: 1;
+  max-height: 220px;
+  transform: translateY(0);
+}
+
+.alarm-linkage-subgroup {
+  background: var(--bg-cell);
+}
+
+/* ================= 提前提醒与铃声选择弹窗 ================= */
+.selection-sheet {
+  max-height: 80%;
+  padding: 22px 18px 20px;
+}
+
+.selection-options-list {
+  width: 100%;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  background: #f2f2f7;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.selection-option-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.08);
+  cursor: pointer;
+  background: #ffffff;
+  transition: background 0.15s ease;
+}
+
+.selection-option-item:last-child {
+  border-bottom: none;
+}
+
+.selection-option-item:active {
+  background: #f2f2f7;
+}
+
+.soi-label-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.soi-label {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-size: 15.5px;
+  font-weight: 500;
+  color: #000000;
+}
+
+.selection-option-item.is-active .soi-label {
+  color: #007AFF;
+  font-weight: 600;
+}
+
+.soi-badge {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #FF9500;
+  background: rgba(255, 149, 0, 0.12);
+  padding: 2px 7px;
+  border-radius: 6px;
 }
 </style>
