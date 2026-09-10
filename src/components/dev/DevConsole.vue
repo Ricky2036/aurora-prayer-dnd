@@ -9,8 +9,7 @@ import { useCapture } from '../../composables/useCapture'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import LIcon from '../ui/LIcon.vue'
 
-/* 微调面板（373 行）改为按需异步加载：线上演示默认不进入微调模式，
-   这样能从生产首包剥离。DevConsole 自身保留 —— 录屏与三语切换是演示必需。 */
+/* 微调面板改为按需异步加载 */
 const ControlCenterFineTunePanel = defineAsyncComponent(() =>
   import('./ControlCenterFineTunePanel.vue')
 )
@@ -61,23 +60,13 @@ if (typeof window !== 'undefined') {
   window.__clock = clockStore
 }
 
-/** 当前默认布局在三档分段控件里的下标（驱动滑块位移） */
-const presetIndex = computed(() =>
-  Math.max(0, LAYOUT_PRESETS.findIndex((p) => p.id === control.layoutPreset))
-)
-
-/** 默认布局按「系列」分行：tOS 16 / tOS 17 / EE1，每行同样是 CAMON / NOTE / GT。
- *  行是数据驱动的 —— 将来再加系列只改这个数组，模板和滑块动效都不用动。
- *  滑块是整张卡片唯一一个，靠实测按钮位置在 9 个格子间连续移动。 */
+/** 默认布局按「系列」分行：tOS 16 / tOS 17 / EE1，每行同样是 CAMON / NOTE / GT */
 const presetSeries = computed(() => [
   { key: '16', tag: 'tOS 16', presets: LAYOUT_PRESETS.filter((p) => (p.series || '16') === '16') },
   { key: '17', tag: 'tOS 17', presets: LAYOUT_PRESETS.filter((p) => p.series === '17') },
   { key: 'ee1', tag: 'EE1', presets: LAYOUT_PRESETS.filter((p) => p.series === 'ee1') }
 ])
-/* 默认布局两行共 6 个按钮 —— 整张卡片只保留「一个」滑块，
-   切换时靠实测目标按钮相对容器的偏移连续移动（含跨行），
-   而不是两行各一个滑块各自淡出/归位（那样跨行切换会先从行首闪一下）。
-   首帧无动画就位，之后才开过渡；容器尺寸变化（面板折叠/响应式）时重算。 */
+
 function usePresetThumb() {
   const rowsRef = ref(null)
   const thumbStyle = ref({ opacity: 0 })
@@ -102,8 +91,6 @@ function usePresetThumb() {
     }
   }
 
-  /* 两行是 v-if 页签里的延迟内容 —— 首次挂载时 rowsRef 可能还是 null，
-     切到「控制中心」页签后才真正出现，所以元素一挂上就要补一次测量。 */
   function attach() {
     const el = rowsRef.value
     if (!el) return
@@ -121,24 +108,34 @@ function usePresetThumb() {
   onBeforeUnmount(() => { if (ro) ro.disconnect() })
   watch(() => control.layoutPreset, () => nextTick(syncThumb))
 
-  return { rowsRef, thumbStyle, ready }
+  return { rowsRef, thumbStyle, ready, syncThumb }
 }
 
 const desktopPresetThumb = usePresetThumb()
 const mobilePresetThumb = usePresetThumb()
-/* 模板 ref 需要顶层同名变量才能绑定 */
 const desktopRowsRef = desktopPresetThumb.rowsRef
 const mobileRowsRef = mobilePresetThumb.rowsRef
 
-/* ================= Tab 切换状态 ================= */
+/* ================= 模块下拉选择器状态 ================= */
 const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-const initialTab = (urlParams?.get('overlay') === 'controlCenter' || urlParams?.get('finetune') === '1' || urlParams?.get('tab') === 'control') ? 'control' : 'system'
-const activeTab = ref(initialTab) // 'system' | 'prayer' | 'control'
-const tabs = [
-  { id: 'system', name: '系统控制' },
-  { id: 'prayer', name: '礼拜模式' },
-  { id: 'control', name: '控制中心' }
-]
+const initialModule = (urlParams?.get('overlay') === 'controlCenter' || urlParams?.get('finetune') === '1' || urlParams?.get('tab') === 'control' || urlParams?.get('module') === 'control')
+  ? 'control'
+  : (urlParams?.get('tab') === 'island' || urlParams?.get('module') === 'island')
+    ? 'island'
+    : (urlParams?.get('tab') === 'prayer' || urlParams?.get('tab') === 'muslim' || urlParams?.get('module') === 'muslim')
+      ? 'muslim'
+      : 'control'
+
+const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim'
+
+watch(selectedModule, (mod) => {
+  if (mod === 'control') {
+    nextTick(() => {
+      desktopPresetThumb.syncThumb()
+      mobilePresetThumb.syncThumb()
+    })
+  }
+})
 
 /* ================= 移动端悬浮球与弹窗状态 ================= */
 const isDrawerOpen = ref(false)
@@ -325,34 +322,15 @@ function snapToEdge() {
   }, 320)
 }
 
-/* ================= 录制计时（给「到底录没录上」一个明确反馈） ================= */
-/* 计时由 useCapture 单例统一维护：控制台和屏幕上的录制指示器显示的是同一份，
-   不会出现两个计时器各走各的。 */
+/* 录屏计时单例 */
 const { recordElapsed } = useCapture()
 
-/* ================= 图标微调模式快捷控制 ================= */
-const fineTuneCopied = ref(false)
-
+/* 图标微调快捷操作 */
 function onToggleFineTune(enabled) {
   control.setFineTuningMode(enabled)
   if (enabled) {
     system.unlock()
     system.settleOverlay('controlCenter', true)
-  }
-}
-
-function onCopyFineTune() {
-  const config = control.exportConfig()
-  const text = JSON.stringify(config, null, 2)
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(() => {
-      fineTuneCopied.value = true
-      setTimeout(() => { fineTuneCopied.value = false }, 1800)
-    }).catch(() => {
-      prompt('配置 JSON：', text)
-    })
-  } else {
-    prompt('配置 JSON：', text)
   }
 }
 </script>
@@ -363,255 +341,232 @@ function onCopyFineTune() {
     <!-- 背景流光 -->
     <div class="pc-glow"></div>
 
-    <!-- 顶部标题 (居中加粗) -->
+    <!-- 顶部标题栏：左上角全屏，右上角亮灭屏，居中标题 -->
     <header class="pc-header">
+      <button
+        class="pc-header-icon-btn"
+        @click="toggleFullscreen"
+        :title="isFullscreen ? '退出全屏' : '全屏'"
+        aria-label="切换全屏"
+      >
+        <svg v-if="!isFullscreen" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+        </svg>
+        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+        </svg>
+      </button>
+
       <h2 class="pc-title">控制台</h2>
+
+      <button
+        class="pc-header-icon-btn"
+        :class="system.screenOn ? 'is-active-power' : 'is-off-power'"
+        @click="system.screenOn ? system.powerOff() : system.powerOn()"
+        :title="system.screenOn ? '灭屏' : '亮屏'"
+        aria-label="系统亮灭屏"
+      >
+        <svg v-if="system.screenOn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+        </svg>
+      </button>
     </header>
 
-    <!-- 模块切换卡片 -->
-    <div class="pc-card pc-tab-card">
+    <!-- 常用功能：截屏录屏合一卡片 -->
+    <div class="pc-card">
       <div class="pc-card-header">
-        <span class="pc-card-title">模块切换</span>
+        <span class="pc-card-title">截屏录屏</span>
       </div>
-      <nav class="pc-tab-bar">
-        <div
-          class="pc-tab-indicator"
-          :style="{
-            transform: activeTab === 'system'
-              ? 'translateX(0)'
-              : activeTab === 'prayer'
-                ? 'translateX(100%)'
-                : 'translateX(200%)'
-          }"
-        ></div>
-        <button
-          v-for="t in tabs"
-          :key="t.id"
-          class="pc-tab-btn"
-          :class="{ active: activeTab === t.id }"
-          @click="activeTab = t.id"
-        >
-          {{ t.name }}
-        </button>
-      </nav>
+      <div class="pc-capture-grid">
+        <!-- 录屏动作 -->
+        <div class="pc-capture-col">
+          <button
+            class="pc-btn"
+            :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+            :disabled="isTranscoding"
+            @click="emit('toggle-recording')"
+          >
+            <template v-if="isTranscoding">
+              <span class="pc-rec-spin">⏳</span>
+              <span>转码中...</span>
+            </template>
+            <template v-else-if="isRecording">
+              <LIcon name="video" :size="14" />
+              <span>停止 · {{ recordElapsed }}</span>
+            </template>
+            <template v-else>
+              <LIcon name="video" :size="14" />
+              <span>开始录屏</span>
+            </template>
+          </button>
+          <label class="pc-switch-wrap pc-capture-sub">
+            <span>带壳录制</span>
+            <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
+            <div class="pc-switch"></div>
+          </label>
+        </div>
+
+        <!-- 截屏动作 -->
+        <div class="pc-capture-col">
+          <button
+            class="pc-btn pc-btn-secondary"
+            :class="isCapturing ? 'pc-btn-disabled' : ''"
+            :disabled="isCapturing"
+            @click="emit('capture-screenshot')"
+          >
+            <LIcon name="scissors" :size="14" />
+            <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
+          </button>
+          <label class="pc-switch-wrap pc-capture-sub">
+            <span>带壳截图</span>
+            <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
+            <div class="pc-switch"></div>
+          </label>
+        </div>
+      </div>
     </div>
 
-    <!-- Tab 内容区 -->
+    <!-- 下拉选择控件：切换模块 -->
+    <div class="pc-module-selector-wrap">
+      <label for="desktop-module-select" class="pc-module-label">切换模块</label>
+      <div class="pc-select-wrapper">
+        <select id="desktop-module-select" v-model="selectedModule" class="pc-module-select">
+          <option value="control">控制中心</option>
+          <option value="island">灵动岛与闹钟</option>
+          <option value="muslim">礼拜与时钟</option>
+        </select>
+        <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- 单一模块大卡片：所有设置项收纳于一张大卡内，按需用虚线分割 -->
     <main class="pc-content-body">
       <Transition name="tab-fade" mode="out-in">
-        <!-- 1. 系统控制 Tab -->
-        <section v-if="activeTab === 'system'" key="system" class="pc-tab-panel">
-          <!-- 语言切换 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">系统语言</span>
+        <div class="pc-card pc-module-big-card" :key="selectedModule">
+          <!-- 模块 1: 控制中心 -->
+          <div v-if="selectedModule === 'control'" class="pc-module-section-group">
+            <!-- 区域 1：默认布局 -->
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">默认布局</span>
+              </div>
+              <div class="pc-preset-rows" ref="desktopRowsRef">
+                <div
+                  class="pc-preset-thumb"
+                  :class="{ 'is-ready': desktopPresetThumb.ready.value }"
+                  :style="desktopPresetThumb.thumbStyle.value"
+                ></div>
+                <div class="pc-preset-row" v-for="s in presetSeries" :key="s.key">
+                  <span class="pc-preset-tag">{{ s.tag }}</span>
+                  <div class="pc-seg">
+                    <button
+                      v-for="p in s.presets"
+                      :key="p.id"
+                      class="pc-seg-btn"
+                      :class="{ on: control.layoutPreset === p.id }"
+                      @click="control.setLayoutPreset(p.id)"
+                    >
+                      {{ p.shortLabel || p.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="pc-seg pc-seg-3">
-              <div
-                class="pc-seg-thumb-3"
-                :style="{
-                  transform: i18n.locale === 'zh'
-                    ? 'translateX(0)'
-                    : i18n.locale === 'en'
-                      ? 'translateX(100%)'
-                      : 'translateX(200%)'
-                }"
-              ></div>
-              <button class="pc-seg-btn" :class="{ on: i18n.locale === 'zh' }" @click="i18n.setLocale('zh')">中文</button>
-              <button class="pc-seg-btn" :class="{ on: i18n.locale === 'en' }" @click="i18n.setLocale('en')">English</button>
-              <button class="pc-seg-btn" :class="{ on: i18n.locale === 'bn' }" @click="i18n.setLocale('bn')">বাংলা</button>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 2：编辑算法 -->
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">编辑算法</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{ transform: control.dragMode === 'flow' ? 'translateX(0)' : 'translateX(100%)' }"
+                ></div>
+                <button
+                  class="pc-seg-btn"
+                  :class="{ on: control.dragMode === 'flow' }"
+                  @click="control.setDragMode('flow')"
+                >
+                  流式推挤
+                </button>
+                <button
+                  class="pc-seg-btn"
+                  :class="{ on: control.dragMode === 'swap' }"
+                  @click="control.setDragMode('swap')"
+                >
+                  坐标沉降
+                </button>
+              </div>
+            </div>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 3：隐私指示 + 双卡显示（一行两列并排） -->
+            <div class="pc-section">
+              <div class="pc-duo-row">
+                <div class="pc-duo-item">
+                  <span class="pc-card-title">隐私指示</span>
+                  <label class="pc-switch-wrap">
+                    <input
+                      type="checkbox"
+                      :checked="control.showPrivacyIndicators"
+                      @change="control.setShowPrivacyIndicators($event.target.checked)"
+                    />
+                    <div class="pc-switch"></div>
+                  </label>
+                </div>
+                <div class="pc-duo-item">
+                  <span class="pc-card-title">双卡显示</span>
+                  <label class="pc-switch-wrap">
+                    <input
+                      type="checkbox"
+                      :checked="control.showDualSim"
+                      @change="control.setShowDualSim($event.target.checked)"
+                    />
+                    <div class="pc-switch"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 4：微调图标尺寸 -->
+            <div class="pc-section">
+              <div class="pc-card-header" style="margin-bottom: 0;">
+                <span class="pc-card-title">图标尺寸</span>
+                <label class="pc-switch-wrap">
+                  <input
+                    type="checkbox"
+                    :checked="control.fineTuningMode"
+                    @change="onToggleFineTune($event.target.checked)"
+                  />
+                  <div class="pc-switch"></div>
+                </label>
+              </div>
+              <Transition name="finetune-expand">
+                <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
+              </Transition>
             </div>
           </div>
 
-          <!-- 系统导航切换 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">系统导航</span>
-            </div>
-            <div class="pc-seg">
-              <div
-                class="pc-seg-thumb"
-                :style="{
-                  transform: system.navigationMode === 'gesture' ? 'translateX(0)' : 'translateX(100%)'
-                }"
-              ></div>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: system.navigationMode === 'gesture' }"
-                @click="system.setNavigationMode('gesture')"
-              >
-                手势导航
-              </button>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: system.navigationMode === 'threeButton' }"
-                @click="system.setNavigationMode('threeButton')"
-              >
-                三键导航
-              </button>
-            </div>
-          </div>
-
-          <!-- 屏幕状态控制与全屏 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">系统显示</span>
-            </div>
-            <div class="pc-btn-group-2">
-              <button class="pc-btn pc-btn-secondary" @click="toggleFullscreen">
-                全屏
-              </button>
-              <button
-                class="pc-btn pc-btn-toggle"
-                :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
-                @click="system.screenOn ? system.powerOff() : system.powerOn()"
-              >
-                {{ system.screenOn ? '灭屏' : '亮屏' }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 录屏功能 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">录制屏幕</span>
-              <label class="pc-switch-wrap">
-                <span>带壳录制</span>
-                <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
-                <div class="pc-switch"></div>
-              </label>
-            </div>
-            <button
-              class="pc-btn"
-              :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
-              :disabled="isTranscoding"
-              @click="emit('toggle-recording')"
-            >
-              <template v-if="isTranscoding">
-                <span class="pc-rec-spin">⏳</span>
-                <span>正在自动转码导出...</span>
-              </template>
-              <template v-else-if="isRecording">
-                <LIcon name="video" :size="15" />
-                <span>停止录制 · {{ recordElapsed }}</span>
-              </template>
-              <template v-else>
-                <LIcon name="video" :size="15" />
-                <span>开始录制</span>
-              </template>
-            </button>
-          </div>
-
-          <!-- 屏幕截图：带壳 / 不带壳两种效果 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">屏幕截图</span>
-              <label class="pc-switch-wrap">
-                <span>带壳截图</span>
-                <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
-                <div class="pc-switch"></div>
-              </label>
-            </div>
-            <button
-              class="pc-btn"
-              :class="isCapturing ? 'pc-btn-disabled' : 'pc-btn-primary'"
-              :disabled="isCapturing"
-              @click="emit('capture-screenshot')"
-            >
-              <LIcon name="scissors" :size="15" />
-              <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
-            </button>
-          </div>
-        </section>
-
-        <!-- 2. 礼拜模式 Tab -->
-        <section v-else-if="activeTab === 'prayer'" key="prayer" class="pc-tab-panel">
-          <!-- 智慧建议模式 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">智慧建议</span>
-            </div>
-            <div class="pc-seg">
-              <div
-                class="pc-seg-thumb"
-                :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
-              ></div>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: prayerStore.userMode === 'normal' }"
-                @click="prayerStore.setUserMode('normal')"
-              >
-                普通用户
-              </button>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: prayerStore.userMode === 'muslim' }"
-                @click="prayerStore.setUserMode('muslim')"
-              >
-                穆斯林用户
-              </button>
-            </div>
-          </div>
-
-          <!-- 穆斯林闹钟时间模式切换卡片 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">穆斯林闹钟</span>
-              <label class="pc-switch-wrap">
-                <input
-                  type="checkbox"
-                  :checked="clockStore.settings.muslimAlarmEnabled"
-                  @change="clockStore.setMuslimAlarmEnabled($event.target.checked)"
-                />
-                <div class="pc-switch"></div>
-              </label>
-            </div>
-            <div class="pc-seg">
-              <div
-                class="pc-seg-thumb"
-                :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
-              ></div>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: clockStore.muslimTimeMode === 'default' }"
-                @click="clockStore.setMuslimTimeMode('default')"
-              >
-                默认时间
-              </button>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: clockStore.muslimTimeMode === 'custom' }"
-                @click="clockStore.setMuslimTimeMode('custom')"
-              >
-                设定时间
-              </button>
-            </div>
-          </div>
-
-          <!-- 灵动岛模拟 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">灵动岛</span>
-              <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
-                {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
-              </span>
-            </div>
-            <div class="prayer-buttons-grid">
-              <button
-                v-for="p in prayerStore.prayers"
-                :key="p.id"
-                class="pc-prayer-btn"
-                :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
-                @click="prayerStore.toggleSimulatedPrayer(p.id)"
-              >
-                {{ i18n.prayerName(p.id) }}
-              </button>
-            </div>
-
-            <!-- 闹钟灵动岛控制 -->
-            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
-              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 12px; color: rgba(255,255,255,0.65); font-weight: 500;">闹钟提醒</span>
+          <!-- 模块 2: 灵动岛与闹钟 -->
+          <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
+            <!-- 区域 1：闹钟提醒 -->
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">闹钟提醒</span>
                 <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
                   {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
                 </span>
@@ -639,115 +594,111 @@ function onCopyFineTune() {
                 </button>
               </div>
             </div>
-          </div>
-        </section>
 
-        <!-- 3. 控制中心 Tab -->
-        <section v-else-if="activeTab === 'control'" key="control" class="pc-tab-panel">
-          <!-- 默认布局：tOS16 / tOS17 两行对照，同一张卡片内 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">默认布局</span>
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 2：礼拜灵动岛模拟 -->
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">礼拜灵动岛</span>
+                <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
+                  {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
+                </span>
+              </div>
+              <div class="prayer-buttons-grid">
+                <button
+                  v-for="p in prayerStore.prayers"
+                  :key="p.id"
+                  class="pc-prayer-btn"
+                  :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
+                  @click="prayerStore.toggleSimulatedPrayer(p.id)"
+                >
+                  {{ i18n.prayerName(p.id) }}
+                </button>
+              </div>
             </div>
-            <div class="pc-preset-rows" ref="desktopRowsRef">
-              <div
-                class="pc-preset-thumb"
-                :class="{ 'is-ready': desktopPresetThumb.ready.value }"
-                :style="desktopPresetThumb.thumbStyle.value"
-              ></div>
-              <div class="pc-preset-row" v-for="s in presetSeries" :key="s.key">
-                <span class="pc-preset-tag">{{ s.tag }}</span>
-                <div class="pc-seg">
-                  <button
-                    v-for="p in s.presets"
-                    :key="p.id"
-                    class="pc-seg-btn"
-                    :class="{ on: control.layoutPreset === p.id }"
-                    @click="control.setLayoutPreset(p.id)"
-                  >
-                    {{ p.shortLabel || p.label }}
-                  </button>
-                </div>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 3：系统常驻岛提示 -->
+            <div class="pc-section">
+              <div class="pc-island-hint-row">
+                <span>音乐 / 倒计时 / 录音灵动岛</span>
+                <span class="pc-island-badge">前台应用驱动</span>
               </div>
             </div>
           </div>
 
-          <!-- 排列算法 -->
-          <div class="pc-card">
-            <div class="pc-card-header">
-              <span class="pc-card-title">编辑算法</span>
-            </div>
-            <div class="pc-seg">
-              <div
-                class="pc-seg-thumb"
-                :style="{ transform: control.dragMode === 'flow' ? 'translateX(0)' : 'translateX(100%)' }"
-              ></div>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: control.dragMode === 'flow' }"
-                @click="control.setDragMode('flow')"
-              >
-                流式推挤
-              </button>
-              <button
-                class="pc-seg-btn"
-                :class="{ on: control.dragMode === 'swap' }"
-                @click="control.setDragMode('swap')"
-              >
-                坐标沉降
-              </button>
-            </div>
-          </div>
-
-          <!-- 隐私指示 + 双卡显示（一行两块底板） -->
-          <div class="pc-card-duo">
-            <div class="pc-card pc-card-single">
+          <!-- 模块 3: 礼拜与时钟 -->
+          <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
+            <!-- 区域 1：智慧建议模式 -->
+            <div class="pc-section">
               <div class="pc-card-header">
-                <span class="pc-card-title">隐私指示</span>
+                <span class="pc-card-title">智慧建议</span>
+              </div>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
+                ></div>
+                <button
+                  class="pc-seg-btn"
+                  :class="{ on: prayerStore.userMode === 'normal' }"
+                  @click="prayerStore.setUserMode('normal')"
+                >
+                  普通用户
+                </button>
+                <button
+                  class="pc-seg-btn"
+                  :class="{ on: prayerStore.userMode === 'muslim' }"
+                  @click="prayerStore.setUserMode('muslim')"
+                >
+                  穆斯林用户
+                </button>
+              </div>
+            </div>
+
+            <!-- 虚线分割 -->
+            <div class="pc-divider-dashed"></div>
+
+            <!-- 区域 2：穆斯林闹钟时间模式切换卡片 -->
+            <div class="pc-section">
+              <div class="pc-card-header">
+                <span class="pc-card-title">穆斯林闹钟</span>
                 <label class="pc-switch-wrap">
                   <input
                     type="checkbox"
-                    :checked="control.showPrivacyIndicators"
-                    @change="control.setShowPrivacyIndicators($event.target.checked)"
+                    :checked="clockStore.settings.muslimAlarmEnabled"
+                    @change="clockStore.setMuslimAlarmEnabled($event.target.checked)"
                   />
                   <div class="pc-switch"></div>
                 </label>
               </div>
-            </div>
-            <div class="pc-card pc-card-single">
-              <div class="pc-card-header">
-                <span class="pc-card-title">双卡显示</span>
-                <label class="pc-switch-wrap">
-                  <input
-                    type="checkbox"
-                    :checked="control.showDualSim"
-                    @change="control.setShowDualSim($event.target.checked)"
-                  />
-                  <div class="pc-switch"></div>
-                </label>
+              <div class="pc-seg">
+                <div
+                  class="pc-seg-thumb"
+                  :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
+                ></div>
+                <button
+                  class="pc-seg-btn"
+                  :class="{ on: clockStore.muslimTimeMode === 'default' }"
+                  @click="clockStore.setMuslimTimeMode('default')"
+                >
+                  默认时间
+                </button>
+                <button
+                  class="pc-seg-btn"
+                  :class="{ on: clockStore.muslimTimeMode === 'custom' }"
+                  @click="clockStore.setMuslimTimeMode('custom')"
+                >
+                  设定时间
+                </button>
               </div>
             </div>
           </div>
-
-          <!-- 微调图标尺寸 (放置在最下方，开关打开后卡片内展开完整面板) -->
-          <div class="pc-card" :class="control.fineTuningMode ? 'pc-card-expanded' : 'pc-card-single'">
-            <div class="pc-card-header">
-              <span class="pc-card-title">图标尺寸</span>
-              <label class="pc-switch-wrap">
-                <input
-                  type="checkbox"
-                  :checked="control.fineTuningMode"
-                  @change="onToggleFineTune($event.target.checked)"
-                />
-                <div class="pc-switch"></div>
-              </label>
-            </div>
-            <!-- 开关开启时展开微调控制面板（无缝过渡动效） -->
-            <Transition name="finetune-expand">
-              <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
-            </Transition>
-          </div>
-        </section>
+        </div>
       </Transition>
     </main>
   </aside>
@@ -784,261 +735,240 @@ function onCopyFineTune() {
             <!-- 背景流光 -->
             <div class="pc-glow"></div>
 
-            <!-- 顶部标题 (居中加粗 + 关闭按钮) -->
+            <!-- 顶部标题栏：左全屏，中标题，右亮灭屏+关闭 -->
             <header class="pc-header">
-              <h2 class="pc-title">控制台</h2>
-              <button class="pc-close-btn" @click.stop="closeModal" aria-label="关闭">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
+              <button
+                class="pc-header-icon-btn"
+                @click="toggleFullscreen"
+                :title="isFullscreen ? '退出全屏' : '全屏'"
+                aria-label="切换全屏"
+              >
+                <svg v-if="!isFullscreen" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+                <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
                 </svg>
               </button>
+
+              <h2 class="pc-title">控制台</h2>
+
+              <div class="pc-header-actions">
+                <button
+                  class="pc-header-icon-btn"
+                  :class="system.screenOn ? 'is-active-power' : 'is-off-power'"
+                  @click="system.screenOn ? system.powerOff() : system.powerOn()"
+                  :title="system.screenOn ? '灭屏' : '亮屏'"
+                  aria-label="系统亮灭屏"
+                >
+                  <svg v-if="system.screenOn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                  </svg>
+                  <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+                  </svg>
+                </button>
+                <button class="pc-close-btn" @click.stop="closeModal" aria-label="关闭">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
             </header>
 
-            <!-- 模块切换卡片 -->
-            <div class="pc-card pc-tab-card">
+            <!-- 常用功能：截屏录屏合一卡片 -->
+            <div class="pc-card">
               <div class="pc-card-header">
-                <span class="pc-card-title">模块切换</span>
+                <span class="pc-card-title">截屏录屏</span>
               </div>
-              <nav class="pc-tab-bar">
-                <div
-                  class="pc-tab-indicator"
-                  :style="{
-                    transform: activeTab === 'system'
-                      ? 'translateX(0)'
-                      : activeTab === 'prayer'
-                        ? 'translateX(100%)'
-                        : 'translateX(200%)'
-                  }"
-                ></div>
-                <button
-                  v-for="t in tabs"
-                  :key="t.id"
-                  class="pc-tab-btn"
-                  :class="{ active: activeTab === t.id }"
-                  @click="activeTab = t.id"
-                >
-                  {{ t.name }}
-                </button>
-              </nav>
+              <div class="pc-capture-grid">
+                <!-- 录屏动作 -->
+                <div class="pc-capture-col">
+                  <button
+                    class="pc-btn"
+                    :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+                    :disabled="isTranscoding"
+                    @click="emit('toggle-recording')"
+                  >
+                    <template v-if="isTranscoding">
+                      <span class="pc-rec-spin">⏳</span>
+                      <span>转码中...</span>
+                    </template>
+                    <template v-else-if="isRecording">
+                      <LIcon name="video" :size="14" />
+                      <span>停止 · {{ recordElapsed }}</span>
+                    </template>
+                    <template v-else>
+                      <LIcon name="video" :size="14" />
+                      <span>开始录制</span>
+                    </template>
+                  </button>
+                  <label class="pc-switch-wrap pc-capture-sub">
+                    <span>带壳录制</span>
+                    <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
+                    <div class="pc-switch"></div>
+                  </label>
+                </div>
+
+                <!-- 截屏动作 -->
+                <div class="pc-capture-col">
+                  <button
+                    class="pc-btn pc-btn-secondary"
+                    :class="isCapturing ? 'pc-btn-disabled' : ''"
+                    :disabled="isCapturing"
+                    @click="emit('capture-screenshot')"
+                  >
+                    <LIcon name="scissors" :size="14" />
+                    <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
+                  </button>
+                  <label class="pc-switch-wrap pc-capture-sub">
+                    <span>带壳截图</span>
+                    <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
+                    <div class="pc-switch"></div>
+                  </label>
+                </div>
+              </div>
             </div>
 
-            <!-- Tab 内容区 -->
+            <!-- 下拉选择控件：切换模块 -->
+            <div class="pc-module-selector-wrap">
+              <label for="mobile-module-select" class="pc-module-label">切换模块</label>
+              <div class="pc-select-wrapper">
+                <select id="mobile-module-select" v-model="selectedModule" class="pc-module-select">
+                  <option value="control">控制中心</option>
+                  <option value="island">灵动岛与闹钟</option>
+                  <option value="muslim">礼拜与时钟</option>
+                </select>
+                <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 单一模块大卡片 -->
             <main class="pc-content-body">
               <Transition name="tab-fade" mode="out-in">
-                <!-- 1. 系统控制 Tab -->
-                <section v-if="activeTab === 'system'" key="mob-system" class="pc-tab-panel">
-                  <!-- 语言切换 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">系统语言</span>
+                <div class="pc-card pc-module-big-card" :key="'mob-' + selectedModule">
+                  <!-- 模块 1: 控制中心 -->
+                  <div v-if="selectedModule === 'control'" class="pc-module-section-group">
+                    <!-- 区域 1：默认布局 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header">
+                        <span class="pc-card-title">默认布局</span>
+                      </div>
+                      <div class="pc-preset-rows" ref="mobileRowsRef">
+                        <div
+                          class="pc-preset-thumb"
+                          :class="{ 'is-ready': mobilePresetThumb.ready.value }"
+                          :style="mobilePresetThumb.thumbStyle.value"
+                        ></div>
+                        <div class="pc-preset-row" v-for="s in presetSeries" :key="s.key">
+                          <span class="pc-preset-tag">{{ s.tag }}</span>
+                          <div class="pc-seg">
+                            <button
+                              v-for="p in s.presets"
+                              :key="p.id"
+                              class="pc-seg-btn"
+                              :class="{ on: control.layoutPreset === p.id }"
+                              @click="control.setLayoutPreset(p.id)"
+                            >
+                              {{ p.shortLabel || p.label }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div class="pc-seg pc-seg-3">
-                      <div
-                        class="pc-seg-thumb-3"
-                        :style="{
-                          transform: i18n.locale === 'zh'
-                            ? 'translateX(0)'
-                            : i18n.locale === 'en'
-                              ? 'translateX(100%)'
-                              : 'translateX(200%)'
-                        }"
-                      ></div>
-                      <button class="pc-seg-btn" :class="{ on: i18n.locale === 'zh' }" @click="i18n.setLocale('zh')">中文</button>
-                      <button class="pc-seg-btn" :class="{ on: i18n.locale === 'en' }" @click="i18n.setLocale('en')">English</button>
-                      <button class="pc-seg-btn" :class="{ on: i18n.locale === 'bn' }" @click="i18n.setLocale('bn')">বাংলা</button>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 2：编辑算法 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header">
+                        <span class="pc-card-title">编辑算法</span>
+                      </div>
+                      <div class="pc-seg">
+                        <div
+                          class="pc-seg-thumb"
+                          :style="{ transform: control.dragMode === 'flow' ? 'translateX(0)' : 'translateX(100%)' }"
+                        ></div>
+                        <button
+                          class="pc-seg-btn"
+                          :class="{ on: control.dragMode === 'flow' }"
+                          @click="control.setDragMode('flow')"
+                        >
+                          流式推挤
+                        </button>
+                        <button
+                          class="pc-seg-btn"
+                          :class="{ on: control.dragMode === 'swap' }"
+                          @click="control.setDragMode('swap')"
+                        >
+                          坐标沉降
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 3：隐私指示 + 双卡显示（一行两列并排） -->
+                    <div class="pc-section">
+                      <div class="pc-duo-row">
+                        <div class="pc-duo-item">
+                          <span class="pc-card-title">隐私指示</span>
+                          <label class="pc-switch-wrap">
+                            <input
+                              type="checkbox"
+                              :checked="control.showPrivacyIndicators"
+                              @change="control.setShowPrivacyIndicators($event.target.checked)"
+                            />
+                            <div class="pc-switch"></div>
+                          </label>
+                        </div>
+                        <div class="pc-duo-item">
+                          <span class="pc-card-title">双卡显示</span>
+                          <label class="pc-switch-wrap">
+                            <input
+                              type="checkbox"
+                              :checked="control.showDualSim"
+                              @change="control.setShowDualSim($event.target.checked)"
+                            />
+                            <div class="pc-switch"></div>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 4：微调图标尺寸 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header" style="margin-bottom: 0;">
+                        <span class="pc-card-title">图标尺寸</span>
+                        <label class="pc-switch-wrap">
+                          <input
+                            type="checkbox"
+                            :checked="control.fineTuningMode"
+                            @change="onToggleFineTune($event.target.checked)"
+                          />
+                          <div class="pc-switch"></div>
+                        </label>
+                      </div>
+                      <Transition name="finetune-expand">
+                        <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
+                      </Transition>
                     </div>
                   </div>
 
-                  <!-- 系统导航切换 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">系统导航</span>
-                    </div>
-                    <div class="pc-seg">
-                      <div
-                        class="pc-seg-thumb"
-                        :style="{
-                          transform: system.navigationMode === 'gesture' ? 'translateX(0)' : 'translateX(100%)'
-                        }"
-                      ></div>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: system.navigationMode === 'gesture' }"
-                        @click="system.setNavigationMode('gesture')"
-                      >
-                        手势导航
-                      </button>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: system.navigationMode === 'threeButton' }"
-                        @click="system.setNavigationMode('threeButton')"
-                      >
-                        三键导航
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 屏幕状态控制与全屏 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">系统显示</span>
-                    </div>
-                    <div class="pc-btn-group-2">
-                      <button class="pc-btn pc-btn-secondary" @click="toggleFullscreen">
-                        全屏
-                      </button>
-                      <button
-                        class="pc-btn pc-btn-toggle"
-                        :class="system.screenOn ? 'pc-btn-danger' : 'pc-btn-primary'"
-                        @click="system.screenOn ? system.powerOff() : system.powerOn()"
-                      >
-                        {{ system.screenOn ? '灭屏' : '亮屏' }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 录屏功能 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">录制屏幕</span>
-                      <label class="pc-switch-wrap">
-                        <span>带壳录制</span>
-                        <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
-                        <div class="pc-switch"></div>
-                      </label>
-                    </div>
-                    <button
-                      class="pc-btn"
-                      :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
-                      :disabled="isTranscoding"
-                      @click="emit('toggle-recording')"
-                    >
-                      <template v-if="isTranscoding">
-                        <span class="pc-rec-spin">⏳</span>
-                        <span>正在自动转码导出...</span>
-                      </template>
-                      <template v-else-if="isRecording">
-                        <LIcon name="video" :size="15" />
-                        <span>停止录制 · {{ recordElapsed }}</span>
-                      </template>
-                      <template v-else>
-                        <LIcon name="video" :size="15" />
-                        <span>开始录制</span>
-                      </template>
-                    </button>
-                  </div>
-
-                  <!-- 屏幕截图：带壳 / 不带壳两种效果 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">屏幕截图</span>
-                      <label class="pc-switch-wrap">
-                        <span>带壳截图</span>
-                        <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
-                        <div class="pc-switch"></div>
-                      </label>
-                    </div>
-                    <button
-                      class="pc-btn"
-                      :class="isCapturing ? 'pc-btn-disabled' : 'pc-btn-primary'"
-                      :disabled="isCapturing"
-                      @click="emit('capture-screenshot')"
-                    >
-                      <LIcon name="scissors" :size="15" />
-                      <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
-                    </button>
-                  </div>
-                </section>
-
-                <!-- 2. 礼拜模式 Tab -->
-                <section v-else-if="activeTab === 'prayer'" key="mob-prayer" class="pc-tab-panel">
-                  <!-- 智慧建议模式 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">智慧建议</span>
-                    </div>
-                    <div class="pc-seg">
-                      <div
-                        class="pc-seg-thumb"
-                        :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
-                      ></div>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: prayerStore.userMode === 'normal' }"
-                        @click="prayerStore.setUserMode('normal')"
-                      >
-                        普通用户
-                      </button>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: prayerStore.userMode === 'muslim' }"
-                        @click="prayerStore.setUserMode('muslim')"
-                      >
-                        穆斯林用户
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 穆斯林闹钟时间模式切换卡片 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">穆斯林闹钟</span>
-                      <label class="pc-switch-wrap">
-                        <input
-                          type="checkbox"
-                          :checked="clockStore.settings.muslimAlarmEnabled"
-                          @change="clockStore.setMuslimAlarmEnabled($event.target.checked)"
-                        />
-                        <div class="pc-switch"></div>
-                      </label>
-                    </div>
-                    <div class="pc-seg">
-                      <div
-                        class="pc-seg-thumb"
-                        :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
-                      ></div>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: clockStore.muslimTimeMode === 'default' }"
-                        @click="clockStore.setMuslimTimeMode('default')"
-                      >
-                        默认时间
-                      </button>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: clockStore.muslimTimeMode === 'custom' }"
-                        @click="clockStore.setMuslimTimeMode('custom')"
-                      >
-                        设定时间
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 灵动岛模拟 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">灵动岛</span>
-                      <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
-                        {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
-                      </span>
-                    </div>
-                    <div class="prayer-buttons-grid">
-                      <button
-                        v-for="p in prayerStore.prayers"
-                        :key="p.id"
-                        class="pc-prayer-btn"
-                        :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
-                        @click="prayerStore.toggleSimulatedPrayer(p.id)"
-                      >
-                        {{ i18n.prayerName(p.id) }}
-                      </button>
-                    </div>
-
-                    <!-- 闹钟灵动岛控制 -->
-                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
-                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                        <span style="font-size: 12px; color: rgba(255,255,255,0.65); font-weight: 500;">闹钟提醒</span>
+                  <!-- 模块 2: 灵动岛与闹钟 -->
+                  <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
+                    <!-- 区域 1：闹钟提醒 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header">
+                        <span class="pc-card-title">闹钟提醒</span>
                         <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
                           {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
                         </span>
@@ -1066,115 +996,111 @@ function onCopyFineTune() {
                         </button>
                       </div>
                     </div>
-                  </div>
-                </section>
 
-                <!-- 3. 控制中心 Tab -->
-                <section v-else-if="activeTab === 'control'" key="mob-control" class="pc-tab-panel">
-                  <!-- 默认布局：tOS16 / tOS17 两行对照，同一张卡片内 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">默认布局</span>
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 2：礼拜灵动岛模拟 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header">
+                        <span class="pc-card-title">礼拜灵动岛</span>
+                        <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
+                          {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
+                        </span>
+                      </div>
+                      <div class="prayer-buttons-grid">
+                        <button
+                          v-for="p in prayerStore.prayers"
+                          :key="p.id"
+                          class="pc-prayer-btn"
+                          :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
+                          @click="prayerStore.toggleSimulatedPrayer(p.id)"
+                        >
+                          {{ i18n.prayerName(p.id) }}
+                        </button>
+                      </div>
                     </div>
-                    <div class="pc-preset-rows" ref="mobileRowsRef">
-                      <div
-                        class="pc-preset-thumb"
-                        :class="{ 'is-ready': mobilePresetThumb.ready.value }"
-                        :style="mobilePresetThumb.thumbStyle.value"
-                      ></div>
-                      <div class="pc-preset-row" v-for="s in presetSeries" :key="s.key">
-                        <span class="pc-preset-tag">{{ s.tag }}</span>
-                        <div class="pc-seg">
-                          <button
-                            v-for="p in s.presets"
-                            :key="p.id"
-                            class="pc-seg-btn"
-                            :class="{ on: control.layoutPreset === p.id }"
-                            @click="control.setLayoutPreset(p.id)"
-                          >
-                            {{ p.shortLabel || p.label }}
-                          </button>
-                        </div>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 3：系统常驻岛提示 -->
+                    <div class="pc-section">
+                      <div class="pc-island-hint-row">
+                        <span>音乐 / 倒计时 / 录音灵动岛</span>
+                        <span class="pc-island-badge">前台应用驱动</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- 排列算法 -->
-                  <div class="pc-card">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">编辑算法</span>
-                    </div>
-                    <div class="pc-seg">
-                      <div
-                        class="pc-seg-thumb"
-                        :style="{ transform: control.dragMode === 'flow' ? 'translateX(0)' : 'translateX(100%)' }"
-                      ></div>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: control.dragMode === 'flow' }"
-                        @click="control.setDragMode('flow')"
-                      >
-                        流式推挤
-                      </button>
-                      <button
-                        class="pc-seg-btn"
-                        :class="{ on: control.dragMode === 'swap' }"
-                        @click="control.setDragMode('swap')"
-                      >
-                        坐标沉降
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 隐私指示 + 双卡显示（一行两块底板） -->
-                  <div class="pc-card-duo">
-                    <div class="pc-card pc-card-single">
+                  <!-- 模块 3: 礼拜与时钟 -->
+                  <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
+                    <!-- 区域 1：智慧建议模式 -->
+                    <div class="pc-section">
                       <div class="pc-card-header">
-                        <span class="pc-card-title">隐私指示</span>
+                        <span class="pc-card-title">智慧建议</span>
+                      </div>
+                      <div class="pc-seg">
+                        <div
+                          class="pc-seg-thumb"
+                          :style="{ transform: prayerStore.userMode === 'normal' ? 'translateX(0)' : 'translateX(100%)' }"
+                        ></div>
+                        <button
+                          class="pc-seg-btn"
+                          :class="{ on: prayerStore.userMode === 'normal' }"
+                          @click="prayerStore.setUserMode('normal')"
+                        >
+                          普通用户
+                        </button>
+                        <button
+                          class="pc-seg-btn"
+                          :class="{ on: prayerStore.userMode === 'muslim' }"
+                          @click="prayerStore.setUserMode('muslim')"
+                        >
+                          穆斯林用户
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- 虚线分割 -->
+                    <div class="pc-divider-dashed"></div>
+
+                    <!-- 区域 2：穆斯林闹钟时间模式切换卡片 -->
+                    <div class="pc-section">
+                      <div class="pc-card-header">
+                        <span class="pc-card-title">穆斯林闹钟</span>
                         <label class="pc-switch-wrap">
                           <input
                             type="checkbox"
-                            :checked="control.showPrivacyIndicators"
-                            @change="control.setShowPrivacyIndicators($event.target.checked)"
+                            :checked="clockStore.settings.muslimAlarmEnabled"
+                            @change="clockStore.setMuslimAlarmEnabled($event.target.checked)"
                           />
                           <div class="pc-switch"></div>
                         </label>
                       </div>
-                    </div>
-                    <div class="pc-card pc-card-single">
-                      <div class="pc-card-header">
-                        <span class="pc-card-title">双卡显示</span>
-                        <label class="pc-switch-wrap">
-                          <input
-                            type="checkbox"
-                            :checked="control.showDualSim"
-                            @change="control.setShowDualSim($event.target.checked)"
-                          />
-                          <div class="pc-switch"></div>
-                        </label>
+                      <div class="pc-seg">
+                        <div
+                          class="pc-seg-thumb"
+                          :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
+                        ></div>
+                        <button
+                          class="pc-seg-btn"
+                          :class="{ on: clockStore.muslimTimeMode === 'default' }"
+                          @click="clockStore.setMuslimTimeMode('default')"
+                        >
+                          默认时间
+                        </button>
+                        <button
+                          class="pc-seg-btn"
+                          :class="{ on: clockStore.muslimTimeMode === 'custom' }"
+                          @click="clockStore.setMuslimTimeMode('custom')"
+                        >
+                          设定时间
+                        </button>
                       </div>
                     </div>
                   </div>
-
-                  <!-- 微调图标尺寸 (放置在最下方，开关打开后卡片内展开完整面板) -->
-                  <div class="pc-card" :class="control.fineTuningMode ? 'pc-card-expanded' : 'pc-card-single'">
-                    <div class="pc-card-header">
-                      <span class="pc-card-title">图标尺寸</span>
-                      <label class="pc-switch-wrap">
-                        <input
-                          type="checkbox"
-                          :checked="control.fineTuningMode"
-                          @change="onToggleFineTune($event.target.checked)"
-                        />
-                        <div class="pc-switch"></div>
-                      </label>
-                    </div>
-                    <!-- 开关开启时展开微调控制面板（无缝过渡动效） -->
-                    <Transition name="finetune-expand">
-                      <ControlCenterFineTunePanel v-if="control.fineTuningMode" />
-                    </Transition>
-                  </div>
-                </section>
+                </div>
               </Transition>
             </main>
           </div>
@@ -1192,7 +1118,7 @@ function onCopyFineTune() {
   flex: none;
   background: #18181c;
   border-radius: 24px;
-  padding: 16px;
+  padding: 14px;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow:
@@ -1216,94 +1142,169 @@ function onCopyFineTune() {
   pointer-events: none;
 }
 
-/* 顶部标题栏 (上下居中) */
+/* 顶部标题栏：左右分布图标按钮，中间居中标题 */
 .pc-header {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   width: 100%;
-  padding: 2px 0 4px;
+  padding: 2px 2px 4px;
   margin-bottom: 0;
 }
 
+.pc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pc-header-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.pc-header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.pc-header-icon-btn:active {
+  transform: scale(0.94);
+}
+
+.pc-header-icon-btn.is-active-power {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.pc-header-icon-btn.is-active-power:hover {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fef3c7;
+}
+
+.pc-header-icon-btn.is-off-power {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.pc-header-icon-btn.is-off-power:hover {
+  background: rgba(239, 68, 68, 0.25);
+  color: #fee2e2;
+}
+
 .pc-title {
-  font: 800 15.5px/1.2 var(--font-stack);
+  font: 800 15px/1.2 var(--font-stack);
   letter-spacing: -0.2px;
   color: #ffffff;
   margin: 0;
   text-align: center;
-}
-
-/* ================= 模块切换卡片 & Tab 导航条 ================= */
-.pc-tab-card {
-  padding: 11px 13px 12px;
-}
-
-.mobile-tab-card {
-  margin: 0 16px 12px;
-}
-
-.pc-tab-bar {
-  position: relative;
-  display: flex;
-  background: #101014;
-  border: 1px solid #27272a;
-  border-radius: 12px;
-  padding: 3px;
-  margin-bottom: 0;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
-.pc-tab-indicator {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  width: calc(33.333% - 2px);
-  background: #2563eb;
-  border-radius: 9px;
-  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.45);
-}
-
-.pc-tab-btn {
-  position: relative;
-  z-index: 1;
   flex: 1;
-  padding: 7px 0;
-  font: 600 12px/1 var(--font-stack);
-  color: #a1a1aa;
-  text-align: center;
-  border-radius: 9px;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  transition: color 0.2s ease;
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-  user-select: none;
 }
 
-.pc-tab-btn:hover {
-  color: #e4e4e7;
+/* ================= 截屏录屏两列网格 ================= */
+.pc-capture-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
-.pc-tab-btn.active {
-  color: #ffffff;
-  font-weight: 700;
-}
-
-/* ================= 卡片与控件 ================= */
-.pc-content-body {
-  position: relative;
-  min-height: 280px;
-}
-
-.pc-tab-panel {
+.pc-capture-col {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  background: #141418;
+  border: 1px solid #27272f;
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.pc-capture-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 2px;
+  font-size: 11px;
+}
+
+/* ================= 模块下拉选择器 ================= */
+.pc-module-selector-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.pc-module-label {
+  font: 600 12px/1 var(--font-stack);
+  color: #a1a1aa;
+  white-space: nowrap;
+  letter-spacing: 0.1px;
+}
+
+.pc-select-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.pc-module-select {
+  width: 100%;
+  background: #1f1f26;
+  border: 1px solid #2e2e38;
+  border-radius: 10px;
+  padding: 7px 28px 7px 11px;
+  font: 600 12px/1 var(--font-stack);
+  color: #ffffff;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: all 0.2s ease;
+}
+
+.pc-module-select:hover {
+  background: #23232c;
+  border-color: #3f3f4c;
+}
+
+.pc-module-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+.pc-select-arrow {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 15px;
+  height: 15px;
+  color: #71717a;
+  pointer-events: none;
+}
+
+/* ================= 单一模块大卡片 & 虚线分割 ================= */
+.pc-content-body {
+  position: relative;
+  min-height: 220px;
 }
 
 .pc-card {
@@ -1320,6 +1321,27 @@ function onCopyFineTune() {
   border-color: #3f3f4c;
 }
 
+.pc-module-big-card {
+  padding: 12px 13px;
+}
+
+.pc-module-section-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.pc-section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 虚线分割线 */
+.pc-divider-dashed {
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+  margin: 11px 0;
+  width: 100%;
+}
+
 .pc-card-header {
   display: flex;
   align-items: center;
@@ -1327,32 +1349,47 @@ function onCopyFineTune() {
   margin-bottom: 9px;
 }
 
-/* 只有标题一行的卡片（隐私指示/双卡显示单行底板 / 微调图标尺寸收起态）：
-   通用卡片 padding 是 11px 13px 13px（上小下大，为多行内容留呼吸感），
-   单行卡片改用对称的 12px，标题+开关正好落在卡片垂直中心（卡片总高不变） */
-.pc-card.pc-card-single {
-  padding-top: 12px;
-  padding-bottom: 12px;
-}
-.pc-card.pc-card-single .pc-card-header {
-  margin-bottom: 0;
+.pc-card-title {
+  font: 600 12.5px/1.2 var(--font-stack);
+  color: #f4f4f5;
+  letter-spacing: 0.1px;
 }
 
-/* 一行放两块底板（隐私指示 / 双卡显示）：
-   两块各占一半（flex 1:1，min-width 0 防止长标题把格子撑歪），
-   高度 stretch 对齐，间距 10 与其它卡片之间的间距同档 */
-.pc-card-duo {
+/* 一行两列并排：隐私指示 + 双卡显示 */
+.pc-duo-row {
   display: flex;
-  align-items: stretch;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
-.pc-card-duo > .pc-card {
-  flex: 1 1 0;
-  min-width: 0;
+
+.pc-duo-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #141418;
+  border: 1px solid #27272f;
+  border-radius: 12px;
+  padding: 9px 10px;
 }
-/* 微调面板展开态：面板自带 margin/padding-top 间距，标题与面板之间保持原有的 0 间隙 */
-.pc-card.pc-card-expanded .pc-card-header {
-  margin-bottom: 0;
+
+/* 灵动岛常驻说明条 */
+.pc-island-hint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #a1a1aa;
+}
+
+.pc-island-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #60a5fa;
+  background: rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  padding: 2px 7px;
+  border-radius: 6px;
 }
 
 /* 图标尺寸展开面板无缝过渡动效 */
@@ -1378,12 +1415,6 @@ function onCopyFineTune() {
   transform: translateY(0);
 }
 
-.pc-card-title {
-  font: 600 12.5px/1.2 var(--font-stack);
-  color: #f4f4f5;
-  letter-spacing: 0.1px;
-}
-
 .pc-state-tag {
   display: inline-flex;
   align-items: center;
@@ -1396,19 +1427,7 @@ function onCopyFineTune() {
   color: #34d399;
 }
 
-.pc-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #52525b;
-}
-
-.pc-state-tag.is-on .pc-dot {
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-}
-
-/* 默认布局：tOS16 / tOS17 两行对照（同一张卡片内） */
+/* 默认布局：三行对照 */
 .pc-preset-rows {
   position: relative;
   display: flex;
@@ -1416,10 +1435,6 @@ function onCopyFineTune() {
   gap: 8px;
 }
 
-/* 两行 6 个按钮共用一个滑块：位置由 JS 实测目标按钮写入 transform，
-   所以跨行切换也是连续位移，不会先在行首闪一下。
-   z-index 1 与按钮同级 —— 靠 DOM 顺序（滑块在前）压在按钮文字之下、
-   .pc-seg 底板之上。 */
 .pc-preset-thumb {
   position: absolute;
   top: 0;
@@ -1434,7 +1449,6 @@ function onCopyFineTune() {
   pointer-events: none;
 }
 
-/* 首帧直接就位，不加过渡；之后才开启动画 */
 .pc-preset-thumb.is-ready {
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -1520,17 +1534,11 @@ function onCopyFineTune() {
 }
 
 /* 操作按钮 */
-.pc-btn-group-2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
 .pc-btn {
   width: 100%;
-  padding: 10px 0;
+  padding: 9px 0;
   border-radius: 12px;
-  font: 700 13px/1 var(--font-stack);
+  font: 700 12.5px/1 var(--font-stack);
   background: #27272a;
   border: 1px solid #3f3f46;
   color: #ffffff;
@@ -1592,40 +1600,13 @@ function onCopyFineTune() {
   background: #b91c1c;
 }
 
-/* 转码中的沙漏（纯状态指示，不是功能图标） */
 .pc-rec-spin {
   display: inline-block;
   margin-right: 6px;
 }
 
-/* 录屏 / 截图按钮的图标直接用控制中心同款矢量图（LIcon），
-   这里只补「图标与文字之间」的间距 —— 保持两者是同一个控件语言 */
 .pc-btn :deep(.l-icon) {
   margin-right: 7px;
-}
-
-.pc-btn-toggle.pc-btn-danger {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #fca5a5;
-  box-shadow: none;
-}
-
-.pc-btn-toggle.pc-btn-danger:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.28);
-  color: #ffffff;
-}
-
-.pc-btn-toggle.pc-btn-primary {
-  background: rgba(16, 185, 129, 0.16);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #6ee7b7;
-  box-shadow: none;
-}
-
-.pc-btn-toggle.pc-btn-primary:hover:not(:disabled) {
-  background: rgba(16, 185, 129, 0.28);
-  color: #ffffff;
 }
 
 /* 礼拜按钮组 */
@@ -1718,29 +1699,6 @@ function onCopyFineTune() {
   transform: translateX(12px);
 }
 
-/* 提示卡片 */
-.pc-hint-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  background: rgba(37, 99, 235, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 14px;
-}
-
-.pc-hint-icon {
-  color: #60a5fa;
-  margin-top: 1px;
-  flex-shrink: 0;
-}
-
-.pc-hint-text {
-  font: 500 11.5px/1.45 var(--font-stack);
-  color: #bfdbfe;
-  margin: 0;
-}
-
 /* ================= 移动端悬浮球与居中弹窗 ================= */
 .mobile-dev-console {
   position: fixed;
@@ -1827,10 +1785,6 @@ function onCopyFineTune() {
 }
 
 .pc-close-btn {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
   width: 24px;
   height: 24px;
   border-radius: 50%;
