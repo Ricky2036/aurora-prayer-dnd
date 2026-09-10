@@ -120,6 +120,12 @@ const networks = ['Ricky_5G', 'Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G']
 /* 搜索功能 */
 const searchQuery = ref('')
 const searchActive = ref(false)
+const settingsScrollTop = ref(0)
+const titleCollapseProgress = computed(() => clamp((settingsScrollTop.value - 10) / 42, 0, 1))
+
+function onSettingsScroll(event) {
+  settingsScrollTop.value = event.currentTarget.scrollTop
+}
 
 const allSearchableItems = [
   { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
@@ -162,9 +168,25 @@ const filteredSearchResults = computed(() => {
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 首页 ================= -->
       <div v-if="view === 'main'" key="main" class="settings-page">
-        <div class="settings-scroll-container scrollable">
+        <div
+          class="settings-compact-header"
+          :style="{
+            '--collapse-progress': titleCollapseProgress,
+            opacity: titleCollapseProgress
+          }"
+          aria-hidden="true"
+        >
+          <span>设置</span>
+        </div>
+        <div class="settings-scroll-container scrollable" @scroll.passive="onSettingsScroll">
           <!-- 顶部大标题 -->
-          <div class="large-title">设置</div>
+          <div
+            class="large-title"
+            :style="{
+              opacity: 1 - titleCollapseProgress,
+              transform: `translateY(${-4 * titleCollapseProgress}px) scale(${1 - 0.12 * titleCollapseProgress})`
+            }"
+          >设置</div>
 
           <!-- 搜索结果列表（当有输入时激活） -->
           <div v-if="searchQuery.trim()" class="search-results-wrap">
@@ -634,11 +656,44 @@ const filteredSearchResults = computed(() => {
 
 /* ================= 顶层大标题 ================= */
 .large-title {
-  font-size: 28px;
+  font-size: 30px;
+  line-height: 1.15;
   font-weight: 700;
   color: #111111;
-  padding: calc(var(--safe-top, 20px) + 16px) 20px 14px 20px;
-  letter-spacing: -0.5px;
+  padding: calc(var(--safe-top, 20px) + 14px) 20px 16px 20px;
+  letter-spacing: -0.7px;
+  transform-origin: left center;
+  will-change: opacity, transform;
+  transition: opacity 80ms linear;
+}
+
+.settings-compact-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--safe-top, 20px) + 48px);
+  z-index: 12;
+  display: flex;
+  align-items: flex-end;
+  box-sizing: border-box;
+  padding: 0 20px 11px;
+  pointer-events: none;
+  color: #111111;
+  font-size: 18px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.35px;
+  background: linear-gradient(
+    to bottom,
+    rgba(244, 245, 247, 0.99) 0%,
+    rgba(244, 245, 247, 0.99) 78%,
+    rgba(244, 245, 247, 0) 100%
+  );
+  backdrop-filter: blur(calc(10px * var(--collapse-progress)));
+  -webkit-backdrop-filter: blur(calc(10px * var(--collapse-progress)));
+  will-change: opacity;
+  transition: opacity 80ms linear;
 }
 
 /* ================= 统一卡片规范 ================= */
@@ -802,6 +857,24 @@ const filteredSearchResults = computed(() => {
   right: 16px;
   z-index: 10;
   pointer-events: auto;
+}
+
+.settings-floating-search::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -16px;
+  right: -16px;
+  top: -34px;
+  bottom: -20px;
+  background: linear-gradient(
+    to bottom,
+    rgba(244, 245, 247, 0) 0%,
+    rgba(244, 245, 247, 0.88) 38%,
+    #F4F5F7 68%,
+    #F4F5F7 100%
+  );
+  pointer-events: none;
 }
 
 .scroll-bottom-spacer {
