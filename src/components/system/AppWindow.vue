@@ -125,12 +125,17 @@ const iconWrapperStyle = computed(() => {
   }
 })
 
+let launchAnchor = null
+
 function closeToLiveAnchor() {
   if (['closing', 'handoff', 'closed'].includes(phase.value)) return
   const screen = screenRef.el
   const viewport = readViewport()
-  const anchor = getAnchorRect(props.appId, screen)
-  if (!viewport || !anchor) {
+  let anchor = getAnchorRect(props.appId, screen)
+  if (!anchor || !anchor.width) {
+    anchor = launchAnchor
+  }
+  if (!viewport || !anchor || !anchor.width) {
     home.showIcon()
     system.setHomeGestureProgress(0)
     system.finishGoHome()
@@ -155,13 +160,16 @@ function closeToLiveAnchor() {
 onMounted(() => {
   const screen = screenRef.el
   const viewport = readViewport()
-  const launchRect = consumeLaunchRect(props.appId) || getAnchorRect(props.appId, screen)
-  if (!viewport || !launchRect) {
+  const consumed = consumeLaunchRect(props.appId)
+  const gotAnchor = getAnchorRect(props.appId, screen)
+  const launchRect = consumed || gotAnchor
+  if (!viewport || !launchRect || !launchRect.width) {
     ready.value = true
     home.hideIcon(props.appId)
     return
   }
 
+  launchAnchor = launchRect
   home.hideIcon(props.appId)
   hero.beginOpen({
     viewportRect: viewport,

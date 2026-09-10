@@ -56,11 +56,12 @@ function onHeroFrame(nextFrame) {
 const homeInteractive = computed(() => system.baseLayer !== 'app')
 
 /**
- * 桌面与壁纸可见性：
+ * 壁纸可见性：
  * 基础层为 app 时，若应用处于静态铺满 open 态且无手势拉起（homeGestureProgress === 0），
- * 隐藏底部的 wallpaper 与 home-layer，杜绝四角圆角拟合误差及页面缩放时的透底。
+ * 隐藏底部的 wallpaper，杜绝四角圆角拟合误差及页面缩放时的透底。
+ * 注意：home-layer 必须常驻 DOM 布局树以提供物理锚点，不可使用 v-show 隐藏。
  */
-const isDesktopVisible = computed(() => {
+const isWallpaperVisible = computed(() => {
   if (system.baseLayer === 'app') {
     if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0) {
       return false
@@ -257,14 +258,13 @@ useSwipeGesture(sideEdgeRef, {
   <div ref="rootEl" class="screen-view">
     <!-- 桌面/锁屏统一壁纸（notificationscreen.tsx 同款，本地化） -->
     <div
-      v-show="isDesktopVisible"
+      v-show="isWallpaperVisible"
       class="wallpaper"
       :style="{ backgroundImage: `url(${wallpaper})` }"
     ></div>
 
-    <!-- 桌面（lock 层时也常驻，支撑解锁入场动效） -->
+    <!-- 桌面（常驻 DOM，支撑解锁入场动效与 Hero 实时锚点计算） -->
     <div
-      v-show="isDesktopVisible"
       class="home-layer"
       :style="{ pointerEvents: homeInteractive ? 'auto' : 'none' }"
     >
