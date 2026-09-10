@@ -160,6 +160,7 @@ useBackHandler(() => {
   flex: 1;
   position: relative;
   overflow: hidden;
+  z-index: 1;
 }
 
 /* 二级页面遮罩与滑入动画 */
@@ -167,7 +168,7 @@ useBackHandler(() => {
   position: absolute;
   inset: 0;
   background: #000;
-  z-index: 50;
+  z-index: 200;
 }
 
 .slide-page-enter-active,

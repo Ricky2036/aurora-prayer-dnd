@@ -228,4 +228,15 @@ test('SettingsPrayer requires user authorization modal when activating reminder 
   )
 })
 
+test('DevConsole Muslim alarm card uses toggle switch and removes obsolete action button and footer text', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const content = fs.readFileSync(devConsolePath, 'utf8')
+
+  assert.ok(content.includes('clockStore.settings.muslimAlarmEnabled'), 'Must bind to clockStore.settings.muslimAlarmEnabled')
+  assert.doesNotMatch(content, /关闭穆斯林闹钟/, 'Obsolete full-width button must be removed')
+  assert.doesNotMatch(content, /开启穆斯林闹钟/, 'Obsolete full-width button must be removed')
+  assert.doesNotMatch(content, /计算:\s*\{\{\s*clockStore\.settings\.calcMethod\s*\}\}/, 'Footer text must be removed')
+})
+
+
 
