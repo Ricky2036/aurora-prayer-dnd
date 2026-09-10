@@ -122,8 +122,8 @@ const searchQuery = ref('')
 const searchActive = ref(false)
 const settingsScrollTop = ref(0)
 const titleCollapseProgress = computed(() => clamp((settingsScrollTop.value - 10) / 42, 0, 1))
-const largeTitleOpacity = computed(() => clamp(1 - titleCollapseProgress.value / 0.46, 0, 1))
-const compactTitleOpacity = computed(() => clamp((titleCollapseProgress.value - 0.38) / 0.62, 0, 1))
+const titleSize = computed(() => 30 - 12 * titleCollapseProgress.value)
+const titleOffset = computed(() => -4 * titleCollapseProgress.value)
 
 function onSettingsScroll(event) {
   settingsScrollTop.value = event.currentTarget.scrollTop
@@ -170,25 +170,16 @@ const filteredSearchResults = computed(() => {
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 首页 ================= -->
       <div v-if="view === 'main'" key="main" class="settings-page">
-        <div
-          class="settings-compact-header"
-          :style="{
-            '--collapse-progress': titleCollapseProgress,
-            opacity: compactTitleOpacity
-          }"
-          aria-hidden="true"
-        >
-          <span>设置</span>
-        </div>
         <div class="settings-scroll-container scrollable" @scroll.passive="onSettingsScroll">
           <!-- 顶部大标题 -->
           <div
             class="large-title"
             :style="{
-              opacity: largeTitleOpacity,
-              transform: `translateY(${-4 * titleCollapseProgress}px) scale(${1 - 0.12 * titleCollapseProgress})`
+              '--title-progress': titleCollapseProgress,
+              '--title-size': `${titleSize}px`,
+              '--title-offset': `${titleOffset}px`
             }"
-          >设置</div>
+          ><span>设置</span></div>
 
           <!-- 搜索结果列表（当有输入时激活） -->
           <div v-if="searchQuery.trim()" class="search-results-wrap">
@@ -658,42 +649,44 @@ const filteredSearchResults = computed(() => {
 
 /* ================= 顶层大标题 ================= */
 .large-title {
-  font-size: 30px;
-  line-height: 1.15;
-  font-weight: 700;
-  color: #111111;
-  padding: calc(var(--safe-top, 20px) + 14px) 20px 16px 20px;
-  letter-spacing: -0.7px;
-  transform-origin: left center;
-  will-change: opacity, transform;
-  transition: opacity 80ms linear;
+  position: sticky;
+  top: 0;
+  height: calc(var(--safe-top, 20px) + 64px);
+  z-index: 12;
+  display: flex;
+  align-items: flex-start;
+  box-sizing: border-box;
+  padding: calc(var(--safe-top, 20px) + 14px) 20px 0;
+  isolation: isolate;
 }
 
-.settings-compact-header {
+.large-title::before {
+  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--safe-top, 20px) + 78px);
-  z-index: 12;
-  box-sizing: border-box;
-  padding: calc(var(--safe-top, 20px) + 10px) 20px 0;
-  pointer-events: none;
-  color: #111111;
-  font-size: 18px;
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: -0.35px;
+  z-index: -1;
+  inset: 0 0 -30px;
   background: linear-gradient(
     to bottom,
     rgba(244, 245, 247, 0.99) 0%,
-    rgba(244, 245, 247, 0.99) 54%,
-    rgba(244, 245, 247, 0.72) 68%,
-    rgba(244, 245, 247, 0.28) 84%,
+    rgba(244, 245, 247, 0.99) 62%,
+    rgba(244, 245, 247, 0.7) 76%,
+    rgba(244, 245, 247, 0.24) 90%,
     rgba(244, 245, 247, 0) 100%
   );
-  will-change: opacity;
-  transition: opacity 80ms linear;
+  opacity: var(--title-progress);
+  pointer-events: none;
+}
+
+.large-title > span {
+  display: block;
+  color: #111111;
+  font-size: var(--title-size);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  transform: translateY(var(--title-offset));
+  transform-origin: left center;
+  will-change: font-size, transform;
 }
 
 /* ================= 统一卡片规范 ================= */
