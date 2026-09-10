@@ -39,6 +39,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Restore AppWindow and ScreenView hero anchor transition and add anchor cache fallback | `antigravity/lane` | `src/components/system/AppWindow.vue`; `src/components/phone/ScreenView.vue`; `src/utils/appIconAnchors.js` | `a559fec` | `6939000` |
 | Merged | Antigravity | Replace music player dynamic island fav and shuffle icons from Downloads | `antigravity/lane` | `src/components/system/MusicPlayerCard.vue`; `src/assets/icons/favor.svg`; `src/assets/icons/shuffle.svg` | `86fbd02` | `0447258` |
 | Merged | Antigravity | Implement Scheme 1 Snooze SVG icon and ensure button alignment | `antigravity/lane` | `src/components/apps/clock/clockIcons.js`; `src/components/system/DynamicIsland.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue` | `7d647ff` | `797c51e` |
+| Merged | Antigravity | Fix clock subpage back button and more menu bleed-through, update DevConsole Muslim alarm switch | `antigravity/lane` | `src/components/apps/clock/ClockApp.vue`; `src/components/dev/DevConsole.vue` | `0f7cf80` | `42c9bb4` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
