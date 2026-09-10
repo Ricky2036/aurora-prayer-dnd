@@ -298,9 +298,8 @@ function handleClosePrayer(e) {
               @click.stop="clockStore.snoozeAlarm()"
               :title="clockStore.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
             >
-              <svg class="snooze-activity-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-                <path :d="CLOCK_ICONS.alarm" transform="translate(0 5) scale(.72)" />
-                <path d="M13.5 5h3.8l-3.8 4h3.8M17.5 1.5h4l-4 4.5h4" />
+              <svg class="snooze-activity-icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                <path :d="CLOCK_ICONS.snooze" />
               </svg>
             </button>
 
@@ -532,9 +531,8 @@ function handleClosePrayer(e) {
               @click.stop="clockStore.snoozeAlarm()"
               :title="clockStore.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
             >
-              <svg class="snooze-activity-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-                <path :d="CLOCK_ICONS.alarm" transform="translate(0 5) scale(.72)" />
-                <path d="M13.5 5h3.8l-3.8 4h3.8M17.5 1.5h4l-4 4.5h4" />
+              <svg class="snooze-activity-icon" width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                <path :d="CLOCK_ICONS.snooze" />
               </svg>
             </button>
 
@@ -1008,14 +1006,6 @@ function handleClosePrayer(e) {
   fill: #ffffff;
 }
 
-.snooze-activity-icon path:last-child {
-  fill: none;
-  stroke: #ffffff;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .icon-alarm.is-ringing svg {
   animation: alarmRingWiggle 1.4s ease-in-out infinite;
   transform-origin: center;
@@ -1133,6 +1123,7 @@ function handleClosePrayer(e) {
 .ilc-btn {
   width: 42px;
   height: 42px;
+  padding: 0;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1140,6 +1131,11 @@ function handleClosePrayer(e) {
   border: none;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
+  flex: none;
+}
+
+.ilc-btn svg {
+  display: block;
   flex: none;
 }
 

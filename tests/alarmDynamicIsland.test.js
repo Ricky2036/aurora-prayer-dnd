@@ -171,7 +171,20 @@ test('DynamicIsland.vue contains alarm templates, snooze and dismiss buttons', (
   assert.ok(content.includes('class="alarm-activity-icon"'), 'Alarm card must use the shared clock alarm vector')
   assert.ok(content.includes('class="snooze-activity-icon"'), 'Snooze control must use a dedicated vector icon')
   assert.ok(content.includes(':d="CLOCK_ICONS.alarm"'), 'Alarm artwork must reuse the Clock app icon path')
+  assert.ok(content.includes(':d="CLOCK_ICONS.snooze"'), 'Snooze button must use dedicated CLOCK_ICONS.snooze')
   assert.ok(!content.includes('<text x="14.8"'), 'Snooze artwork must not use text glyphs')
+})
+
+test('LockScreen and NotificationCenter use CLOCK_ICONS.snooze without text hacks', () => {
+  const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const ncPath = path.resolve(__dirname, '../src/components/system/NotificationCenter.vue')
+  const lsContent = fs.readFileSync(lsPath, 'utf8')
+  const ncContent = fs.readFileSync(ncPath, 'utf8')
+
+  assert.ok(lsContent.includes(':d="CLOCK_ICONS.snooze"'), 'LockScreen snooze button must use CLOCK_ICONS.snooze')
+  assert.ok(!lsContent.includes('<text x="14.8"'), 'LockScreen must not use text glyphs')
+  assert.ok(ncContent.includes(':d="CLOCK_ICONS.snooze"'), 'NotificationCenter snooze button must use CLOCK_ICONS.snooze')
+  assert.ok(!ncContent.includes('<text x="14.8"'), 'NotificationCenter must not use text glyphs')
 })
 
 test('DevConsole uses the vector alarm icon and concise copy without emoji', () => {
@@ -183,3 +196,4 @@ test('DevConsole uses the vector alarm icon and concise copy without emoji', () 
   assert.doesNotMatch(content, /🔔/, 'Alarm control must not use emoji')
   assert.doesNotMatch(content, /触发 20:44 闹钟/, 'Alarm control must not expose fixture time copy')
 })
+
