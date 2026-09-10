@@ -557,20 +557,14 @@ function onCopyFineTune() {
           <div class="pc-card">
             <div class="pc-card-header">
               <span class="pc-card-title">穆斯林闹钟</span>
-              <span class="pc-state-tag" :class="{ 'is-on': clockStore.settings.muslimAlarmEnabled }">
-                {{ clockStore.settings.muslimAlarmEnabled ? '已开启' : '已关闭' }}
-              </span>
-            </div>
-            <!-- 穆斯林闹钟开关控制 -->
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <button
-                class="pc-prayer-btn"
-                style="flex: 1;"
-                :class="{ on: clockStore.settings.muslimAlarmEnabled }"
-                @click="clockStore.setMuslimAlarmEnabled(!clockStore.settings.muslimAlarmEnabled)"
-              >
-                {{ clockStore.settings.muslimAlarmEnabled ? '关闭穆斯林闹钟' : '开启穆斯林闹钟' }}
-              </button>
+              <label class="pc-switch-wrap">
+                <input
+                  type="checkbox"
+                  :checked="clockStore.settings.muslimAlarmEnabled"
+                  @change="clockStore.setMuslimAlarmEnabled($event.target.checked)"
+                />
+                <div class="pc-switch"></div>
+              </label>
             </div>
             <div class="pc-seg">
               <div
@@ -591,10 +585,6 @@ function onCopyFineTune() {
               >
                 设定时间
               </button>
-            </div>
-            <div style="margin-top: 8px; font-size: 11px; color: #8e8e93; display: flex; justify-content: space-between;">
-              <span>计算: {{ clockStore.settings.calcMethod }}</span>
-              <span>哺礼: {{ clockStore.settings.prayerTimeMethod }}</span>
             </div>
           </div>
 
@@ -994,20 +984,14 @@ function onCopyFineTune() {
                   <div class="pc-card">
                     <div class="pc-card-header">
                       <span class="pc-card-title">穆斯林闹钟</span>
-                      <span class="pc-state-tag" :class="{ 'is-on': clockStore.settings.muslimAlarmEnabled }">
-                        {{ clockStore.settings.muslimAlarmEnabled ? '已开启' : '已关闭' }}
-                      </span>
-                    </div>
-                    <!-- 穆斯林闹钟开关控制 -->
-                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                      <button
-                        class="pc-prayer-btn"
-                        style="flex: 1;"
-                        :class="{ on: clockStore.settings.muslimAlarmEnabled }"
-                        @click="clockStore.setMuslimAlarmEnabled(!clockStore.settings.muslimAlarmEnabled)"
-                      >
-                        {{ clockStore.settings.muslimAlarmEnabled ? '关闭穆斯林闹钟' : '开启穆斯林闹钟' }}
-                      </button>
+                      <label class="pc-switch-wrap">
+                        <input
+                          type="checkbox"
+                          :checked="clockStore.settings.muslimAlarmEnabled"
+                          @change="clockStore.setMuslimAlarmEnabled($event.target.checked)"
+                        />
+                        <div class="pc-switch"></div>
+                      </label>
                     </div>
                     <div class="pc-seg">
                       <div
@@ -1028,10 +1012,6 @@ function onCopyFineTune() {
                       >
                         设定时间
                       </button>
-                    </div>
-                    <div style="margin-top: 8px; font-size: 11px; color: #8e8e93; display: flex; justify-content: space-between;">
-                      <span>计算: {{ clockStore.settings.calcMethod }}</span>
-                      <span>哺礼: {{ clockStore.settings.prayerTimeMethod }}</span>
                     </div>
                   </div>
 

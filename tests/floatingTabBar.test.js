@@ -85,6 +85,14 @@ test('ClockApp conditionally renders 5-Tab when muslimAlarmEnabled is true and 4
   assert.ok(content.includes("activeTab.value = 'alarm'"), 'Must fallback to alarm tab when disabled')
 })
 
+test('ClockApp subpage overlay properly encapsulates main view to prevent more-button leakage and back button interception', () => {
+  const clockAppPath = path.resolve(__dirname, '../src/components/apps/clock/ClockApp.vue')
+  const content = fs.readFileSync(clockAppPath, 'utf8')
+
+  assert.match(content, /\.clock-main-view\s*\{[^}]*z-index:\s*1;/, 'clock-main-view must establish stacking context')
+  assert.match(content, /\.subpage-overlay\s*\{[^}]*z-index:\s*200;/, 'subpage-overlay must have higher z-index to overlay main view and tab bar')
+})
+
 test('MuslimTab component faithfully implements Islamic prayer compass wheel and reference design', () => {
   const muslimPath = path.resolve(__dirname, '../src/components/apps/clock/tabs/MuslimTab.vue')
   assert.ok(fs.existsSync(muslimPath), 'MuslimTab.vue must exist')
