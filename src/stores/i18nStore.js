@@ -539,6 +539,9 @@ export const MESSAGES = {
     defaultTime: '默认时间',
     customTime: '设定时间',
     muslimAlarmTime: '穆斯林闹钟时间',
+    calcMethod: '计算方法',
+    prayerTimeMethod: '哺礼时间法',
+    customOption: '自定义',
 
     // 联系人选择
     searchContactsPlaceholder: '搜索姓名或电话号码',
@@ -913,6 +916,9 @@ export const MESSAGES = {
     defaultTime: 'Default Time',
     customTime: 'Custom Time',
     muslimAlarmTime: 'Muslim Alarm Time',
+    calcMethod: 'Calculation Method',
+    prayerTimeMethod: 'Asr Juristic Method',
+    customOption: 'Custom',
 
     // Contacts
     searchContactsPlaceholder: 'Search name or phone number',
@@ -1288,6 +1294,9 @@ export const MESSAGES = {
     defaultTime: 'ডিফল্ট সময়',
     customTime: 'নির্ধারিত সময়',
     muslimAlarmTime: 'মুসলিম অ্যালার্ম সময়',
+    calcMethod: 'গণনা পদ্ধতি',
+    prayerTimeMethod: 'আছরের সময় পদ্ধতি',
+    customOption: 'কাস্টম',
 
     // Contacts
     searchContactsPlaceholder: 'নাম বা ফোন নম্বর খুঁজুন',

@@ -252,6 +252,7 @@ export const useClockStore = defineStore('clock', {
 
     // 穆斯林闹钟时间模式：'default' (默认时间) | 'custom' (设定时间)
     muslimTimeMode: 'default',
+    subpage: null,
 
     // 设置项
     settings: {
@@ -605,6 +606,43 @@ export const useClockStore = defineStore('clock', {
 
     setMuslimTimeMode(mode) {
       this.muslimTimeMode = mode
+      if (mode === 'custom') {
+        this.settings.calcMethod = '自定义'
+        this.settings.prayerTimeMethod = '自定义'
+      } else if (mode === 'default') {
+        this.settings.calcMethod = '穆斯林世界联盟'
+        this.settings.prayerTimeMethod = '莎菲懿法学派'
+      }
+    },
+
+    setCalcMethod(method) {
+      this.settings.calcMethod = method
+      if (method === '自定义') {
+        this.muslimTimeMode = 'custom'
+      } else if (this.settings.prayerTimeMethod !== '自定义') {
+        this.muslimTimeMode = 'default'
+      }
+    },
+
+    setPrayerTimeMethod(method) {
+      this.settings.prayerTimeMethod = method
+      if (method === '自定义') {
+        this.muslimTimeMode = 'custom'
+      } else if (this.settings.calcMethod !== '自定义') {
+        this.muslimTimeMode = 'default'
+      }
+    },
+
+    setRamadanAdjustDays(days) {
+      this.settings.ramadanAdjustDays = days
+    },
+
+    setRingtone(ringtone) {
+      this.settings.ringtone = ringtone
+    },
+
+    setSubpage(page) {
+      this.subpage = page
     },
 
     toggleIslandExpanded() {

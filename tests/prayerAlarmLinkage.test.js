@@ -138,16 +138,67 @@ test('SettingsPrayer updates copy matching exact user specifications', () => {
   assert.equal(i18n.t('enableNow'), '立即开启')
 })
 
-test('clockStore supports muslimTimeMode and time synchronization', () => {
+test('clockStore supports muslimTimeMode, calcMethod, and prayerTimeMethod synchronization', () => {
   setActivePinia(createPinia())
   const clockStore = useClockStore()
 
   assert.equal(clockStore.muslimTimeMode, 'default', 'Defaults to default reference time')
   assert.equal(clockStore.settings.muslimAlarmEnabled, false, 'Defaults to false when not yet enabled')
+  assert.equal(clockStore.settings.calcMethod, '穆斯林世界联盟', 'Defaults to 穆斯林世界联盟')
+  assert.equal(clockStore.settings.prayerTimeMethod, '莎菲懿法学派', 'Defaults to 莎菲懿法学派')
 
+  // Switching to custom mode sets both methods to '自定义'
   clockStore.setMuslimTimeMode('custom')
   assert.equal(clockStore.muslimTimeMode, 'custom', 'Switches to custom scheduled time')
+  assert.equal(clockStore.settings.calcMethod, '自定义', 'Switches calcMethod to 自定义')
+  assert.equal(clockStore.settings.prayerTimeMethod, '自定义', 'Switches prayerTimeMethod to 自定义')
 
+  // Switching back to default restores default organizations
   clockStore.setMuslimTimeMode('default')
   assert.equal(clockStore.muslimTimeMode, 'default', 'Switches back to default time')
+  assert.equal(clockStore.settings.calcMethod, '穆斯林世界联盟')
+  assert.equal(clockStore.settings.prayerTimeMethod, '莎菲懿法学派')
+
+  // Setting either method to '自定义' triggers custom mode
+  clockStore.setCalcMethod('自定义')
+  assert.equal(clockStore.muslimTimeMode, 'custom')
+  assert.equal(clockStore.settings.calcMethod, '自定义')
+
+  clockStore.setCalcMethod('埃及综合调查局')
+  assert.equal(clockStore.muslimTimeMode, 'default')
+  assert.equal(clockStore.settings.calcMethod, '埃及综合调查局')
 })
+
+test('MuslimAlarmSettings includes 2-line layout, 哺礼时间法, and custom options matching reference images', () => {
+  const componentPath = path.resolve(__dirname, '../src/components/apps/clock/subpages/MuslimAlarmSettings.vue')
+  const content = fs.readFileSync(componentPath, 'utf-8')
+
+  // Correct naming: 哺礼时间法 instead of 哺乳
+  assert.ok(content.includes('哺礼时间法'), 'Must specify 哺礼时间法')
+  assert.ok(!content.includes('哺乳时间法'), 'Must NOT contain 哺乳 typo')
+
+  // 2-line layout classes
+  assert.ok(content.includes('setting-text-col'), 'Must include 2-line column layout')
+  assert.ok(content.includes('setting-sublabel'), 'Must include subtitle value text')
+
+  // Bottom sheet modal elements
+  assert.ok(content.includes('bottom-sheet'), 'Must mount bottom sheet modal')
+  assert.ok(content.includes('sheet-cancel-btn'), 'Must include cancel button')
+  assert.ok(content.includes('option-radio'), 'Must include option radio indicator')
+
+  // Custom options in lists
+  assert.ok(content.includes("'自定义'"), "Must include '自定义' option in lists")
+  assert.ok(content.includes('CALC_METHODS'), 'Must define CALC_METHODS')
+  assert.ok(content.includes('ASR_METHODS'), 'Must define ASR_METHODS')
+  assert.ok(content.includes('埃及综合调查局'), 'Must include 埃及综合调查局')
+  assert.ok(content.includes('哈纳菲'), 'Must include 哈纳菲')
+})
+
+test('SettingsPrayer reminder linkage switches Muslim alarm methods to 自定义', () => {
+  const componentPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsPrayer.vue')
+  const content = fs.readFileSync(componentPath, 'utf-8')
+
+  assert.ok(content.includes("clockStore.settings.calcMethod = '自定义'"), 'Must switch calcMethod to 自定义 on enabling reminder')
+  assert.ok(content.includes("clockStore.settings.prayerTimeMethod = '自定义'"), 'Must switch prayerTimeMethod to 自定义 on enabling reminder')
+})
+

@@ -580,6 +580,10 @@ function onCopyFineTune() {
                 设定时间
               </button>
             </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #8e8e93; display: flex; justify-content: space-between;">
+              <span>计算: {{ clockStore.settings.calcMethod }}</span>
+              <span>哺礼: {{ clockStore.settings.prayerTimeMethod }}</span>
+            </div>
           </div>
 
           <!-- 灵动岛模拟 -->
@@ -998,6 +1002,10 @@ function onCopyFineTune() {
                       >
                         设定时间
                       </button>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #8e8e93; display: flex; justify-content: space-between;">
+                      <span>计算: {{ clockStore.settings.calcMethod }}</span>
+                      <span>哺礼: {{ clockStore.settings.prayerTimeMethod }}</span>
                     </div>
                   </div>
 

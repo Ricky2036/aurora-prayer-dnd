@@ -100,11 +100,13 @@ function applyReminderOption(val) {
     }
     if (clockStore?.settings) {
       clockStore.settings.muslimAlarmEnabled = true
+      clockStore.settings.calcMethod = '自定义'
+      clockStore.settings.prayerTimeMethod = '自定义'
     }
     if (typeof clockStore?.setMuslimAlarmEnabled === 'function') {
       clockStore.setMuslimAlarmEnabled(true)
     }
-    // 开启后穆斯林闹钟的时间按设定的时间进行同步修改
+    // 开启后穆斯林闹钟的时间按设定的时间进行同步修改，且计算方法与哺礼时间法切换到自定义
     if (typeof clockStore?.setMuslimTimeMode === 'function') {
       clockStore.setMuslimTimeMode('custom')
     }
@@ -114,6 +116,8 @@ function applyReminderOption(val) {
 function confirmEnableMuslimAlarm() {
   if (clockStore?.settings) {
     clockStore.settings.muslimAlarmEnabled = true
+    clockStore.settings.calcMethod = '自定义'
+    clockStore.settings.prayerTimeMethod = '自定义'
   }
   if (typeof clockStore?.setMuslimAlarmEnabled === 'function') {
     clockStore.setMuslimAlarmEnabled(true)
