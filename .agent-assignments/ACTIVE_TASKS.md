@@ -31,6 +31,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Refine Muslim alarm settings menu, 2-line layout, custom options, bottom sheet modal, and prayer reminder linkage | `antigravity/lane` | `src/components/apps/clock/**`; `src/components/apps/settings/SettingsPrayer.vue`; `src/components/dev/DevConsole.vue`; `src/stores/clockStore.js`; `src/stores/i18nStore.js`; `tests/prayerAlarmLinkage.test.js` | `e40716e` | `b04277a` |
 | Merged | Antigravity | Center 4 diagonal petals in MuslimTab, ensure authorization modal on prayer reminder enable, and add alarm toggle in DevConsole | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue`; `src/components/apps/settings/SettingsPrayer.vue`; `src/components/dev/DevConsole.vue`; `tests/prayerAlarmLinkage.test.js` | `b04277a` | `f1e84dc` |
 | Merged | Antigravity | Fix AppWindow full-screen and scaled corner/edge wallpaper leaking in ScreenView and AppWindow | `antigravity/lane` | `src/components/system/AppWindow.vue`; `src/components/phone/ScreenView.vue`; `src/utils/heroGeometry.js` | `20a5a73` | `6829c48` |
+| Merged | Workbuddy | Add CC privacy indicator & dual-SIM switch regression test script | `workbuddy/lane` | `scripts/verify-privacy-dualsim-switch.mjs` | `79c6dae` | `fd4b4a2` |
+| Merged | Codex | Settings Figma system icons, collapsing title & scroll masks, dynamic island alarm icon alignment | `codex/lane` | `src/assets/icons/settings/**`; `src/components/ui/SettingsSystemIcon.vue`; `src/components/apps/settings/SettingsApp.vue`; `src/components/system/DynamicIsland.vue`; `tests/settingsMenu.test.js` | `eaa53a8` | `6330c3e` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
