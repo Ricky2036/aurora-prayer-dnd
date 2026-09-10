@@ -16,6 +16,7 @@ import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
+import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
 
 /**
@@ -220,10 +221,7 @@ const filteredSearchResults = computed(() => {
             <!-- ================= 卡片 1: 个人账号卡 ================= -->
             <div class="settings-card account-card" @click="pushUnimplemented('Ricky 账号')">
               <div class="account-avatar">
-                <svg width="34" height="34" viewBox="0 0 44 44" fill="none">
-                  <path d="M16 6C26 12 30 28 20 40C34 38 42 26 36 12C31 3 20 4 16 6Z" fill="white" fill-opacity="0.32" />
-                  <path d="M12 14C20 20 23 34 16 42C28 40 36 30 30 18C25 9 17 11 12 14Z" fill="white" fill-opacity="0.55" />
-                </svg>
+                <img class="account-avatar-img" :src="accountAvatar" alt="Ricky" />
               </div>
               <div class="account-info">
                 <div class="account-name">Ricky</div>
@@ -714,12 +712,20 @@ const filteredSearchResults = computed(() => {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00D2FF 0%, #0076FF 100%);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  box-shadow: 0 3px 10px rgba(0, 118, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #F2F2F7;
+}
+
+.account-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .account-info {
