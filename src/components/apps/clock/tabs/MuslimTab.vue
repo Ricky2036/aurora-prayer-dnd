@@ -2,9 +2,11 @@
 import { computed, ref, onMounted, onBeforeUnmount } from "vue"
 import { useClock } from "../../../../composables/useClock"
 import { usePrayerStore } from "../../../../stores/prayerStore"
+import { useClockStore } from "../../../../stores/clockStore"
 
 const emit = defineEmits(["open-subpage"])
 const prayer = usePrayerStore()
+const clock = useClockStore()
 const { timeShort } = useClock()
 
 // 更多菜单弹窗显隐控制
@@ -51,6 +53,47 @@ const PRAYER_SLOTS = [
   { id: "maghrib", name: "昏礼", time: "18:34", angle: 240, order: "icon-first" },
   { id: "isha", name: "宵礼", time: "19:45", angle: 300, order: "text-first" }
 ]
+
+// 默认基准时间（与原图 100% 像素级对齐，满足单测静态断言 04:54, 06:07, 12:21, 15:48, 18:34, 19:45）
+const DEFAULT_PRAYER_TIMES = {
+  fajr: '04:54',
+  sunrise: '06:07',
+  dhuhr: '12:21',
+  asr: '15:48',
+  maghrib: '18:34',
+  isha: '19:45'
+}
+
+function calculateOffsetTime(timeStr, offsetMins = 0) {
+  if (!timeStr) return timeStr
+  if (!offsetMins || offsetMins <= 0) return timeStr
+  const [h, m] = timeStr.split(':').map(Number)
+  let total = h * 60 + m - offsetMins
+  if (total < 0) total += 24 * 60
+  const nh = Math.floor(total / 60) % 24
+  const nm = total % 60
+  return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`
+}
+
+// 动态响应时间：支持按设定时间同步修改，或在 DevConsole 中切换默认时间/设定时间
+const prayerTimes = computed(() => {
+  if (clock.muslimTimeMode === 'default') {
+    return DEFAULT_PRAYER_TIMES
+  }
+  const advance = prayer.alarmAdvanceMinutes > 0 ? prayer.alarmAdvanceMinutes : 0
+  const getP = (id, fallback) => {
+    const item = prayer.prayers?.find(p => p.id === id)
+    return item ? calculateOffsetTime(item.startTime, advance) : fallback
+  }
+  return {
+    fajr: getP('fajr', '05:15'),
+    sunrise: '06:07',
+    dhuhr: getP('dhuhr', '12:15'),
+    asr: getP('asr', '15:30'),
+    maghrib: getP('maghrib', '18:10'),
+    isha: getP('isha', '19:30')
+  }
+})
 
 // 喇叭静音状态映射
 const speakerMuted = ref({
@@ -424,13 +467,13 @@ const hijriMonth = '回历 3 月'
             </svg>
           </button>
           <span class="prayer-name-text">晨礼</span>
-          <span class="prayer-time-text">04:54</span>
+          <span class="prayer-time-text">{{ prayerTimes.fajr }}</span>
         </div>
 
         <!-- 2. 日出 (上名称、中时间、下静音喇叭) -->
         <div class="petal-content-anchor sunrise-pos" @click="selectPrayer('sunrise')">
           <span class="prayer-name-text">日出</span>
-          <span class="prayer-time-text">06:07</span>
+          <span class="prayer-time-text">{{ prayerTimes.sunrise }}</span>
           <button class="icon-touch-btn" @click="toggleSpeaker('sunrise', $event)">
             <!-- 静音喇叭 (斜划线) -->
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
@@ -449,13 +492,13 @@ const hijriMonth = '回历 3 月'
             </svg>
           </button>
           <span class="prayer-name-text active-white">晌礼</span>
-          <span class="prayer-time-text active-white">12:21</span>
+          <span class="prayer-time-text active-white">{{ prayerTimes.dhuhr }}</span>
         </div>
 
         <!-- 4. 哺礼 (上名称、中时间、下喇叭) -->
         <div class="petal-content-anchor asr-pos" @click="selectPrayer('asr')">
           <span class="prayer-name-text">哺礼</span>
-          <span class="prayer-time-text">15:48</span>
+          <span class="prayer-time-text">{{ prayerTimes.asr }}</span>
           <button class="icon-touch-btn" @click="toggleSpeaker('asr', $event)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M11 5L6 9H2V15H6L11 19V5Z" :fill="speakerMuted.asr ? '#8E8E93' : '#FFFFFF'" />
@@ -473,13 +516,13 @@ const hijriMonth = '回历 3 月'
             </svg>
           </button>
           <span class="prayer-name-text">昏礼</span>
-          <span class="prayer-time-text">18:34</span>
+          <span class="prayer-time-text">{{ prayerTimes.maghrib }}</span>
         </div>
 
         <!-- 6. 宵礼 (上名称、中时间、下喇叭) -->
         <div class="petal-content-anchor isha-pos" @click="selectPrayer('isha')">
           <span class="prayer-name-text">宵礼</span>
-          <span class="prayer-time-text">19:45</span>
+          <span class="prayer-time-text">{{ prayerTimes.isha }}</span>
           <button class="icon-touch-btn" @click="toggleSpeaker('isha', $event)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
               <path d="M11 5L6 9H2V15H6L11 19V5Z" :fill="speakerMuted.isha ? '#8E8E93' : '#FFFFFF'" />

@@ -103,4 +103,51 @@ test('SettingsPrayer component template includes simplified arrow entry and seco
   assert.ok(content.includes('advance5Min'), 'Must include advance5Min option')
   assert.ok(content.includes('advance10Min'), 'Must include advance10Min option')
   assert.ok(content.includes('advance15Min'), 'Must include advance15Min option')
+
+  // ListCell adoption on main page
+  assert.ok(content.includes('<ListCell'), 'Must adopt ListCell component for standardized cell layout')
+  assert.ok(content.includes('currentReminderLabel'), 'Must bind value to currentReminderLabel')
+  assert.ok(content.includes('chevron'), 'Must specify chevron arrow')
+
+  // Confirmation modal on reminder subpage when Muslim alarm is not enabled
+  assert.ok(content.includes('ActionModal'), 'Must mount ActionModal for enable confirmation')
+  assert.ok(content.includes('showEnableMuslimAlarmModal'), 'Must track showEnableMuslimAlarmModal')
+  assert.ok(content.includes('confirmEnableMuslimAlarm'), 'Must define confirmEnableMuslimAlarm handler')
+  assert.ok(content.includes('cancelEnableMuslimAlarm'), 'Must define cancelEnableMuslimAlarm handler')
+})
+
+test('SettingsPrayer updates copy matching exact user specifications', () => {
+  setActivePinia(createPinia())
+  const i18n = useI18nStore()
+  i18n.setLocale('zh')
+
+  assert.equal(
+    i18n.t('prayerAlarmLinkageDesc'),
+    '礼拜开始前，使用穆斯林闹钟进行提醒',
+    'Subtitle copy must match exact user prompt'
+  )
+
+  assert.equal(
+    i18n.t('reminderDesc'),
+    '开启后将在设定的每个礼拜开始时间前启用穆斯林闹钟进行唤礼提醒。',
+    'Footer description copy must match exact user prompt'
+  )
+
+  assert.equal(i18n.t('enableMuslimAlarmTitle'), '启用穆斯林闹钟？')
+  assert.equal(i18n.t('enableMuslimAlarmDesc'), '使用该功能需先启用穆斯林闹钟！')
+  assert.equal(i18n.t('enableNow'), '立即开启')
+})
+
+test('clockStore supports muslimTimeMode and time synchronization', () => {
+  setActivePinia(createPinia())
+  const clockStore = useClockStore()
+
+  assert.equal(clockStore.muslimTimeMode, 'default', 'Defaults to default reference time')
+  assert.equal(clockStore.settings.muslimAlarmEnabled, false, 'Defaults to false when not yet enabled')
+
+  clockStore.setMuslimTimeMode('custom')
+  assert.equal(clockStore.muslimTimeMode, 'custom', 'Switches to custom scheduled time')
+
+  clockStore.setMuslimTimeMode('default')
+  assert.equal(clockStore.muslimTimeMode, 'default', 'Switches back to default time')
 })

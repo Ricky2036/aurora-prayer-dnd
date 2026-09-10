@@ -552,6 +552,36 @@ function onCopyFineTune() {
             </div>
           </div>
 
+          <!-- 穆斯林闹钟时间模式切换卡片 -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">穆斯林闹钟</span>
+              <span class="pc-state-tag" :class="{ 'is-on': clockStore.muslimTimeMode === 'custom' }">
+                {{ clockStore.muslimTimeMode === 'custom' ? '设定时间' : '默认时间' }}
+              </span>
+            </div>
+            <div class="pc-seg">
+              <div
+                class="pc-seg-thumb"
+                :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
+              ></div>
+              <button
+                class="pc-seg-btn"
+                :class="{ on: clockStore.muslimTimeMode === 'default' }"
+                @click="clockStore.setMuslimTimeMode('default')"
+              >
+                默认时间
+              </button>
+              <button
+                class="pc-seg-btn"
+                :class="{ on: clockStore.muslimTimeMode === 'custom' }"
+                @click="clockStore.setMuslimTimeMode('custom')"
+              >
+                设定时间
+              </button>
+            </div>
+          </div>
+
           <!-- 灵动岛模拟 -->
           <div class="pc-card">
             <div class="pc-card-header">
@@ -937,6 +967,36 @@ function onCopyFineTune() {
                         @click="prayerStore.setUserMode('muslim')"
                       >
                         穆斯林用户
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- 穆斯林闹钟时间模式切换卡片 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">穆斯林闹钟</span>
+                      <span class="pc-state-tag" :class="{ 'is-on': clockStore.muslimTimeMode === 'custom' }">
+                        {{ clockStore.muslimTimeMode === 'custom' ? '设定时间' : '默认时间' }}
+                      </span>
+                    </div>
+                    <div class="pc-seg">
+                      <div
+                        class="pc-seg-thumb"
+                        :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
+                      ></div>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: clockStore.muslimTimeMode === 'default' }"
+                        @click="clockStore.setMuslimTimeMode('default')"
+                      >
+                        默认时间
+                      </button>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: clockStore.muslimTimeMode === 'custom' }"
+                        @click="clockStore.setMuslimTimeMode('custom')"
+                      >
+                        设定时间
                       </button>
                     </div>
                   </div>

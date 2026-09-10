@@ -250,9 +250,12 @@ export const useClockStore = defineStore('clock', {
     _lastTriggeredMinute: '',
     _alarmTickerId: null,
 
+    // 穆斯林闹钟时间模式：'default' (默认时间) | 'custom' (设定时间)
+    muslimTimeMode: 'default',
+
     // 设置项
     settings: {
-      muslimAlarmEnabled: true,
+      muslimAlarmEnabled: false,
       calcMethod: '穆斯林世界联盟',
       prayerTimeMethod: '莎菲懿法学派',
       ramadanAdjustDays: 0,
@@ -598,6 +601,10 @@ export const useClockStore = defineStore('clock', {
       if (!this.settings.muslimAlarmEnabled && this.activeTab === 'muslim') {
         this.activeTab = 'alarm'
       }
+    },
+
+    setMuslimTimeMode(mode) {
+      this.muslimTimeMode = mode
     },
 
     toggleIslandExpanded() {
