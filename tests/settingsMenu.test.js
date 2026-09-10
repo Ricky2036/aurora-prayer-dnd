@@ -6,6 +6,14 @@ import path from 'node:path'
 const SETTINGS_APP_PATH = path.resolve('src/components/apps/settings/SettingsApp.vue')
 const SEARCH_BAR_PATH = path.resolve('src/components/ui/SettingsSearchBar.vue')
 const LIST_CELL_PATH = path.resolve('src/components/ui/ListCell.vue')
+const SYSTEM_ICON_PATH = path.resolve('src/components/ui/SettingsSystemIcon.vue')
+const SYSTEM_ICON_DIR = path.resolve('src/assets/icons/settings')
+
+const FIGMA_SETTING_ICONS = [
+  'accessibility', 'ai', 'apps', 'bluetooth', 'device', 'display', 'health',
+  'location', 'multi-device', 'notifications', 'privacy', 'security', 'sim',
+  'sound', 'storage', 'system', 'user', 'wallpaper', 'wifi'
+]
 
 test('SettingsApp.vue exists and includes all 8 standardized card groups matching reference recording', () => {
   assert.ok(fs.existsSync(SETTINGS_APP_PATH), 'SettingsApp.vue should exist')
@@ -89,4 +97,20 @@ test('ListCell styling complies with updated squircle icon and divider norms', (
   assert.match(content, /height:\s*36px/, 'Icon height should be standardized to 36px')
   assert.match(content, /border-radius:\s*10px/, 'Icon squircle radius should be 10px')
   assert.match(content, /#F0F1F3/, 'Divider separator color should be #F0F1F3')
+})
+
+test('Settings home uses the exported Figma system icon set', () => {
+  const app = fs.readFileSync(SETTINGS_APP_PATH, 'utf-8')
+  const component = fs.readFileSync(SYSTEM_ICON_PATH, 'utf-8')
+
+  for (const name of FIGMA_SETTING_ICONS) {
+    const assetPath = path.join(SYSTEM_ICON_DIR, `${name}.svg`)
+    assert.ok(fs.existsSync(assetPath), `Missing exported Figma icon: ${name}.svg`)
+    assert.match(fs.readFileSync(assetPath, 'utf-8'), /^<svg\b/, `${name}.svg should be a real SVG asset`)
+    assert.match(component, new RegExp(`['\"]?${name}['\"]?`), `${name} should be registered`)
+  }
+
+  for (const name of FIGMA_SETTING_ICONS) {
+    assert.match(app, new RegExp(`SettingsSystemIcon name="${name}"`), `${name} should be used on Settings home`)
+  }
 })
