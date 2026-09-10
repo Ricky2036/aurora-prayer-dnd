@@ -28,6 +28,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Refine Muslim wheel astrolabe rosette and crescent moon wings matching reference image 1 | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue`; `tests/floatingTabBar.test.js` | `b29fc3e` | `06ee71e` |
 | Merged | Antigravity | Fine-tune Muslim prayer wheel text & icon anchor positions (r=116) to eliminate overlap with compass dial | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue` | `06ee71e` | `54cd783` |
 | Merged | Antigravity | Standardize ListCell right value layout, update prayer reminder copy, add Muslim alarm enable modal, and sync DevConsole time mode | `antigravity/lane` | `src/components/ui/ListCell.vue`; `src/components/apps/settings/SettingsPrayer.vue`; `src/components/apps/clock/tabs/MuslimTab.vue`; `src/components/dev/DevConsole.vue`; `src/stores/clockStore.js`; `src/stores/i18nStore.js`; `tests/prayerAlarmLinkage.test.js` | `54cd783` | `e40716e` |
+| Merged | Antigravity | Refine Muslim alarm settings menu, 2-line layout, custom options, bottom sheet modal, and prayer reminder linkage | `antigravity/lane` | `src/components/apps/clock/**`; `src/components/apps/settings/SettingsPrayer.vue`; `src/components/dev/DevConsole.vue`; `src/stores/clockStore.js`; `src/stores/i18nStore.js`; `tests/prayerAlarmLinkage.test.js` | `e40716e` | `b04277a` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
