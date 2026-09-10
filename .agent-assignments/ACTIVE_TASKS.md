@@ -41,6 +41,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Implement Scheme 1 Snooze SVG icon and ensure button alignment | `antigravity/lane` | `src/components/apps/clock/clockIcons.js`; `src/components/system/DynamicIsland.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue` | `7d647ff` | `797c51e` |
 | Merged | Antigravity | Fix clock subpage back button and more menu bleed-through, update DevConsole Muslim alarm switch | `antigravity/lane` | `src/components/apps/clock/ClockApp.vue`; `src/components/dev/DevConsole.vue` | `0f7cf80` | `42c9bb4` |
 | Merged | Antigravity | Update DevConsole alarm reminder button text to 开启闹钟 | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `7f31583` | `4701566` |
+| Merged | Antigravity | Set Music and Prayer dynamic island default state to closed | `antigravity/lane` | `src/stores/controlStore.js`; `src/stores/prayerStore.js` | `f9e66d0` | `d80856a` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
