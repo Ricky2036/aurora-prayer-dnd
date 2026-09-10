@@ -75,6 +75,7 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   assert.match(content, /--title-size/, 'The same title node should resize continuously while scrolling')
   assert.doesNotMatch(content, /settings-compact-header/, 'Settings title must not cross-fade between duplicate nodes')
   assert.match(content, /titleCollapseProgress/, 'Title size transition should follow scroll progress')
+  assert.match(content, /-26 \* titleCollapseProgress\.value/, 'Title should travel vertically into the compact header position')
   assert.match(content, /@scroll\.passive="onSettingsScroll"/, 'Settings home should track native scrolling')
   assert.match(content, /settings-floating-search::before/, 'Floating search should mask content scrolling behind it')
   assert.match(content, /rgba\(244, 245, 247, 0\.24\)/, 'Title mask should fade smoothly into the list')

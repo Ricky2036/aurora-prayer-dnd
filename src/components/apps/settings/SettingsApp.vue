@@ -123,7 +123,7 @@ const searchActive = ref(false)
 const settingsScrollTop = ref(0)
 const titleCollapseProgress = computed(() => clamp((settingsScrollTop.value - 10) / 42, 0, 1))
 const titleSize = computed(() => 30 - 12 * titleCollapseProgress.value)
-const titleOffset = computed(() => -4 * titleCollapseProgress.value)
+const titleOffset = computed(() => -26 * titleCollapseProgress.value)
 
 function onSettingsScroll(event) {
   settingsScrollTop.value = event.currentTarget.scrollTop
