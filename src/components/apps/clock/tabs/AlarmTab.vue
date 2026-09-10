@@ -237,10 +237,30 @@ function handleDeleteAlarm(id) {
 .alarm-list {
   flex: 1;
   overflow-y: auto;
-  padding: 8px 16px 80px;
+  padding: 8px 16px 110px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black calc(100% - 92px),
+    rgba(0, 0, 0, 0.45) calc(100% - 55px),
+    transparent calc(100% - 22px)
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black calc(100% - 92px),
+    rgba(0, 0, 0, 0.45) calc(100% - 55px),
+    transparent calc(100% - 22px)
+  );
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.alarm-list::-webkit-scrollbar {
+  display: none;
 }
 
 .alarm-card {

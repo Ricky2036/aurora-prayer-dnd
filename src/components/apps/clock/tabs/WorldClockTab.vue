@@ -189,10 +189,30 @@ const displayCities = computed(() => {
 .world-clock-content {
   flex: 1;
   overflow-y: auto;
-  padding: 10px 16px 80px;
+  padding: 10px 16px 110px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black calc(100% - 92px),
+    rgba(0, 0, 0, 0.45) calc(100% - 55px),
+    transparent calc(100% - 22px)
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black 0%,
+    black calc(100% - 92px),
+    rgba(0, 0, 0, 0.45) calc(100% - 55px),
+    transparent calc(100% - 22px)
+  );
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.world-clock-content::-webkit-scrollbar {
+  display: none;
 }
 
 /* 拟物表盘 */
