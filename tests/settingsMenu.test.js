@@ -8,6 +8,7 @@ const SEARCH_BAR_PATH = path.resolve('src/components/ui/SettingsSearchBar.vue')
 const LIST_CELL_PATH = path.resolve('src/components/ui/ListCell.vue')
 const SYSTEM_ICON_PATH = path.resolve('src/components/ui/SettingsSystemIcon.vue')
 const SYSTEM_ICON_DIR = path.resolve('src/assets/icons/settings')
+const MICROPHONE_ICON_PATH = path.join(SYSTEM_ICON_DIR, 'microphone.svg')
 
 const FIGMA_SETTING_ICONS = [
   'accessibility', 'ai', 'apps', 'battery', 'bluetooth', 'device', 'display', 'health',
@@ -84,6 +85,9 @@ test('SettingsSearchBar component provides search magnifying glass and microphon
 
   assert.match(content, /search-icon/, 'Should render search magnifying glass icon')
   assert.match(content, /mic-icon/, 'Should render microphone icon')
+  assert.match(content, /microphoneIcon/, 'Should use the exported Figma microphone asset')
+  assert.ok(fs.existsSync(MICROPHONE_ICON_PATH), 'Exported Figma microphone SVG should exist')
+  assert.match(fs.readFileSync(MICROPHONE_ICON_PATH, 'utf-8'), /^<svg\b/, 'Microphone asset should be a real SVG')
   assert.match(content, /btn-clear/, 'Should render clear button when input has value')
   assert.match(content, /border-radius:\s*24px/, 'Search bar should have capsule 24px radius')
   assert.match(content, /height:\s*48px/, 'Search bar should have 48px height')
