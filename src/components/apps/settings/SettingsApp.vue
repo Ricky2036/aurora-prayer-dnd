@@ -123,7 +123,7 @@ const searchActive = ref(false)
 const settingsScrollTop = ref(0)
 const titleCollapseProgress = computed(() => clamp((settingsScrollTop.value - 10) / 42, 0, 1))
 const titleSize = computed(() => 30 - 12 * titleCollapseProgress.value)
-const titleOffset = computed(() => -26 * titleCollapseProgress.value)
+const titleOffset = computed(() => -30 * titleCollapseProgress.value)
 
 function onSettingsScroll(event) {
   settingsScrollTop.value = event.currentTarget.scrollTop
@@ -656,7 +656,7 @@ const filteredSearchResults = computed(() => {
   display: flex;
   align-items: flex-start;
   box-sizing: border-box;
-  padding: calc(var(--safe-top, 20px) + 14px) 20px 0;
+  padding: calc(var(--safe-top, 20px) + 18px) 20px 0;
   isolation: isolate;
 }
 
