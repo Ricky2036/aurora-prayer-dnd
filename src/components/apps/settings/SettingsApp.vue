@@ -14,6 +14,7 @@ import SettingsDND from './SettingsDND.vue'
 import SettingsPrayer from './SettingsPrayer.vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
+import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 import accountAvatar from '../../../assets/img/account-avatar.jpg'
@@ -27,6 +28,7 @@ const props = defineProps({ app: Object })
 const control = useControlStore()
 const prayerStore = usePrayerStore()
 const notificationsStore = useNotificationsStore()
+const system = useSystemStore()
 const i18n = useI18nStore()
 const { timeShort } = useClock()
 
@@ -94,6 +96,8 @@ const viewTitles = computed(() => ({
   wifi: i18n.t('wifi') || 'WLAN',
   display: i18n.t('displayAndBrightness') || '显示与亮度',
   general: '系统',
+  language: '语言与输入法',
+  navigation: '系统导航方式',
   notifications: i18n.t('notifications') || '通知与状态栏',
   sound: i18n.t('soundAndVibration') || '声音与振动',
   dnd: i18n.t('dnd') || '勿扰模式',
@@ -155,7 +159,9 @@ const allSearchableItems = [
   { id: 'emergency', title: '安全和紧急情况', group: '安全', action: () => pushUnimplemented('安全和紧急情况') },
   { id: 'account', title: '用户与账号', group: '账号', action: () => pushUnimplemented('用户与账号') },
   { id: 'google', title: 'Google', group: '服务', action: () => pushUnimplemented('Google') },
-  { id: 'system', title: '系统', group: '系统', action: () => push('general') }
+  { id: 'system', title: '系统', group: '系统', action: () => push('general') },
+  { id: 'language', title: '系统语言与输入法', group: '系统', action: () => push('language') },
+  { id: 'navigation', title: '系统导航方式', group: '系统', action: () => push('navigation') }
 ]
 
 const filteredSearchResults = computed(() => {
@@ -603,11 +609,77 @@ const filteredSearchResults = computed(() => {
           </div>
         </div>
 
+        <!-- 系统语言与输入法子页 -->
+        <div v-else-if="view === 'language'" class="scrollable detail-body">
+          <div class="group-header">已启用语言</div>
+          <div class="settings-card">
+            <ListCell
+              title="简体中文 (中国)"
+              :value="i18n.locale === 'zh' ? '✓' : ''"
+              clickable
+              @click="i18n.setLocale('zh')"
+            />
+            <ListCell
+              title="English (United States)"
+              :value="i18n.locale === 'en' ? '✓' : ''"
+              clickable
+              @click="i18n.setLocale('en')"
+            />
+            <ListCell
+              title="বাংলা (বাংলাদেশ)"
+              :value="i18n.locale === 'bn' ? '✓' : ''"
+              last
+              clickable
+              @click="i18n.setLocale('bn')"
+            />
+          </div>
+        </div>
+
+        <!-- 系统导航方式子页 -->
+        <div v-else-if="view === 'navigation'" class="scrollable detail-body">
+          <div class="group-header">导航方式选择</div>
+          <div class="settings-card">
+            <ListCell
+              title="全面屏手势导航"
+              subtitle="从屏幕左侧或右侧向内轻扫返回上一级，从屏幕底部向上轻扫返回桌面"
+              :value="system.navigationMode === 'gesture' ? '✓' : ''"
+              clickable
+              @click="system.setNavigationMode('gesture')"
+            />
+            <ListCell
+              title="经典三键导航"
+              subtitle="在屏幕底部显示返回键、主屏幕键与多任务键"
+              :value="system.navigationMode === 'threeButton' ? '✓' : ''"
+              last
+              clickable
+              @click="system.setNavigationMode('threeButton')"
+            />
+          </div>
+        </div>
+
         <!-- 系统与关于手机 -->
         <div v-else class="scrollable detail-body">
           <div class="settings-card">
             <ListCell title="关于手机" value="Infinix GT 50 Pro" chevron />
             <ListCell title="系统更新" value="tOS 16.0 最新版" last />
+          </div>
+          <div class="group-header">系统控制与偏好</div>
+          <div class="settings-card">
+            <ListCell
+              title="系统语言与输入法"
+              :value="i18n.locale === 'zh' ? '简体中文 (中国)' : i18n.locale === 'en' ? 'English (US)' : 'বাংলা (বাংলাদেশ)'"
+              chevron
+              clickable
+              @click="push('language')"
+            />
+            <ListCell
+              title="系统导航方式"
+              :value="system.navigationMode === 'gesture' ? '全面屏手势' : '经典三键导航'"
+              chevron
+              last
+              clickable
+              @click="push('navigation')"
+            />
           </div>
           <div class="group-header">硬件与规格</div>
           <div class="settings-card">
