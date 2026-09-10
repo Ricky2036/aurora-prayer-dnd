@@ -238,11 +238,8 @@ function handleClosePrayer(e) {
       <div class="morph-layer compact-layer">
         <div class="cc-left">
           <!-- 闹钟收起态图标 -->
-          <svg v-if="primaryActiveItem === 'alarm'" width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <circle cx="12" cy="12" r="7.5" fill="#ff9f0a" />
-            <path d="M12 8V12H9.5" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M4 8.5C3 10.5 3 13.5 4 15.5" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" />
-            <path d="M20 8.5C21 10.5 21 13.5 20 15.5" stroke="#ff9f0a" stroke-width="1.8" stroke-linecap="round" />
+          <svg v-if="primaryActiveItem === 'alarm'" class="compact-alarm-icon" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+            <path :d="CLOCK_ICONS.alarm" />
           </svg>
           <svg v-else-if="primaryActiveItem === 'timer'" width="13" height="13" viewBox="0 0 24 24">
             <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
@@ -280,12 +277,8 @@ function handleClosePrayer(e) {
         <template v-if="primaryActiveItem === 'alarm'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-alarm" :class="{ 'is-ringing': clockStore.isAlarmRinging }">
-              <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-                <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
-                <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                <circle cx="17" cy="17" r="1.3" fill="#000000" />
+              <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
+                <path :d="CLOCK_ICONS.alarm" />
               </svg>
             </div>
             <div class="ilc-time-col">
@@ -305,13 +298,9 @@ function handleClosePrayer(e) {
               @click.stop="clockStore.snoozeAlarm()"
               :title="clockStore.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
-                <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
-                <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
-                <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
-                <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+              <svg class="snooze-activity-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+                <path :d="CLOCK_ICONS.alarm" transform="translate(0 5) scale(.72)" />
+                <path d="M13.5 5h3.8l-3.8 4h3.8M17.5 1.5h4l-4 4.5h4" />
               </svg>
             </button>
 
@@ -523,12 +512,8 @@ function handleClosePrayer(e) {
         <template v-if="item === 'alarm'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-alarm" :class="{ 'is-ringing': clockStore.isAlarmRinging }">
-              <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-                <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
-                <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                <circle cx="17" cy="17" r="1.3" fill="#000000" />
+              <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
+                <path :d="CLOCK_ICONS.alarm" />
               </svg>
             </div>
             <div class="ilc-time-col">
@@ -547,13 +532,9 @@ function handleClosePrayer(e) {
               @click.stop="clockStore.snoozeAlarm()"
               :title="clockStore.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
-                <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
-                <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
-                <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
-                <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+              <svg class="snooze-activity-icon" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+                <path :d="CLOCK_ICONS.alarm" transform="translate(0 5) scale(.72)" />
+                <path d="M13.5 5h3.8l-3.8 4h3.8M17.5 1.5h4l-4 4.5h4" />
               </svg>
             </button>
 
@@ -1018,9 +999,26 @@ function handleClosePrayer(e) {
   background: transparent;
 }
 
+.compact-alarm-icon,
+.alarm-activity-icon {
+  fill: #ff9f0a;
+}
+
+.snooze-activity-icon {
+  fill: #ffffff;
+}
+
+.snooze-activity-icon path:last-child {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .icon-alarm.is-ringing svg {
   animation: alarmRingWiggle 1.4s ease-in-out infinite;
-  transform-origin: 17px 17px;
+  transform-origin: center;
 }
 
 @keyframes alarmRingWiggle {

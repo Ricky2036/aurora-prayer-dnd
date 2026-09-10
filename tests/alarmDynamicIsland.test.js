@@ -168,6 +168,10 @@ test('DynamicIsland.vue contains alarm templates, snooze and dismiss buttons', (
   assert.ok(content.includes('clockStore.snoozeAlarm()'), 'Must call snoozeAlarm')
   assert.ok(content.includes('clockStore.dismissAlarm()'), 'Must call dismissAlarm')
   assert.ok(content.includes('formattedSnoozeCountdown'), 'Must render countdown')
+  assert.ok(content.includes('class="alarm-activity-icon"'), 'Alarm card must use the shared clock alarm vector')
+  assert.ok(content.includes('class="snooze-activity-icon"'), 'Snooze control must use a dedicated vector icon')
+  assert.ok(content.includes(':d="CLOCK_ICONS.alarm"'), 'Alarm artwork must reuse the Clock app icon path')
+  assert.ok(!content.includes('<text x="14.8"'), 'Snooze artwork must not use text glyphs')
 })
 
 test('DevConsole uses the vector alarm icon and concise copy without emoji', () => {
