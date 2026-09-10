@@ -200,7 +200,7 @@ const hijriMonth = '回历 3 月'
           </g>
         </g>
 
-        <!-- 2. 6 朵礼拜花瓣 (SVG 几何矢量完全重构：饱满花盘 + 优美双角郁金香内弧月牙冠) -->
+        <!-- 2. 6 朵礼拜花瓣 (SVG 几何矢量：饱满花盘 + 优美外展月牙花冠) -->
         <g class="petals-group">
           <!-- 晨礼 (0°) -->
           <g
@@ -209,9 +209,9 @@ const hijriMonth = '回历 3 月'
             cursor="pointer"
             @click="selectPrayer('fajr')"
           >
-            <!-- 双角郁金香月牙外冠 (内弧造型，尖端向内收拢) -->
+            <!-- 双角向外延展外冠 (外展尖角，中间自然凹弧，严格对齐真机图) -->
             <path
-              d="M 166 32 C 168 18 174 6 183 0 C 182 12 185 20 190 25 C 195 20 198 12 197 0 C 206 6 212 18 214 32 Z"
+              d="M 172 34 C 168 26 163 18 160 14 C 170 20 180 24 190 24 C 200 24 210 20 220 14 C 217 18 212 26 208 34 Z"
               fill="#7A7A7D"
             />
             <!-- 饱满圆形花盘 (r = 55) -->
@@ -227,14 +227,14 @@ const hijriMonth = '回历 3 月'
           >
             <g transform="rotate(60 190 190)">
               <path
-                d="M 166 32 C 168 18 174 6 183 0 C 182 12 185 20 190 25 C 195 20 198 12 197 0 C 206 6 212 18 214 32 Z"
+                d="M 172 34 C 168 26 163 18 160 14 C 170 20 180 24 190 24 C 200 24 210 20 220 14 C 217 18 212 26 208 34 Z"
                 fill="#7A7A7D"
               />
               <circle cx="190" cy="82" r="55" fill="#7A7A7D" filter="url(#petalShadow)" />
             </g>
           </g>
 
-          <!-- 晌礼 (120° - 激活高亮鲜艳金橙 + 尾端四角星芒饰件) -->
+          <!-- 晌礼 (120° - 激活高亮鲜艳金橙 + 外展双角与四角金星饰件) -->
           <g
             class="petal-svg-item is-active orange-highlight"
             :class="{ active: selectedPrayerId === 'dhuhr' }"
@@ -242,15 +242,15 @@ const hijriMonth = '回历 3 月'
             @click="selectPrayer('dhuhr')"
           >
             <g transform="rotate(120 190 190)">
-              <!-- 金橙双角外冠 -->
+              <!-- 金橙双角外展冠 -->
               <path
-                d="M 166 32 C 168 18 174 6 183 0 C 182 12 185 20 190 25 C 195 20 198 12 197 0 C 206 6 212 18 214 32 Z"
+                d="M 172 34 C 168 26 163 18 160 14 C 170 20 180 24 190 24 C 200 24 210 20 220 14 C 217 18 212 26 208 34 Z"
                 fill="#FF9500"
               />
-              <!-- 尾端四角金星小饰件 (附于凹槽尖端) -->
+              <!-- 尾端四角金星小饰件 (嵌套于双角凹槽中央) -->
               <g class="dhuhr-curled-tail">
                 <path
-                  d="M 190 -8 L 193 -2 L 199 0 L 193 2 L 190 8 L 187 2 L 181 0 L 187 -2 Z"
+                  d="M 190 10 L 192.5 15 L 197.5 16.5 L 192.5 18 L 190 23 L 187.5 18 L 182.5 16.5 L 187.5 15 Z"
                   fill="#FFE082"
                 />
               </g>
@@ -268,7 +268,7 @@ const hijriMonth = '回历 3 月'
           >
             <g transform="rotate(180 190 190)">
               <path
-                d="M 166 32 C 168 18 174 6 183 0 C 182 12 185 20 190 25 C 195 20 198 12 197 0 C 206 6 212 18 214 32 Z"
+                d="M 172 34 C 168 26 163 18 160 14 C 170 20 180 24 190 24 C 200 24 210 20 220 14 C 217 18 212 26 208 34 Z"
                 fill="#7A7A7D"
               />
               <circle cx="190" cy="82" r="55" fill="#7A7A7D" filter="url(#petalShadow)" />
@@ -284,7 +284,7 @@ const hijriMonth = '回历 3 月'
           >
             <g transform="rotate(240 190 190)">
               <path
-                d="M 166 32 C 168 18 174 6 183 0 C 182 12 185 20 190 25 C 195 20 198 12 197 0 C 206 6 212 18 214 32 Z"
+                d="M 172 34 C 168 26 163 18 160 14 C 170 20 180 24 190 24 C 200 24 210 20 220 14 C 217 18 212 26 208 34 Z"
                 fill="#7A7A7D"
               />
               <circle cx="190" cy="82" r="55" fill="#7A7A7D" filter="url(#petalShadow)" />
@@ -300,7 +300,7 @@ const hijriMonth = '回历 3 月'
           >
             <g transform="rotate(300 190 190)">
               <path
-                d="M 166 32 C 168 18 174 6 183 0 C 182 12 185 20 190 25 C 195 20 198 12 197 0 C 206 6 212 18 214 32 Z"
+                d="M 172 34 C 168 26 163 18 160 14 C 170 20 180 24 190 24 C 200 24 210 20 220 14 C 217 18 212 26 208 34 Z"
                 fill="#7A7A7D"
               />
               <circle cx="190" cy="82" r="55" fill="#7A7A7D" filter="url(#petalShadow)" />
@@ -310,38 +310,57 @@ const hijriMonth = '回历 3 月'
 
         <!-- 3. 中心罗盘大圆盘与卡齿 (Center Compass Dial) -->
         <g class="center-dial-group center-compass-dial">
-          <!-- 6 枚外伸尖角三角形卡齿 (位于 30°, 90°, 150°, 210°, 270°, 330° 花瓣接缝处) -->
-          <g v-for="angle in [30, 90, 150, 210, 270, 330]" :key="'tooth-' + angle" :transform="`rotate(${angle} 190 190)`">
-            <polygon points="186,105 194,105 190,96" fill="#3D3D40" />
+          <!-- 4 枚外伸三角形罗盘小箭头 (与 N, E, S, W 方位 100% 同轴严格对齐：26°, 116°, 206°, 296°) -->
+          <g v-for="angle in [26, 116, 206, 296]" :key="'tooth-' + angle" :transform="`rotate(${angle} 190 190)`">
+            <polygon points="184,106 196,106 190,95" fill="#3D3D40" />
           </g>
 
           <!-- 中心暗灰圆盘 (r = 86) -->
           <circle cx="190" cy="190" r="86" fill="url(#centerDialGrad)" filter="url(#petalShadow)" />
 
-          <!-- 罗盘方位标记文字 (斜体白字 N, E, S, W) -->
-          <text x="220" y="125" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">N</text>
-          <text x="266" y="222" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">E</text>
-          <text x="160" y="270" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">S</text>
-          <text x="114" y="172" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">W</text>
-
-          <!-- 红色罗盘指针 (朝向西北麦加天房位置，约 305° 方向) -->
-          <g class="kaaba-compass-needle" transform="rotate(305 190 190)">
-            <polygon points="185,142 195,142 190,116" fill="#E53935" />
-            <polygon points="186,140 194,140 190,118" fill="#FF5252" />
+          <!-- 4 个主方位文字 (N, E, S, W)，与对应箭头严格同轴同径旋转，精准对齐 -->
+          <g transform="rotate(26 190 190)">
+            <text x="190" y="124" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">N</text>
+          </g>
+          <g transform="rotate(116 190 190)">
+            <text x="190" y="124" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">E</text>
+          </g>
+          <g transform="rotate(206 190 190)">
+            <text x="190" y="124" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">S</text>
+          </g>
+          <g transform="rotate(296 190 190)">
+            <text x="190" y="124" fill="#FFFFFF" font-size="14" font-weight="700" font-style="italic" text-anchor="middle">W</text>
           </g>
 
-          <!-- 内部 12 瓣花形星盘 (12-point Rosette) -->
+          <!-- 红色麦加天房罗盘指针 (旋转至 317° 精确指向克尔白天房徽标) -->
+          <g class="kaaba-compass-needle" transform="rotate(317 190 190)">
+            <polygon points="183,138 197,138 190,110" fill="#E53935" />
+            <polygon points="185,136 195,136 190,112" fill="#FF5252" />
+          </g>
+
+          <!-- 内部大号 12 瓣饱满伊斯兰莲花星盘 (图2：饱满圆弧莲花花瓣 + 尖锐花尖 + 精细双线内轮廓) -->
           <path
-            d="
-              M 190 138
-              L 194 146 L 202 142 L 203 151 L 212 149 L 210 158 L 219 160 L 213 168 L 221 174 L 213 180 L 219 188 L 210 190
-              L 212 199 L 203 197 L 202 206 L 194 202 L 190 210
-              L 186 202 L 178 206 L 177 197 L 168 199 L 170 190 L 161 188 L 167 180 L 159 174 L 167 168 L 161 160 L 170 158
-              L 168 149 L 177 151 L 178 142 L 186 146 Z
-            "
-            fill="#222224"
-            stroke="rgba(255, 255, 255, 0.12)"
-            stroke-width="1.3"
+            class="center-rosette-bg"
+            d="M 182.4 146.7 C 188 132, 193.5 124.1, 195.6 126.2 C 198 124.5, 202.1 133.3, 205 148.7 C 217.2 138.8, 225.9 134.6, 226.7 137.6 C 229.7 137.3, 228.8 146.9, 223.7 161.7 C 239.2 159.3, 248.8 160, 248 163 C 250.8 164.2, 245.2 172.1, 233.3 182.4 C 248 188, 255.9 193.5, 253.8 195.6 C 255.5 198, 246.7 202.1, 231.3 205 C 241.2 217.2, 245.4 225.9, 242.4 226.7 C 242.7 229.7, 233.1 228.8, 218.3 223.7 C 220.7 239.2, 220 248.8, 217 248 C 215.8 250.8, 207.9 245.2, 197.6 233.3 C 192 248, 186.5 255.9, 184.4 253.8 C 182 255.5, 177.9 246.7, 175 231.3 C 162.8 241.2, 154.1 245.4, 153.3 242.4 C 150.3 242.7, 151.2 233.1, 156.3 218.3 C 140.8 220.7, 131.2 220, 132 217 C 129.2 215.8, 134.8 207.9, 146.7 197.6 C 132 192, 124.1 186.5, 126.2 184.4 C 124.5 182, 133.3 177.9, 148.7 175 C 138.8 162.8, 134.6 154.1, 137.6 153.3 C 137.3 150.3, 146.9 151.2, 161.7 156.3 C 159.3 140.8, 160 131.2, 163 132 C 164.2 129.2, 172.1 134.8, 182.4 146.7 Z"
+            fill="#202022"
+          />
+
+          <!-- 指向天房方向的花瓣暗红高光晕染 (对应 317° 方位) -->
+          <g transform="rotate(317 190 190)">
+            <path
+              d="M 182.4 146.7 C 188 132, 193.5 124.1, 195.6 126.2 C 198 124.5, 202.1 133.3, 205 148.7 Z"
+              fill="#D32F2F"
+              opacity="0.85"
+            />
+          </g>
+
+          <!-- 花形星盘内侧精细轮廓线 (双线勾勒高级质感) -->
+          <path
+            class="center-rosette-inner-contour"
+            d="M 183.2 151.6 C 188.2 138, 193.1 131.1, 195 133.2 C 197.2 131.4, 200.8 139.1, 203.3 153.4 C 214.4 144.1, 222.1 140.5, 222.7 143.3 C 225.5 142.9, 224.8 151.4, 219.9 164.9 C 234.1 162.4, 242.6 163.2, 241.7 165.9 C 244.3 166.9, 239.5 173.9, 228.4 183.2 C 242 188.2, 248.9 193.1, 246.8 195 C 248.6 197.2, 240.9 200.8, 226.6 203.3 C 235.9 214.4, 239.5 222.1, 236.7 222.7 C 237.1 225.5, 228.6 224.8, 215.1 219.9 C 217.6 234.1, 216.8 242.6, 214.1 241.7 C 213.1 244.3, 206.1 239.5, 196.8 228.4 C 191.8 242, 186.9 248.9, 185 246.8 C 182.8 248.6, 179.2 240.9, 176.7 226.6 C 165.6 235.9, 157.9 239.5, 157.3 236.7 C 154.5 237.1, 155.2 228.6, 160.1 215.1 C 145.9 217.6, 137.4 216.8, 138.3 214.1 C 135.7 213.1, 140.5 206.1, 151.6 196.8 C 138 191.8, 131.1 186.9, 133.2 185 C 131.4 182.8, 139.1 179.2, 153.4 176.7 C 144.1 165.6, 140.5 157.9, 143.3 157.3 C 142.9 154.5, 151.4 155.2, 164.9 160.1 C 162.4 145.9, 163.2 137.4, 165.9 138.3 C 166.9 135.7, 173.9 140.5, 183.2 151.6 Z"
+            fill="none"
+            stroke="rgba(255, 255, 255, 0.2)"
+            stroke-width="1.1"
           />
 
           <!-- 核心数字时钟 (实时显示，如 10:13) -->
@@ -350,7 +369,7 @@ const hijriMonth = '回历 3 月'
             y="199"
             fill="#FFFFFF"
             font-size="28"
-            font-weight="500"
+            font-weight="400"
             font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
             text-anchor="middle"
             letter-spacing="0.5"
@@ -359,19 +378,32 @@ const hijriMonth = '回历 3 月'
           </text>
         </g>
 
-        <!-- 4. 西北角克尔白立体天房金环标志 (位于宵礼 300° 花瓣左上缘，三维等距天房黑石) -->
-        <g class="kaaba-badge-group kaaba-badge-indicator" transform="translate(68, 62)">
-          <!-- 外层金环 -->
-          <circle cx="17" cy="17" r="15" fill="#1C1C1E" stroke="#FF9500" stroke-width="2.2" />
-          <!-- 立体等距克尔白黑石 (Top/Left/Right 三面受光投影) -->
-          <path d="M 17 6.5 L 25 11 L 17 15.5 L 9 11 Z" fill="#38383C" />
-          <path d="M 9 11 L 17 15.5 V 25.5 L 9 21 Z" fill="#101012" />
-          <path d="M 25 11 L 17 15.5 V 25.5 L 25 21 Z" fill="#242428" />
-          <!-- 标志性黄色/金色饰带 (Kiswa 双层金色锦缎与右侧金门) -->
-          <path d="M 9.5 13.5 L 17 17.8 L 24.5 13.5" stroke="#FFD700" stroke-width="1.8" stroke-linecap="round" fill="none" />
-          <path d="M 11.5 16.2 L 17 19.5 L 22.5 16.2" stroke="#FFD700" stroke-width="1" stroke-linecap="round" fill="none" />
-          <!-- 金门 (Bab al-Tawba) -->
-          <path d="M 20 18.5 V 22.5" stroke="#FFD700" stroke-width="1.5" stroke-linecap="round" />
+        <!-- 4. 西北角克尔白立体天房金环徽标 (图3：白底金环 + 3D等距天房黑石 + 标志性金色锦缎与金门) -->
+        <g class="kaaba-badge-group kaaba-badge-indicator" transform="translate(72, 64)">
+          <!-- 外层金环与白底纯净圆盘 (消除暗底，彻底告别乱码礼物盒) -->
+          <circle cx="17" cy="17" r="16" fill="#FFFFFF" stroke="#E6981A" stroke-width="2.2" />
+          
+          <!-- 立体等距克尔白天房主体 (三面体受光正射投影) -->
+          <!-- 顶面 (平坦屋顶，暗炭灰) -->
+          <polygon points="17,7.5 25,11.8 17,16.2 9,11.8" fill="#3A3A3E" />
+          <!-- 左墙面 (深黑纯暗部) -->
+          <polygon points="9,11.8 17,16.2 17,26.2 9,21.8" fill="#141416" />
+          <!-- 右墙面 (略受微光暗石墨) -->
+          <polygon points="17,16.2 25,11.8 25,21.8 17,26.2" fill="#242428" />
+
+          <!-- 标志性黄色/金色锦缎 (Kiswa 圣幕金线环绕带) -->
+          <!-- 左侧金带 -->
+          <polygon points="9,14 17,18.4 17,20.4 9,16" fill="#F5A623" />
+          <!-- 右侧金带 -->
+          <polygon points="17,18.4 25,14 25,16 17,20.4" fill="#E6981A" />
+
+          <!-- 克尔白天房金门 (Bab al-Kaaba，位于右墙面的纯金大门) -->
+          <polygon points="19.5,18.8 22.8,17.0 22.8,22.8 19.5,24.6" fill="#F5A623" />
+          <!-- 金门边框微细线 -->
+          <polyline points="19.5,18.8 22.8,17.0 22.8,22.8 19.5,24.6" stroke="#D48812" stroke-width="0.5" fill="none" />
+
+          <!-- 下层锦缎细金线装饰 (Hizam) -->
+          <polyline points="9,18 17,22.4 25,18" stroke="#FFC107" stroke-width="0.8" stroke-linecap="round" fill="none" />
         </g>
       </svg>
 
