@@ -21,6 +21,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | Polish HomeIndicator bottom navigation bar opacity to 30% for dark/light states | `workbuddy/lane` | `src/components/phone/HomeIndicator.vue` | `57e0e1f` | `28c0c91` |
 | Merged | Codex | LockScreen native stack scrolling, clock compression (220 to 110), unlock surface separation, and card overlap opacity | `codex/lane` | `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `src/utils/notificationStack.js`; `tests/notificationStack.test.js` | `622a79a` | `ca22154` |
 | Merged | Antigravity | Pixel-level alignment of Clock floating bottom tab bar, scroll mask gradient, and global FloatingTabBar component extraction | `antigravity/lane` | `src/components/ui/FloatingTabBar.vue`; `src/components/apps/clock/**`; `tests/floatingTabBar.test.js` | `f87fbda` | `09f3741` |
+| Merged | Antigravity | Restore high-fidelity Muslim prayer page, complete 5-Tab floating bar norm, and link tab visibility to Muslim alarm toggle | `antigravity/lane` | `src/components/apps/clock/**`; `src/stores/clockStore.js`; `tests/floatingTabBar.test.js` | `dcad619` | `5720593` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
