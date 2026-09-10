@@ -26,7 +26,7 @@ const clock = useClockStore()
           <span class="setting-label">穆斯林闹钟</span>
           <ToggleSwitch
             :model-value="clock.settings.muslimAlarmEnabled"
-            @update:model-value="clock.settings.muslimAlarmEnabled = $event"
+            @update:model-value="clock.setMuslimAlarmEnabled($event)"
           />
         </div>
 
