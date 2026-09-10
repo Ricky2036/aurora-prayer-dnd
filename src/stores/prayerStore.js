@@ -116,10 +116,10 @@ export const usePrayerStore = defineStore('prayer', {
       alarmRingtone: '麦加唤礼声', // 默认唤礼铃声
 
       /* ---- 灵动岛与控制台模拟状态 ---- */
-      simulatedPrayerId: 'fajr', // 默认初始化为晨礼，展示礼拜灵动岛
+      simulatedPrayerId: null, // 默认关闭，展示礼拜灵动岛由控制台或真实时段触发
       dismissedIslandPrayerId: null,
       islandExpanded: false,
-      islandCountdownSeconds: getPrayerDurationSeconds(defaultFajr)
+      islandCountdownSeconds: 0
     }
   },
 
@@ -301,11 +301,10 @@ export const usePrayerStore = defineStore('prayer', {
       this.alarmLinkageEnabled = false
       this.alarmAdvanceMinutes = -1
       this.alarmRingtone = '麦加唤礼声'
-      this.simulatedPrayerId = 'fajr'
+      this.simulatedPrayerId = null
       this.dismissedIslandPrayerId = null
       this.selectedContactIds = ['c1', 'c2', 'c3']
-      const prayer = this.prayers.find((p) => p.id === 'fajr')
-      this.islandCountdownSeconds = getPrayerDurationSeconds(prayer)
+      this.islandCountdownSeconds = 0
       this.startTicker()
     },
 

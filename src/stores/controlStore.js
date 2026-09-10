@@ -232,8 +232,8 @@ export const useControlStore = defineStore('control', {
     jbl: false,
     vpn: false,
     dnd: false,
-    mediaPlaying: true,
-    mediaActive: true,
+    mediaPlaying: false,
+    mediaActive: false,
     mediaTitle: 'Big Big World',
     mediaArtist: 'Emilia',
 
