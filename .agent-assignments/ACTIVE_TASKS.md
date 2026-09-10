@@ -24,7 +24,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Restore high-fidelity Muslim prayer page, complete 5-Tab floating bar norm, and link tab visibility to Muslim alarm toggle | `antigravity/lane` | `src/components/apps/clock/**`; `src/stores/clockStore.js`; `tests/floatingTabBar.test.js` | `dcad619` | `5720593` |
 | Merged | Antigravity | Pixel-level optimization and restoration of Muslim page: 44px vertical ellipsis button, popover menu, large title, and prayer wheel SVG geometry | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue`; `tests/floatingTabBar.test.js` | `52a141a` | `7709889` |
 
-| Active | Antigravity | Pixel-level geometry alignment of Muslim wheel outer crescents, compass teeth NWSE, large lotus rosette, isometric Kaaba badge, and capture corner leak fix | `antigravity/lane` | `src/App.vue`; `src/components/apps/clock/tabs/MuslimTab.vue`; `tests/floatingTabBar.test.js` | `b5fba18` | TBD |
+| Merged | Antigravity | Pixel-level geometry alignment of Muslim wheel outer crescents, compass teeth NWSE, large lotus rosette, isometric Kaaba badge, and capture corner leak fix | `antigravity/lane` | `src/App.vue`; `src/components/apps/clock/tabs/MuslimTab.vue`; `tests/floatingTabBar.test.js` | `b5fba18` | `1bce2fa` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
