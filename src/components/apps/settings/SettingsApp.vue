@@ -235,16 +235,14 @@ const filteredSearchResults = computed(() => {
             </div>
 
             <!-- ================= 卡片 2: 手机型号卡 ================= -->
-            <div class="settings-card single-item-card" @click="push('general')">
-              <div class="device-item">
-                <div class="squircle-icon bg-device">
-                  <SettingsSystemIcon name="device" :size="20" />
-                </div>
-                <span class="device-title">Infinix GT 50 Pro</span>
-              </div>
-              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+            <div class="settings-card">
+              <ListCell title="Infinix GT 50 Pro" chevron last @click="push('general')">
+                <template #icon>
+                  <div class="squircle-icon bg-device">
+                    <SettingsSystemIcon name="device" :size="20" />
+                  </div>
+                </template>
+              </ListCell>
             </div>
 
             <!-- ================= 卡片 3: 网络与连接 (5项) ================= -->
@@ -478,16 +476,14 @@ const filteredSearchResults = computed(() => {
             </div>
 
             <!-- ================= 卡片 8: 系统 (1项) ================= -->
-            <div class="settings-card single-item-card" @click="push('general')">
-              <div class="device-item">
-                <div class="squircle-icon bg-system">
-                  <SettingsSystemIcon name="system" :size="19" />
-                </div>
-                <span class="device-title">系统</span>
-              </div>
-              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+            <div class="settings-card">
+              <ListCell title="系统" chevron last @click="push('general')">
+                <template #icon>
+                  <div class="squircle-icon bg-system">
+                    <SettingsSystemIcon name="system" :size="19" />
+                  </div>
+                </template>
+              </ListCell>
             </div>
           </template>
 
@@ -745,31 +741,6 @@ const filteredSearchResults = computed(() => {
   line-height: 1.2;
 }
 
-/* 单项卡（机型卡与系统卡） */
-.single-item-card {
-  padding: 13px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  min-height: 58px;
-  box-sizing: border-box;
-}
-.single-item-card:active {
-  background: #F2F2F7;
-}
-
-.device-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.device-title {
-  font-size: 15.5px;
-  font-weight: 450;
-  color: #111111;
-}
 
 .chevron-icon {
   flex: none;
