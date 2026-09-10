@@ -1,6 +1,7 @@
 import { rectRelativeToScreen } from './dom.js'
 
 const homeAnchors = new Map()
+const lastValidAnchors = new Map()
 let pendingLaunch = null
 const HOME_LAYOUT_SUBPIXELS = 8
 
@@ -33,12 +34,22 @@ export function unregisterAnchor(appId, element) {
 
 export function getAnchorRect(appId, viewport) {
   const element = homeAnchors.get(appId)
-  if (!element?.isConnected) return null
-  return normalizeHomeAnchorRect(rectRelativeToScreen(element, viewport))
+  if (element?.isConnected) {
+    const raw = rectRelativeToScreen(element, viewport)
+    if (raw && raw.width > 0 && raw.height > 0) {
+      const normalized = normalizeHomeAnchorRect(raw)
+      lastValidAnchors.set(appId, normalized)
+      return normalized
+    }
+  }
+  return lastValidAnchors.get(appId) || null
 }
 
 export function setLaunchRect(appId, rect) {
   pendingLaunch = rect ? { appId, rect: { ...rect } } : null
+  if (rect && rect.width > 0 && rect.height > 0) {
+    lastValidAnchors.set(appId, normalizeHomeAnchorRect(rect))
+  }
 }
 
 export function consumeLaunchRect(appId) {
