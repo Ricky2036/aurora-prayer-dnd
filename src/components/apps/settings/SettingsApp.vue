@@ -121,9 +121,11 @@ const networks = ['Ricky_5G', 'Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G']
 const searchQuery = ref('')
 const searchActive = ref(false)
 const settingsScrollTop = ref(0)
-const titleCollapseProgress = computed(() => clamp((settingsScrollTop.value - 10) / 42, 0, 1))
-const titleSize = computed(() => 30 - 12 * titleCollapseProgress.value)
-const titleOffset = computed(() => -30 * titleCollapseProgress.value)
+const titleCollapseProgress = computed(() => clamp(settingsScrollTop.value / 72, 0, 1))
+const titleSize = computed(() => 36 - 14 * titleCollapseProgress.value)
+const titleInset = computed(() => 30 - 8 * titleCollapseProgress.value)
+const titleTopInset = computed(() => 22 - 44 * titleCollapseProgress.value)
+const titleHeight = computed(() => 72 - 8 * titleCollapseProgress.value)
 
 function onSettingsScroll(event) {
   settingsScrollTop.value = event.currentTarget.scrollTop
@@ -177,7 +179,9 @@ const filteredSearchResults = computed(() => {
             :style="{
               '--title-progress': titleCollapseProgress,
               '--title-size': `${titleSize}px`,
-              '--title-offset': `${titleOffset}px`
+              '--title-inset': `${titleInset}px`,
+              '--title-top-inset': `${titleTopInset}px`,
+              '--title-height': `${titleHeight}px`
             }"
           ><span>设置</span></div>
 
@@ -651,12 +655,12 @@ const filteredSearchResults = computed(() => {
 .large-title {
   position: sticky;
   top: 0;
-  height: calc(var(--safe-top, 20px) + 64px);
+  height: calc(var(--safe-top, 20px) + var(--title-height));
   z-index: 12;
   display: flex;
   align-items: flex-start;
   box-sizing: border-box;
-  padding: calc(var(--safe-top, 20px) + 18px) 20px 0;
+  padding: calc(var(--safe-top, 20px) + var(--title-top-inset)) var(--title-inset) 0;
   isolation: isolate;
 }
 
@@ -664,7 +668,7 @@ const filteredSearchResults = computed(() => {
   content: '';
   position: absolute;
   z-index: -1;
-  inset: 0 0 -30px;
+  inset: 0;
   background: linear-gradient(
     to bottom,
     rgba(244, 245, 247, 0.99) 0%,
@@ -684,9 +688,8 @@ const filteredSearchResults = computed(() => {
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: -0.7px;
-  transform: translateY(var(--title-offset));
-  transform-origin: left center;
-  will-change: font-size, transform;
+  transform-origin: left top;
+  will-change: font-size;
 }
 
 /* ================= 统一卡片规范 ================= */
