@@ -43,6 +43,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Update DevConsole alarm reminder button text to 开启闹钟 | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `7f31583` | `4701566` |
 | Merged | Antigravity | Set Music and Prayer dynamic island default state to closed | `antigravity/lane` | `src/stores/controlStore.js`; `src/stores/prayerStore.js` | `f9e66d0` | `d80856a` |
 | Merged | Antigravity | Refactor DevConsole with top-corner icons, combined capture card, dropdown module switcher, dashed big card, and migrate language/navigation to Settings | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `src/components/apps/settings/SettingsApp.vue`; `tests/alarmDynamicIsland.test.js`; `tests/prayerAlarmLinkage.test.js` | `34693f0` | `c27ebd9` |
+| Merged | Antigravity | Move frame toggle to capture card header as common option and simplify capture/record buttons | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `982831d` | `dae7b0b` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
