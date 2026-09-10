@@ -325,6 +325,14 @@ function snapToEdge() {
 /* 录屏计时单例 */
 const { recordElapsed } = useCapture()
 
+/* 通用「带壳」选项：联动控制录屏带壳与截图带壳 */
+const withFrame = computed(() => props.recordWithFrame && props.screenshotWithFrame)
+
+function toggleWithFrame(checked) {
+  emit('update:recordWithFrame', checked)
+  emit('update:screenshotWithFrame', checked)
+}
+
 /* 图标微调快捷操作 */
 function onToggleFineTune(enabled) {
   control.setFineTuningMode(enabled)
@@ -375,57 +383,48 @@ function onToggleFineTune(enabled) {
       </button>
     </header>
 
-    <!-- 常用功能：截屏录屏合一卡片 -->
+    <!-- 常用功能：截屏录屏合一卡片（带壳作为通用选项置于标题右侧，按钮精简） -->
     <div class="pc-card">
       <div class="pc-card-header">
         <span class="pc-card-title">截屏录屏</span>
+        <label class="pc-switch-wrap">
+          <span>带壳</span>
+          <input type="checkbox" :checked="withFrame" @change="toggleWithFrame($event.target.checked)" />
+          <div class="pc-switch"></div>
+        </label>
       </div>
-      <div class="pc-capture-grid">
-        <!-- 录屏动作 -->
-        <div class="pc-capture-col">
-          <button
-            class="pc-btn"
-            :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
-            :disabled="isTranscoding"
-            @click="emit('toggle-recording')"
-          >
-            <template v-if="isTranscoding">
-              <span class="pc-rec-spin">⏳</span>
-              <span>转码中...</span>
-            </template>
-            <template v-else-if="isRecording">
-              <LIcon name="video" :size="14" />
-              <span>停止 · {{ recordElapsed }}</span>
-            </template>
-            <template v-else>
-              <LIcon name="video" :size="14" />
-              <span>开始录屏</span>
-            </template>
-          </button>
-          <label class="pc-switch-wrap pc-capture-sub">
-            <span>带壳录制</span>
-            <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
-            <div class="pc-switch"></div>
-          </label>
-        </div>
+      <div class="pc-btn-group-2">
+        <!-- 录屏动作按钮 -->
+        <button
+          class="pc-btn"
+          :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+          :disabled="isTranscoding"
+          @click="emit('toggle-recording')"
+        >
+          <template v-if="isTranscoding">
+            <span class="pc-rec-spin">⏳</span>
+            <span>转码中...</span>
+          </template>
+          <template v-else-if="isRecording">
+            <LIcon name="video" :size="14" />
+            <span>停止 · {{ recordElapsed }}</span>
+          </template>
+          <template v-else>
+            <LIcon name="video" :size="14" />
+            <span>录屏</span>
+          </template>
+        </button>
 
-        <!-- 截屏动作 -->
-        <div class="pc-capture-col">
-          <button
-            class="pc-btn pc-btn-secondary"
-            :class="isCapturing ? 'pc-btn-disabled' : ''"
-            :disabled="isCapturing"
-            @click="emit('capture-screenshot')"
-          >
-            <LIcon name="scissors" :size="14" />
-            <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
-          </button>
-          <label class="pc-switch-wrap pc-capture-sub">
-            <span>带壳截图</span>
-            <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
-            <div class="pc-switch"></div>
-          </label>
-        </div>
+        <!-- 截屏动作按钮 -->
+        <button
+          class="pc-btn pc-btn-secondary"
+          :class="isCapturing ? 'pc-btn-disabled' : ''"
+          :disabled="isCapturing"
+          @click="emit('capture-screenshot')"
+        >
+          <LIcon name="scissors" :size="14" />
+          <span>{{ isCapturing ? '截取中...' : '截屏' }}</span>
+        </button>
       </div>
     </div>
 
@@ -781,53 +780,44 @@ function onToggleFineTune(enabled) {
             <div class="pc-card">
               <div class="pc-card-header">
                 <span class="pc-card-title">截屏录屏</span>
+                <label class="pc-switch-wrap">
+                  <span>带壳</span>
+                  <input type="checkbox" :checked="withFrame" @change="toggleWithFrame($event.target.checked)" />
+                  <div class="pc-switch"></div>
+                </label>
               </div>
-              <div class="pc-capture-grid">
-                <!-- 录屏动作 -->
-                <div class="pc-capture-col">
-                  <button
-                    class="pc-btn"
-                    :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
-                    :disabled="isTranscoding"
-                    @click="emit('toggle-recording')"
-                  >
-                    <template v-if="isTranscoding">
-                      <span class="pc-rec-spin">⏳</span>
-                      <span>转码中...</span>
-                    </template>
-                    <template v-else-if="isRecording">
-                      <LIcon name="video" :size="14" />
-                      <span>停止 · {{ recordElapsed }}</span>
-                    </template>
-                    <template v-else>
-                      <LIcon name="video" :size="14" />
-                      <span>开始录制</span>
-                    </template>
-                  </button>
-                  <label class="pc-switch-wrap pc-capture-sub">
-                    <span>带壳录制</span>
-                    <input type="checkbox" :checked="recordWithFrame" @change="emit('update:recordWithFrame', $event.target.checked)" />
-                    <div class="pc-switch"></div>
-                  </label>
-                </div>
+              <div class="pc-btn-group-2">
+                <!-- 录屏动作按钮 -->
+                <button
+                  class="pc-btn"
+                  :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+                  :disabled="isTranscoding"
+                  @click="emit('toggle-recording')"
+                >
+                  <template v-if="isTranscoding">
+                    <span class="pc-rec-spin">⏳</span>
+                    <span>转码中...</span>
+                  </template>
+                  <template v-else-if="isRecording">
+                    <LIcon name="video" :size="14" />
+                    <span>停止 · {{ recordElapsed }}</span>
+                  </template>
+                  <template v-else>
+                    <LIcon name="video" :size="14" />
+                    <span>录屏</span>
+                  </template>
+                </button>
 
-                <!-- 截屏动作 -->
-                <div class="pc-capture-col">
-                  <button
-                    class="pc-btn pc-btn-secondary"
-                    :class="isCapturing ? 'pc-btn-disabled' : ''"
-                    :disabled="isCapturing"
-                    @click="emit('capture-screenshot')"
-                  >
-                    <LIcon name="scissors" :size="14" />
-                    <span>{{ isCapturing ? '截取中...' : '截取屏幕' }}</span>
-                  </button>
-                  <label class="pc-switch-wrap pc-capture-sub">
-                    <span>带壳截图</span>
-                    <input type="checkbox" :checked="screenshotWithFrame" @change="emit('update:screenshotWithFrame', $event.target.checked)" />
-                    <div class="pc-switch"></div>
-                  </label>
-                </div>
+                <!-- 截屏动作按钮 -->
+                <button
+                  class="pc-btn pc-btn-secondary"
+                  :class="isCapturing ? 'pc-btn-disabled' : ''"
+                  :disabled="isCapturing"
+                  @click="emit('capture-screenshot')"
+                >
+                  <LIcon name="scissors" :size="14" />
+                  <span>{{ isCapturing ? '截取中...' : '截屏' }}</span>
+                </button>
               </div>
             </div>
 
@@ -1216,30 +1206,11 @@ function onToggleFineTune(enabled) {
   flex: 1;
 }
 
-/* ================= 截屏录屏两列网格 ================= */
-.pc-capture-grid {
+/* ================= 截屏录屏两列操作按钮 ================= */
+.pc-btn-group-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
-}
-
-.pc-capture-col {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: #141418;
-  border: 1px solid #27272f;
-  border-radius: 12px;
-  padding: 8px;
-}
-
-.pc-capture-sub {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 0 2px;
-  font-size: 11px;
 }
 
 /* ================= 模块下拉选择器 ================= */
