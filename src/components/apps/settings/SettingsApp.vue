@@ -16,6 +16,7 @@ import { usePrayerStore } from '../../../stores/prayerStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import { GLYPHS } from '../../../assets/icons/glyphs'
+import accountAvatar from '../../../assets/img/account-avatar.jpg'
 import { clamp } from '../../../utils/math'
 
 /**
@@ -220,10 +221,7 @@ const filteredSearchResults = computed(() => {
             <!-- ================= 卡片 1: 个人账号卡 ================= -->
             <div class="settings-card account-card" @click="pushUnimplemented('Ricky 账号')">
               <div class="account-avatar">
-                <svg width="34" height="34" viewBox="0 0 44 44" fill="none">
-                  <path d="M16 6C26 12 30 28 20 40C34 38 42 26 36 12C31 3 20 4 16 6Z" fill="white" fill-opacity="0.32" />
-                  <path d="M12 14C20 20 23 34 16 42C28 40 36 30 30 18C25 9 17 11 12 14Z" fill="white" fill-opacity="0.55" />
-                </svg>
+                <img class="account-avatar-img" :src="accountAvatar" alt="Ricky" />
               </div>
               <div class="account-info">
                 <div class="account-name">Ricky</div>
@@ -235,16 +233,14 @@ const filteredSearchResults = computed(() => {
             </div>
 
             <!-- ================= 卡片 2: 手机型号卡 ================= -->
-            <div class="settings-card single-item-card" @click="push('general')">
-              <div class="device-item">
-                <div class="squircle-icon bg-device">
-                  <SettingsSystemIcon name="device" :size="20" />
-                </div>
-                <span class="device-title">Infinix GT 50 Pro</span>
-              </div>
-              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+            <div class="settings-card">
+              <ListCell title="Infinix GT 50 Pro" chevron last @click="push('general')">
+                <template #icon>
+                  <div class="squircle-icon bg-device">
+                    <SettingsSystemIcon name="device" :size="20" />
+                  </div>
+                </template>
+              </ListCell>
             </div>
 
             <!-- ================= 卡片 3: 网络与连接 (5项) ================= -->
@@ -478,16 +474,14 @@ const filteredSearchResults = computed(() => {
             </div>
 
             <!-- ================= 卡片 8: 系统 (1项) ================= -->
-            <div class="settings-card single-item-card" @click="push('general')">
-              <div class="device-item">
-                <div class="squircle-icon bg-system">
-                  <SettingsSystemIcon name="system" :size="19" />
-                </div>
-                <span class="device-title">系统</span>
-              </div>
-              <svg class="chevron-icon" width="8" height="13" viewBox="0 0 8 13">
-                <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
+            <div class="settings-card">
+              <ListCell title="系统" chevron last @click="push('general')">
+                <template #icon>
+                  <div class="squircle-icon bg-system">
+                    <SettingsSystemIcon name="system" :size="19" />
+                  </div>
+                </template>
+              </ListCell>
             </div>
           </template>
 
@@ -718,12 +712,20 @@ const filteredSearchResults = computed(() => {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00D2FF 0%, #0076FF 100%);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  box-shadow: 0 3px 10px rgba(0, 118, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: #F2F2F7;
+}
+
+.account-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .account-info {
@@ -745,31 +747,6 @@ const filteredSearchResults = computed(() => {
   line-height: 1.2;
 }
 
-/* 单项卡（机型卡与系统卡） */
-.single-item-card {
-  padding: 13px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  min-height: 58px;
-  box-sizing: border-box;
-}
-.single-item-card:active {
-  background: #F2F2F7;
-}
-
-.device-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.device-title {
-  font-size: 15.5px;
-  font-weight: 450;
-  color: #111111;
-}
 
 .chevron-icon {
   flex: none;
