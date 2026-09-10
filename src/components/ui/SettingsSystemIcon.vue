@@ -2,6 +2,7 @@
 import accessibility from '../../assets/icons/settings/accessibility.svg'
 import ai from '../../assets/icons/settings/ai.svg'
 import apps from '../../assets/icons/settings/apps.svg'
+import battery from '../../assets/icons/settings/battery.svg'
 import bluetooth from '../../assets/icons/settings/bluetooth.svg'
 import device from '../../assets/icons/settings/device.svg'
 import display from '../../assets/icons/settings/display.svg'
@@ -23,6 +24,7 @@ const icons = {
   accessibility,
   ai,
   apps,
+  battery,
   bluetooth,
   device,
   display,

@@ -395,11 +395,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="电池与省电" chevron @click="pushUnimplemented('电池与省电')">
                 <template #icon>
                   <div class="squircle-icon bg-battery">
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="2" y="7" width="16" height="10" rx="2" />
-                      <line x1="22" y1="11" x2="22" y2="13" stroke-width="2.5" />
-                      <path d="M10 9l-2 3h3l-1 3" fill="#fff" stroke="none" />
-                    </svg>
+                    <SettingsSystemIcon name="battery" :size="19" />
                   </div>
                 </template>
               </ListCell>
