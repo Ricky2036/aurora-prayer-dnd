@@ -36,6 +36,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Merged | Antigravity | Align Infinix text on Settings home page with list items below | `antigravity/lane` | `src/components/apps/settings/SettingsApp.vue` | `760cbfa` | `caa8177` |
 | Merged | Antigravity | Replace Settings account avatar with cute cartoon avatar | `antigravity/lane` | `src/components/apps/settings/SettingsApp.vue`; `src/assets/img/account-avatar.jpg` | `51a24b2` | `56e8d40` |
+| Merged | Antigravity | Restore AppWindow and ScreenView hero anchor transition and add anchor cache fallback | `antigravity/lane` | `src/components/system/AppWindow.vue`; `src/components/phone/ScreenView.vue`; `src/utils/appIconAnchors.js` | `a559fec` | `6939000` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
