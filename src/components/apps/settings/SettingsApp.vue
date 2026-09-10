@@ -122,6 +122,8 @@ const searchQuery = ref('')
 const searchActive = ref(false)
 const settingsScrollTop = ref(0)
 const titleCollapseProgress = computed(() => clamp((settingsScrollTop.value - 10) / 42, 0, 1))
+const largeTitleOpacity = computed(() => clamp(1 - titleCollapseProgress.value / 0.46, 0, 1))
+const compactTitleOpacity = computed(() => clamp((titleCollapseProgress.value - 0.38) / 0.62, 0, 1))
 
 function onSettingsScroll(event) {
   settingsScrollTop.value = event.currentTarget.scrollTop
@@ -172,7 +174,7 @@ const filteredSearchResults = computed(() => {
           class="settings-compact-header"
           :style="{
             '--collapse-progress': titleCollapseProgress,
-            opacity: titleCollapseProgress
+            opacity: compactTitleOpacity
           }"
           aria-hidden="true"
         >
@@ -183,7 +185,7 @@ const filteredSearchResults = computed(() => {
           <div
             class="large-title"
             :style="{
-              opacity: 1 - titleCollapseProgress,
+              opacity: largeTitleOpacity,
               transform: `translateY(${-4 * titleCollapseProgress}px) scale(${1 - 0.12 * titleCollapseProgress})`
             }"
           >设置</div>
@@ -672,12 +674,10 @@ const filteredSearchResults = computed(() => {
   top: 0;
   left: 0;
   right: 0;
-  height: calc(var(--safe-top, 20px) + 48px);
+  height: calc(var(--safe-top, 20px) + 78px);
   z-index: 12;
-  display: flex;
-  align-items: flex-end;
   box-sizing: border-box;
-  padding: 0 20px 11px;
+  padding: calc(var(--safe-top, 20px) + 10px) 20px 0;
   pointer-events: none;
   color: #111111;
   font-size: 18px;
@@ -687,11 +687,11 @@ const filteredSearchResults = computed(() => {
   background: linear-gradient(
     to bottom,
     rgba(244, 245, 247, 0.99) 0%,
-    rgba(244, 245, 247, 0.99) 78%,
+    rgba(244, 245, 247, 0.99) 54%,
+    rgba(244, 245, 247, 0.72) 68%,
+    rgba(244, 245, 247, 0.28) 84%,
     rgba(244, 245, 247, 0) 100%
   );
-  backdrop-filter: blur(calc(10px * var(--collapse-progress)));
-  -webkit-backdrop-filter: blur(calc(10px * var(--collapse-progress)));
   will-change: opacity;
   transition: opacity 80ms linear;
 }
