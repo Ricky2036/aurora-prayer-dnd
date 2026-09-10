@@ -54,7 +54,7 @@ const emit = defineEmits(['click'])
   align-items: center;
   background: var(--bg-cell);
   padding-left: 16px;
-  min-height: 48px;
+  min-height: 52px;
   cursor: default;
 }
 .list-cell.clickable { cursor: pointer; }
@@ -62,17 +62,17 @@ const emit = defineEmits(['click'])
 
 .lc-icon {
   flex: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 8.5px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 13px;
+  margin-right: 14px;
 }
 .lc-icon-text {
   color: #fff;
-  font: 600 14px/1 var(--font-stack);
+  font: 600 15px/1 var(--font-stack);
 }
 
 .lc-main {
@@ -80,8 +80,8 @@ const emit = defineEmits(['click'])
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px 12px 0;
-  border-bottom: 0.5px solid rgba(60, 60, 67, 0.12);
+  padding: 13px 16px 13px 0;
+  border-bottom: 0.5px solid #F0F1F3;
   min-width: 0;
 }
 .lc-main.no-sep { border-bottom: none; }
@@ -94,8 +94,8 @@ const emit = defineEmits(['click'])
 }
 
 .lc-title {
-  font: 400 15px/1.25 var(--font-stack);
-  color: var(--label);
+  font: 450 15.5px/1.3 var(--font-stack);
+  color: #111111;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,7 +112,7 @@ const emit = defineEmits(['click'])
   flex: none;
 }
 .lc-value {
-  font: 400 15px/1.25 var(--font-stack);
-  color: var(--label-secondary);
+  font: 400 14.5px/1.25 var(--font-stack);
+  color: #8E8E93;
 }
 </style>

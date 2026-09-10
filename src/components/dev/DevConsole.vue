@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, r
 import { useControlStore, LAYOUT_PRESETS } from '../../stores/controlStore'
 import { useSystemStore } from '../../stores/systemStore'
 import { usePrayerStore } from '../../stores/prayerStore'
+import { useClockStore } from '../../stores/clockStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useCapture } from '../../composables/useCapture'
 import LIcon from '../ui/LIcon.vue'
@@ -52,7 +53,12 @@ const emit = defineEmits([
 const control = useControlStore()
 const system = useSystemStore()
 const prayerStore = usePrayerStore()
+const clockStore = useClockStore()
 const i18n = useI18nStore()
+
+if (typeof window !== 'undefined') {
+  window.__clock = clockStore
+}
 
 /** 当前默认布局在三档分段控件里的下标（驱动滑块位移） */
 const presetIndex = computed(() =>
@@ -565,6 +571,35 @@ function onCopyFineTune() {
                 {{ i18n.prayerName(p.id) }}
               </button>
             </div>
+
+            <!-- 闹钟灵动岛控制 -->
+            <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 12px; color: rgba(255,255,255,0.65); font-weight: 500;">闹钟提醒</span>
+                <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
+                  {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
+                </span>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button
+                  class="pc-prayer-btn"
+                  style="flex: 1;"
+                  :class="{ on: clockStore.isAlarmRinging }"
+                  @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
+                >
+                  {{ clockStore.isAlarmRinging ? '关闭闹钟' : '🔔 触发 20:44 闹钟' }}
+                </button>
+                <button
+                  v-if="clockStore.isAlarmActive"
+                  class="pc-prayer-btn"
+                  style="flex: 1;"
+                  :class="{ on: clockStore.isAlarmSnoozing }"
+                  @click="clockStore.snoozeAlarm()"
+                >
+                  {{ clockStore.isAlarmSnoozing ? '重置10分' : '延时10分' }}
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -924,6 +959,35 @@ function onCopyFineTune() {
                       >
                         {{ i18n.prayerName(p.id) }}
                       </button>
+                    </div>
+
+                    <!-- 闹钟灵动岛控制 -->
+                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+                      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-size: 12px; color: rgba(255,255,255,0.65); font-weight: 500;">闹钟提醒</span>
+                        <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
+                          {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
+                        </span>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <button
+                          class="pc-prayer-btn"
+                          style="flex: 1;"
+                          :class="{ on: clockStore.isAlarmRinging }"
+                          @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
+                        >
+                          {{ clockStore.isAlarmRinging ? '关闭闹钟' : '🔔 触发 20:44 闹钟' }}
+                        </button>
+                        <button
+                          v-if="clockStore.isAlarmActive"
+                          class="pc-prayer-btn"
+                          style="flex: 1;"
+                          :class="{ on: clockStore.isAlarmSnoozing }"
+                          @click="clockStore.snoozeAlarm()"
+                        >
+                          {{ clockStore.isAlarmSnoozing ? '重置10分' : '延时10分' }}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </section>

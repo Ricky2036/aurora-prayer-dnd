@@ -1,11 +1,11 @@
 import { computed } from 'vue'
-import { useClockStore } from '../stores/clockStore'
-import { useRecorderStore } from '../stores/recorderStore'
-import { usePrayerStore } from '../stores/prayerStore'
-import { useSystemStore } from '../stores/systemStore'
-import { useI18nStore } from '../stores/i18nStore'
-import { useNotificationsStore } from '../stores/notificationsStore'
-import { useControlStore } from '../stores/controlStore'
+import { useClockStore } from '../stores/clockStore.js'
+import { useRecorderStore } from '../stores/recorderStore.js'
+import { usePrayerStore } from '../stores/prayerStore.js'
+import { useSystemStore } from '../stores/systemStore.js'
+import { useI18nStore } from '../stores/i18nStore.js'
+import { useNotificationsStore } from '../stores/notificationsStore.js'
+import { useControlStore } from '../stores/controlStore.js'
 
 /**
  * 集中管理所有处于活动状态的灵动岛 Live Activity
@@ -21,6 +21,10 @@ export function useActiveActivities() {
   const control = useControlStore()
 
   prayerStore.startTicker()
+
+  const isAlarmActive = computed(() => {
+    return notificationsStore.isIslandEnabled('alarm') && clockStore.isAlarmActive
+  })
 
   const isRecorderActive = computed(() => {
     return notificationsStore.isIslandEnabled('recorder') && recorderStore.isRecording && system.activeAppId !== 'voicememos'
@@ -60,10 +64,24 @@ export function useActiveActivities() {
 
   /**
    * 全部处于活动状态的活动列表（不设数量上限，有几个就显示几个）
-   * 排序顺序：定时器 > 秒表 > 录音 > 礼拜
+   * 排序顺序：闹钟 > 定时器 > 秒表 > 录音 > 礼拜
    */
   const activeActivities = computed(() => {
     const list = []
+    if (isAlarmActive.value && clockStore.ringingAlarm) {
+      list.push({
+        id: 'alarm',
+        type: 'alarm',
+        appId: 'clock',
+        title: clockStore.ringingAlarm.status === 'snoozing'
+          ? clockStore.formattedSnoozeCountdown
+          : (clockStore.ringingAlarm.time || '20:44'),
+        subtitle: clockStore.ringingAlarm.status === 'snoozing'
+          ? '稍后提醒倒计时'
+          : (clockStore.ringingAlarm.label || '闹钟'),
+        status: clockStore.ringingAlarm.status
+      })
+    }
     if (isTimerActive.value) {
       list.push({
         id: 'timer',
@@ -108,6 +126,7 @@ export function useActiveActivities() {
   })
 
   return {
+    isAlarmActive,
     isRecorderActive,
     isTimerActive,
     isStopwatchActive,

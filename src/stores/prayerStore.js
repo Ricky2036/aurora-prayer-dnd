@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { useI18nStore } from './i18nStore'
+import { useI18nStore } from './i18nStore.js'
 import { resolveCurrentIslandPrayer } from '../utils/prayerIsland.js'
 
 const DEFAULT_PRAYERS = [
@@ -109,6 +109,11 @@ export const usePrayerStore = defineStore('prayer', {
       geoAutoEnable: true, // 进入、离开清真寺范围自动启用/退出勿扰模式
       aiAutoAnswer: true,  // 指定联系人来电时自动启用AI接听回复
       selectedContactIds: ['c1', 'c2', 'c3'], // 默认选择：老婆、老板、妈妈 (3人)
+
+      /* ---- 闹钟与唤礼提醒联动 ---- */
+      alarmLinkageEnabled: false, // 默认不提醒
+      alarmAdvanceMinutes: -1,     // 提醒时间 (分钟：-1=不提醒, 5=提前5分钟, 10=提前10分钟, 15=提前15分钟)
+      alarmRingtone: '麦加唤礼声', // 默认唤礼铃声
 
       /* ---- 灵动岛与控制台模拟状态 ---- */
       simulatedPrayerId: 'fajr', // 默认初始化为晨礼，展示礼拜灵动岛
@@ -261,9 +266,41 @@ export const usePrayerStore = defineStore('prayer', {
       }
     },
 
+    /* ---- 闹钟与唤礼提醒联动 ---- */
+    setAlarmReminder(mins) {
+      if (mins === -1 || mins === 'none') {
+        this.alarmLinkageEnabled = false
+        this.alarmAdvanceMinutes = -1
+      } else {
+        this.alarmLinkageEnabled = true
+        this.alarmAdvanceMinutes = mins
+      }
+    },
+
+    setAlarmLinkage(enabled) {
+      this.alarmLinkageEnabled = enabled
+      if (!enabled) {
+        this.alarmAdvanceMinutes = -1
+      } else if (this.alarmAdvanceMinutes <= 0) {
+        this.alarmAdvanceMinutes = 15
+      }
+    },
+
+    setAlarmAdvanceMinutes(mins) {
+      this.alarmAdvanceMinutes = mins
+      this.alarmLinkageEnabled = mins > 0
+    },
+
+    setAlarmRingtone(ringtone) {
+      this.alarmRingtone = ringtone
+    },
+
     resetDefaults() {
       this.prayers = JSON.parse(JSON.stringify(DEFAULT_PRAYERS))
       this.masterEnabled = true
+      this.alarmLinkageEnabled = false
+      this.alarmAdvanceMinutes = -1
+      this.alarmRingtone = '麦加唤礼声'
       this.simulatedPrayerId = 'fajr'
       this.dismissedIslandPrayerId = null
       this.selectedContactIds = ['c1', 'c2', 'c3']
@@ -287,4 +324,7 @@ function ensurePrayerTicker(store) {
       store.decrementCountdown()
     }
   }, 1000)
+  if (prayerTickerId && typeof prayerTickerId.unref === 'function') {
+    prayerTickerId.unref()
+  }
 }

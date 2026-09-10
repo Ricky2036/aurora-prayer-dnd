@@ -1,14 +1,105 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { usePrayerStore } from '../../../stores/prayerStore'
+import { useClockStore } from '../../../stores/clockStore'
+import { useSystemStore } from '../../../stores/systemStore'
 import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
+import TimePickerModal from '../../ui/TimePickerModal.vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 
 const emit = defineEmits(['back-to-dnd', 'back'])
 const prayerStore = usePrayerStore()
+const clockStore = useClockStore()
+const systemStore = useSystemStore()
 const i18n = useI18nStore()
+
+/* 安全的多语言翻译辅助函数：缺失或未编译时自动降级兜底，绝不显示生硬英文 key */
+function tr(key, zhFallback, enFallback, bnFallback) {
+  const val = i18n?.t ? i18n.t(key) : null
+  if (val && val !== key) return val
+  if (i18n?.locale === 'en') return enFallback || zhFallback
+  if (i18n?.locale === 'bn') return bnFallback || enFallback || zhFallback
+  return zhFallback
+}
+
+/* 提醒时间二级页面选项定义与状态计算 */
+const reminderOptions = [
+  { value: -1, labelKey: 'noReminder', zh: '不提醒', en: 'None', bn: 'কোনোটি নয়' },
+  { value: 5, labelKey: 'advance5Min', zh: '提前 5 分钟', en: '5 minutes before', bn: '৫ মিনিট আগে' },
+  { value: 10, labelKey: 'advance10Min', zh: '提前 10 分钟', en: '10 minutes before', bn: '১০ মিনিট আগে' },
+  { value: 15, labelKey: 'advance15Min', zh: '提前 15 分钟', en: '15 minutes before', bn: '১৫ মিনিট আগে' }
+]
+
+const currentReminderValue = computed(() => {
+  if (prayerStore?.alarmLinkageEnabled === false || prayerStore?.alarmAdvanceMinutes === -1) {
+    return -1
+  }
+  const mins = prayerStore?.alarmAdvanceMinutes
+  if (mins === 5 || mins === 10 || mins === 15) return mins
+  if (prayerStore?.alarmLinkageEnabled) return 15
+  return -1
+})
+
+const currentReminderLabel = computed(() => {
+  const val = currentReminderValue.value
+  const opt = reminderOptions.find((o) => o.value === val)
+  if (opt) return tr(opt.labelKey, opt.zh, opt.en, opt.bn)
+  return tr('noReminder', '不提醒', 'None', 'কোনোটি নয়')
+})
+
+function openReminderSubpage() {
+  isBack.value = false
+  currentView.value = 'reminder'
+}
+
+function handleReminderBack() {
+  isBack.value = true
+  currentView.value = 'list'
+}
+
+function selectReminderOption(val) {
+  if (val === -1) {
+    if (prayerStore) {
+      prayerStore.alarmLinkageEnabled = false
+      prayerStore.alarmAdvanceMinutes = -1
+      if (typeof prayerStore.setAlarmReminder === 'function') {
+        prayerStore.setAlarmReminder(-1)
+      } else {
+        if (typeof prayerStore.setAlarmLinkage === 'function') prayerStore.setAlarmLinkage(false)
+        if (typeof prayerStore.setAlarmAdvanceMinutes === 'function') prayerStore.setAlarmAdvanceMinutes(-1)
+      }
+    }
+    if (clockStore?.settings) {
+      clockStore.settings.muslimAlarmEnabled = false
+    }
+  } else {
+    if (prayerStore) {
+      prayerStore.alarmLinkageEnabled = true
+      prayerStore.alarmAdvanceMinutes = val
+      if (typeof prayerStore.setAlarmReminder === 'function') {
+        prayerStore.setAlarmReminder(val)
+      } else {
+        if (typeof prayerStore.setAlarmLinkage === 'function') prayerStore.setAlarmLinkage(true)
+        if (typeof prayerStore.setAlarmAdvanceMinutes === 'function') prayerStore.setAlarmAdvanceMinutes(val)
+      }
+    }
+    if (clockStore?.settings) {
+      clockStore.settings.muslimAlarmEnabled = true
+    }
+  }
+}
+
+/* 兼容性保留字段与方法 */
+const alarmLinkageEnabled = computed({
+  get: () => currentReminderValue.value !== -1,
+  set: (val) => selectReminderOption(val ? 15 : -1)
+})
+function jumpToClockMuslim() {
+  clockStore?.setActiveTab?.('muslim')
+  systemStore?.openApp?.('clock')
+}
 
 /* 页面视图层级：'list'（礼拜勿扰列表） | 'edit'（单项全屏设置页） */
 const currentView = ref('list')
@@ -32,11 +123,10 @@ function formatRepeat(prayer) {
   return i18n.t('repeatCustom')
 }
 
-/* 时间滚轮弹窗状态（图 1 控件样式，屏幕底部弹出） */
+/* 时间滚轮弹窗状态（统一标准化控件） */
 const showTimePicker = ref(false)
 const timePickerType = ref('start') // 'start' | 'end'
-const pickerHour = ref(22)
-const pickerMinute = ref(0)
+const currentTimePickerVal = ref('05:15')
 
 /* 动态星期列表 */
 const weekDays = computed(() => {
@@ -76,6 +166,18 @@ function handleEditBack() {
 }
 
 function back() {
+  if (showAdvancePicker.value) {
+    closeAdvancePicker()
+    return true
+  }
+  if (showRingtonePicker.value) {
+    closeRingtonePicker()
+    return true
+  }
+  if (showTimePicker.value) {
+    closeTimePicker()
+    return true
+  }
   if (currentView.value === 'edit') {
     handleEditBack()
     return true
@@ -85,13 +187,10 @@ function back() {
 
 defineExpose({ back })
 
-/* 时间滚轮弹窗控制（屏幕底部弹出） */
+/* 时间滚轮弹窗控制（使用标准化 TimePickerModal 控件） */
 function openTimePicker(type) {
   timePickerType.value = type
-  const targetTime = type === 'start' ? editForm.value.startTime : editForm.value.endTime
-  const [h, m] = targetTime.split(':').map(Number)
-  pickerHour.value = isNaN(h) ? 12 : h
-  pickerMinute.value = isNaN(m) ? 0 : m
+  currentTimePickerVal.value = type === 'start' ? editForm.value.startTime : editForm.value.endTime
   showTimePicker.value = true
 }
 
@@ -99,71 +198,13 @@ function closeTimePicker() {
   showTimePicker.value = false
 }
 
-function confirmTimePicker() {
-  const formatted = `${String(pickerHour.value).padStart(2, '0')}:${String(pickerMinute.value).padStart(2, '0')}`
+function handleTimePickerConfirm(val) {
   if (timePickerType.value === 'start') {
-    editForm.value.startTime = formatted
+    editForm.value.startTime = val
   } else {
-    editForm.value.endTime = formatted
+    editForm.value.endTime = val
   }
   showTimePicker.value = false
-}
-
-function changeHour(delta) {
-  pickerHour.value = (pickerHour.value + delta + 24) % 24
-}
-
-function changeMinute(delta) {
-  pickerMinute.value = (pickerMinute.value + delta + 60) % 60
-}
-
-/* 滚轮与拖拽 */
-function onWheelHour(e) {
-  e.preventDefault()
-  if (e.deltaY > 0) changeHour(1)
-  else if (e.deltaY < 0) changeHour(-1)
-}
-
-function onWheelMinute(e) {
-  e.preventDefault()
-  if (e.deltaY > 0) changeMinute(1)
-  else if (e.deltaY < 0) changeMinute(-1)
-}
-
-let dragStartY = 0
-let dragStartVal = 0
-let activeCol = null
-
-function startDragHour(e) {
-  dragStartY = e.clientY
-  dragStartVal = pickerHour.value
-  activeCol = 'hour'
-  window.addEventListener('pointermove', onPointerMove)
-  window.addEventListener('pointerup', onPointerUp)
-}
-
-function startDragMinute(e) {
-  dragStartY = e.clientY
-  dragStartVal = pickerMinute.value
-  activeCol = 'minute'
-  window.addEventListener('pointermove', onPointerMove)
-  window.addEventListener('pointerup', onPointerUp)
-}
-
-function onPointerMove(e) {
-  if (!activeCol) return
-  const diff = Math.round((dragStartY - e.clientY) / 22)
-  if (activeCol === 'hour') {
-    pickerHour.value = (dragStartVal + diff + 2400) % 24
-  } else if (activeCol === 'minute') {
-    pickerMinute.value = (dragStartVal + diff + 6000) % 60
-  }
-}
-
-function onPointerUp() {
-  activeCol = null
-  window.removeEventListener('pointermove', onPointerMove)
-  window.removeEventListener('pointerup', onPointerUp)
 }
 
 /* 重复模式选择：只有选择「自定义」时才显示周定制控件 */
@@ -276,6 +317,30 @@ function saveEdit() {
                   :model-value="prayer.enabled"
                   @update:model-value="prayerStore.togglePrayer(prayer.id)"
                 />
+              </div>
+            </div>
+          </div>
+
+          <!-- 闹钟提醒入口（小标题为唤礼提醒，标题为闹钟提醒） -->
+          <div class="group-header">{{ tr('prayerAlarmHeader', '唤礼提醒', 'ADHAN REMINDER', 'আযান স্মারক') }}</div>
+          <div class="cell-group">
+            <div class="list-cell clickable" @click="openReminderSubpage">
+              <div class="lc-icon" style="background: #FF9500;">
+                <svg width="17" height="17" viewBox="0 0 24 24">
+                  <path :d="GLYPHS.bell" fill="#fff" />
+                </svg>
+              </div>
+              <div class="lc-main no-sep">
+                <div class="lc-title-col">
+                  <span class="lc-title">{{ tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক') }}</span>
+                  <span class="lc-sub-desc">{{ tr('prayerAlarmLinkageDesc', '礼拜开始前，使用闹钟提醒', 'Use alarm reminder before prayer begins', 'নামাজ শুরুর পূর্বে অ্যালার্ম স্মারক ব্যবহার করুন') }}</span>
+                </div>
+                <div class="lc-right">
+                  <span class="lc-sub-val dark-text">{{ currentReminderLabel }}</span>
+                  <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+                    <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -406,79 +471,48 @@ function saveEdit() {
           </div>
         </div>
       </div>
-    </Transition>
 
-    <!-- ================= 时间选择滚轮弹窗（图 1 控件样式，位于屏幕底部） ================= -->
-    <Transition name="picker-bottom">
-      <div v-if="showTimePicker" class="picker-backdrop" @click="closeTimePicker">
-        <div class="picker-bottom-sheet" @click.stop>
-          <!-- 标题与当前时间展示 -->
-          <div class="pd-header">
-            <div class="pd-type-label">{{ timePickerType === 'start' ? i18n.t('startTime') : i18n.t('endTime') }}</div>
-            <div class="pd-time-display">
-              {{ String(pickerHour).padStart(2, '0') }}:{{ String(pickerMinute).padStart(2, '0') }}
-            </div>
-          </div>
+      <!-- ================= 3. 提醒时间全屏二级页 ================= -->
+      <div v-else-if="currentView === 'reminder'" key="reminder" class="prayer-subpage">
+        <!-- 顶部导航：当前菜单名称「闹钟提醒」，左侧返回按钮「< 礼拜模式」 -->
+        <AppNavBar :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')" :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')" @back="handleReminderBack" />
 
-          <!-- 双列时间滚轮 -->
-          <div class="pd-wheel-container">
-            <div class="pd-wheel-highlight"></div>
-
-            <!-- 小时列 -->
+        <div class="scrollable detail-body">
+          <div class="group-header">{{ tr('alarmAdvanceTime', '提醒时间', 'REMINDER TIME', 'স্মারক সময়') }}</div>
+          <div class="cell-group">
             <div
-              class="pd-wheel-column"
-              @wheel="onWheelHour"
-              @pointerdown="startDragHour"
+              v-for="(opt, idx) in reminderOptions"
+              :key="opt.value"
+              class="list-cell clickable"
+              @click="selectReminderOption(opt.value)"
             >
-              <div class="wheel-item far" @click="changeHour(-2)">
-                {{ String((pickerHour - 2 + 24) % 24).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeHour(-1)">
-                {{ String((pickerHour - 1 + 24) % 24).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item center">
-                {{ String(pickerHour).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeHour(1)">
-                {{ String((pickerHour + 1 + 24) % 24).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item far" @click="changeHour(2)">
-                {{ String((pickerHour + 2 + 24) % 24).padStart(2, '0') }}
-              </div>
-            </div>
-
-            <!-- 分钟列 -->
-            <div
-              class="pd-wheel-column"
-              @wheel="onWheelMinute"
-              @pointerdown="startDragMinute"
-            >
-              <div class="wheel-item far" @click="changeMinute(-2)">
-                {{ String((pickerMinute - 2 + 60) % 60).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeMinute(-1)">
-                {{ String((pickerMinute - 1 + 60) % 60).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item center">
-                {{ String(pickerMinute).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item near" @click="changeMinute(1)">
-                {{ String((pickerMinute + 1 + 60) % 60).padStart(2, '0') }}
-              </div>
-              <div class="wheel-item far" @click="changeMinute(2)">
-                {{ String((pickerMinute + 2 + 60) % 60).padStart(2, '0') }}
+              <div class="lc-main" :class="{ 'no-sep': idx === reminderOptions.length - 1 }">
+                <span class="lc-title">{{ tr(opt.labelKey, opt.zh, opt.en, opt.bn) }}</span>
+                <div class="lc-right">
+                  <svg v-if="currentReminderValue === opt.value" width="18" height="18" viewBox="0 0 24 24">
+                    <path :d="GLYPHS.check" fill="#007AFF" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
-
-          <!-- 底部取消与确定胶囊按钮 -->
-          <div class="pd-actions">
-            <button class="pd-btn pd-cancel" @click="closeTimePicker">{{ i18n.t('cancel') }}</button>
-            <button class="pd-btn pd-confirm" @click="confirmTimePicker">{{ i18n.t('confirm') }}</button>
+          <div class="group-footer">
+            {{ tr('reminderDesc', '开启后将在每个礼拜时段开始前收到闹钟或唤礼提醒。', 'You will receive an alarm or adhan reminder before each prayer time begins.', 'প্রতিটি নামাজের সময় শুরু হওয়ার পূর্বে অ্যালার্ম বা আযানের স্মারক পাবেন।') }}
           </div>
         </div>
       </div>
     </Transition>
+
+    <!-- ================= 时间选择滚轮弹窗（统一标准化控件） ================= -->
+    <TimePickerModal
+      v-if="showTimePicker"
+      :title="timePickerType === 'start' ? i18n.t('startTime') : i18n.t('endTime')"
+      :model-value="currentTimePickerVal"
+      :confirm-text="i18n.t('confirm')"
+      @confirm="handleTimePickerConfirm"
+      @cancel="closeTimePicker"
+    />
+
   </div>
 </template>
 
@@ -950,4 +984,6 @@ function saveEdit() {
 .picker-bottom-leave-to .picker-bottom-sheet {
   transform: translateY(100%);
 }
+
+
 </style>

@@ -205,7 +205,9 @@ function onRequestDeleteActivity(act) {
 
 function stopActivityInstance(act) {
   if (!act) return
-  if (act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
+  if (act.type === 'alarm' || act.id === 'alarm') {
+    clock.dismissAlarm()
+  } else if (act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
     recorder.stopRecording()
   } else if (act.type === 'timer' || act.id === 'timer') {
     clock.cancelTimer()
@@ -247,7 +249,9 @@ function handleCancelIslandModal() {
 }
 
 function onDeleteCard(id) {
-  if (id === '__recorder__' || id === 'recorder') {
+  if (id === 'alarm') {
+    clock.dismissAlarm()
+  } else if (id === '__recorder__' || id === 'recorder') {
     recorder.stopRecording()
   } else if (id === 'timer') {
     clock.cancelTimer()
@@ -309,7 +313,10 @@ function onActivityCardClick(act) {
     swipeOffsets.value = next
     return
   }
-  if (act.type === 'recorder') {
+  if (act.type === 'alarm') {
+    clock.setActiveTab('alarm')
+    system.openApp('clock')
+  } else if (act.type === 'recorder') {
     system.openApp('voicememos')
   } else if (act.type === 'timer') {
     clock.setActiveTab('timer')
@@ -354,7 +361,7 @@ function updateStacking() {
   const containerHeight = container.clientHeight
   if (!containerHeight) return
 
-  const wrappers = container.querySelectorAll('.nc-item-wrapper')
+  const wrappers = container.querySelectorAll('.nc-stack-item')
   if (!wrappers.length) return
 
   const scrollTop = container.scrollTop
@@ -363,8 +370,9 @@ function updateStacking() {
   const items = []
   for (let i = 0; i < wrappers.length; i++) {
     const w = wrappers[i]
-    const card = w.querySelector('.nc-card')
+    const card = w.querySelector('.nc-card, .nc-activity-card, .nc-player-instance')
     items.push({
+      wrapper: w,
       card,
       content: card ? card.querySelector('.nc-card-body') : null,
       icon: card ? card.querySelector('.notif-icon') : null,
@@ -378,6 +386,7 @@ function updateStacking() {
   // 批量样式写入：整卡保持完整自然圆角矩形，随滑入深度平滑调节内容与卡片透明度，彻底避免透底
   for (let i = 0; i < items.length; i++) {
     const item = items[i]
+    item.wrapper.style.zIndex = String(items.length - i)
     const card = item.card
     if (!card) continue
 
@@ -415,6 +424,11 @@ watch(() => notifications.list.length, async () => {
 })
 
 watch(() => activeActivities.value.length, async () => {
+  await nextTick()
+  updateStacking()
+})
+
+watch(() => control.mediaActive, async () => {
   await nextTick()
   updateStacking()
 })
@@ -493,7 +507,7 @@ watch(expandedId, async () => {
       <div ref="listRef" class="nc-list scrollable" @scroll.passive="onScroll">
         <!-- 灵动岛活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个） -->
         <template v-for="act in activeActivities" :key="act.id">
-          <div class="nc-swipe-card-wrapper nc-activity-wrapper">
+          <div class="nc-swipe-card-wrapper nc-stack-item nc-activity-wrapper" :data-id="act.id">
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[act.id] || 0) < -2 }">
               <button
@@ -537,8 +551,44 @@ watch(expandedId, async () => {
               @pointercancel="onCardPointerUp($event, act.id)"
               @click.stop="onActivityCardClick(act)"
             >
+              <!-- 闹钟类型 -->
+              <template v-if="act.type === 'alarm'">
+                <div class="nc-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
+                  <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+                    <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                    <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                    <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
+                    <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                  </svg>
+                </div>
+                <div class="nc-rc-info">
+                  <div class="nc-rc-time">{{ act.title }}</div>
+                  <div class="nc-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="nc-act-ctrls">
+                  <button
+                    class="nc-act-ctrl-btn btn-snooze"
+                    @click.stop="clock.snoozeAlarm()"
+                    :title="clock.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
+                      <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+                      <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
+                      <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
+                      <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+                    </svg>
+                  </button>
+                  <button class="nc-act-ctrl-btn btn-cancel" @click.stop="clock.dismissAlarm()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
               <!-- 录音类型 -->
-              <template v-if="act.type === 'recorder'">
+              <template v-else-if="act.type === 'recorder'">
                 <div class="nc-rc-left">
                   <div class="nc-rc-audio-bars">
                     <span class="bar bar-1"></span>
@@ -646,7 +696,7 @@ watch(expandedId, async () => {
         </template>
 
         <!-- 音乐播放器卡片：与其他灵动岛活动共用横滑操作 -->
-        <div v-if="control.mediaActive" class="nc-swipe-card-wrapper nc-media-wrapper">
+        <div v-if="control.mediaActive" class="nc-swipe-card-wrapper nc-stack-item nc-media-wrapper" data-id="media">
           <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets.media || 0) < -2 }">
             <button
               class="nc-action-btn nc-btn-settings"
@@ -690,10 +740,10 @@ watch(expandedId, async () => {
           <div
             v-for="(n, idx) in notifications.list"
             :key="n.id"
-            class="nc-item-wrapper nc-swipe-card-wrapper"
+            class="nc-item-wrapper nc-swipe-card-wrapper nc-stack-item"
             :class="{ clearing: isClearing }"
             :data-id="n.id"
-            :style="{ transitionDelay: isClearing ? idx * 40 + 'ms' : '0ms', zIndex: notifications.list.length - idx }"
+            :style="{ transitionDelay: isClearing ? idx * 40 + 'ms' : '0ms' }"
           >
             <!-- 底层滑动操作按钮 -->
             <div class="nc-swipe-actions" :class="{ 'is-active': (swipeOffsets[n.id] || 0) < -2 }">
@@ -869,6 +919,23 @@ watch(expandedId, async () => {
   justify-content: center;
   flex: none;
 }
+.nc-act-icon-wrap.icon-alarm {
+  background: transparent;
+}
+.nc-act-icon-wrap.icon-alarm.is-ringing svg {
+  animation: alarmRingWiggle 1.4s ease-in-out infinite;
+  transform-origin: 17px 17px;
+}
+@keyframes alarmRingWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-10deg) scale(1.05); }
+  20% { transform: rotate(10deg) scale(1.05); }
+  30% { transform: rotate(-8deg) scale(1.03); }
+  40% { transform: rotate(8deg) scale(1.03); }
+  50% { transform: rotate(-3deg); }
+  60% { transform: rotate(3deg); }
+  70% { transform: rotate(0deg); }
+}
 .nc-act-icon-wrap.icon-timer,
 .nc-act-icon-wrap.icon-stopwatch {
   background: rgba(255, 149, 0, 0.16);
@@ -898,7 +965,8 @@ watch(expandedId, async () => {
 .nc-act-ctrl-btn:active {
   transform: scale(0.92);
 }
-.nc-act-ctrl-btn.btn-cancel {
+.nc-act-ctrl-btn.btn-cancel,
+.nc-act-ctrl-btn.btn-snooze {
   background: rgba(255, 255, 255, 0.16);
 }
 .nc-act-ctrl-btn.btn-action {

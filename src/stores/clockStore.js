@@ -1,6 +1,21 @@
 import { defineStore } from 'pinia'
 
 /**
+ * 辅助函数：将星期数组格式化为用户友好的重复描述
+ */
+export function formatDaysRepeat(days = []) {
+  if (!days || days.length === 0) return '仅一次'
+  if (days.length === 7) return '每天'
+  const sorted = [...days].sort((a, b) => a - b)
+  const isWorkdays = sorted.length === 5 && sorted.every((d, i) => d === i + 1)
+  if (isWorkdays) return '周一至周五'
+  const isWeekend = sorted.length === 2 && sorted.includes(0) && sorted.includes(6)
+  if (isWeekend) return '周日, 周六'
+  const DAY_NAMES = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return sorted.map((d) => DAY_NAMES[d]).join(', ')
+}
+
+/**
  * 辅助函数：计算距离下一次响铃的分钟数与描述文本
  * 支持：仅一次、每天、工作日、周末或指定星期
  */
@@ -78,7 +93,13 @@ export const useClockStore = defineStore('clock', {
         days: [0, 6],
         repeatLabel: '周日, 周六',
         enabled: false,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a2',
@@ -86,7 +107,13 @@ export const useClockStore = defineStore('clock', {
         days: [1, 2, 3, 4, 5],
         repeatLabel: '周一至周五',
         enabled: true,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a3',
@@ -94,7 +121,13 @@ export const useClockStore = defineStore('clock', {
         days: [],
         repeatLabel: '仅一次',
         enabled: false,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a4',
@@ -102,7 +135,13 @@ export const useClockStore = defineStore('clock', {
         days: [0, 1, 2, 3, 4, 5, 6],
         repeatLabel: '每天',
         enabled: true,
-        label: '收菜'
+        label: '收菜',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a5',
@@ -110,7 +149,13 @@ export const useClockStore = defineStore('clock', {
         days: [0, 1, 2, 3, 4, 5, 6],
         repeatLabel: '每天',
         enabled: true,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       },
       {
         id: 'a6',
@@ -118,7 +163,13 @@ export const useClockStore = defineStore('clock', {
         days: [],
         repeatLabel: '仅一次',
         enabled: false,
-        label: ''
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       }
     ],
 
@@ -164,6 +215,11 @@ export const useClockStore = defineStore('clock', {
     // 灵动岛展开状态
     islandExpanded: false,
 
+    // 闹钟响铃与灵动岛提醒状态
+    ringingAlarm: null, // null | { id, time, label, snooze, remainingSnoozeSeconds, status: 'ringing' | 'snoozing', snoozeCount }
+    _lastTriggeredMinute: '',
+    _alarmTickerId: null,
+
     // 设置项
     settings: {
       muslimAlarmEnabled: true,
@@ -197,9 +253,21 @@ export const useClockStore = defineStore('clock', {
       return state.timer.remainingSeconds / state.timer.totalDuration
     },
 
+    isAlarmActive: (state) => Boolean(state.ringingAlarm),
+    isAlarmRinging: (state) => state.ringingAlarm?.status === 'ringing',
+    isAlarmSnoozing: (state) => state.ringingAlarm?.status === 'snoozing',
+    formattedSnoozeCountdown: (state) => {
+      if (!state.ringingAlarm || state.ringingAlarm.status !== 'snoozing') return ''
+      const s = Math.max(0, state.ringingAlarm.remainingSnoozeSeconds || 0)
+      const m = Math.floor(s / 60)
+      const sec = s % 60
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    },
+
     isTimerActive: (state) => state.timer.status === 'running' || state.timer.status === 'paused',
     isStopwatchActive: (state) => state.stopwatch.status === 'running' || state.stopwatch.status === 'paused',
     hasActiveClockIsland: (state) =>
+      Boolean(state.ringingAlarm) ||
       state.timer.status === 'running' ||
       state.timer.status === 'paused' ||
       state.stopwatch.status === 'running' ||
@@ -230,20 +298,144 @@ export const useClockStore = defineStore('clock', {
     },
 
     addAlarm(alarm) {
-      this.alarms.push({
-        id: `a_${Date.now()}`,
+      const days = alarm.days || []
+      const repeatLabel = alarm.repeatLabel || formatDaysRepeat(days)
+      const newAlarm = {
+        id: alarm.id || `a_${Date.now()}`,
         time: alarm.time || '08:00',
-        days: alarm.days || [],
-        repeatLabel: alarm.repeatLabel || '仅一次',
-        enabled: true,
-        label: alarm.label || ''
-      })
+        days,
+        repeatLabel,
+        enabled: alarm.enabled ?? true,
+        label: alarm.label || '',
+        ringDateEnabled: alarm.ringDateEnabled ?? false,
+        ringDate: alarm.ringDate || '',
+        ringtone: alarm.ringtone || '默认铃声',
+        snooze: alarm.snooze || '10 分钟, 3 次',
+        vibration: alarm.vibration || '跟随音乐节奏',
+        folaxBroadcast: alarm.folaxBroadcast || '已关闭'
+      }
+      this.alarms.push(newAlarm)
+      return newAlarm
+    },
+
+    updateAlarm(id, patch) {
+      const idx = this.alarms.findIndex((a) => a.id === id)
+      if (idx !== -1) {
+        const current = this.alarms[idx]
+        const merged = { ...current, ...patch }
+        if (patch.days && !patch.repeatLabel) {
+          merged.repeatLabel = formatDaysRepeat(patch.days)
+        }
+        this.alarms[idx] = merged
+        return this.alarms[idx]
+      }
+      return null
     },
 
     deleteAlarm(id) {
       const idx = this.alarms.findIndex((a) => a.id === id)
       if (idx !== -1) {
         this.alarms.splice(idx, 1)
+      }
+    },
+
+    /* ---- 闹钟响铃与灵动岛联动 ---- */
+    triggerAlarm(alarmOrId = null) {
+      let target = null
+      if (typeof alarmOrId === 'string') {
+        target = this.alarms.find((a) => a.id === alarmOrId)
+      } else if (alarmOrId && typeof alarmOrId === 'object') {
+        target = alarmOrId
+      }
+      if (!target) {
+        // 优先使用启用的闹钟，兜底 20:44（对齐最新参考截图）
+        target = this.alarms.find((a) => a.enabled) || {
+          id: 'alarm_2044',
+          time: '20:44',
+          label: '闹钟',
+          snooze: '10 分钟, 3 次'
+        }
+      }
+
+      this.ringingAlarm = {
+        id: target.id || 'alarm_active',
+        time: target.time || '20:44',
+        label: target.label || '闹钟',
+        snooze: target.snooze || '10 分钟, 3 次',
+        status: 'ringing',
+        remainingSnoozeSeconds: 0,
+        snoozeCount: (this.ringingAlarm?.id === target.id ? this.ringingAlarm.snoozeCount : 0) || 0
+      }
+      this.islandExpanded = true
+      this.startAlarmTicker()
+      return this.ringingAlarm
+    },
+
+    snoozeAlarm(customSeconds = null) {
+      if (!this.ringingAlarm) return
+      let duration = 600 // 默认 10 分钟
+      if (typeof customSeconds === 'number' && customSeconds > 0) {
+        duration = customSeconds
+      } else {
+        const match = String(this.ringingAlarm.snooze).match(/(\d+)\s*分钟/)
+        if (match) {
+          duration = parseInt(match[1], 10) * 60
+        }
+      }
+
+      this.ringingAlarm.status = 'snoozing'
+      this.ringingAlarm.remainingSnoozeSeconds = duration
+      this.ringingAlarm.totalSnoozeSeconds = duration
+      this.ringingAlarm.snoozeCount = (this.ringingAlarm.snoozeCount || 0) + 1
+      this.islandExpanded = false // 延时后收起为灵动岛胶囊倒计时
+      this.startAlarmTicker()
+    },
+
+    dismissAlarm() {
+      if (this.ringingAlarm) {
+        const target = this.alarms.find((a) => a.id === this.ringingAlarm.id)
+        if (target && (!target.days || target.days.length === 0)) {
+          target.enabled = false
+        }
+      }
+      this.ringingAlarm = null
+      this.islandExpanded = false
+    },
+
+    startAlarmTicker() {
+      if (this._alarmTickerId) return
+      this._alarmTickerId = setInterval(() => {
+        // 1. 处理延时倒计时
+        if (this.ringingAlarm && this.ringingAlarm.status === 'snoozing') {
+          if (this.ringingAlarm.remainingSnoozeSeconds > 1) {
+            this.ringingAlarm.remainingSnoozeSeconds--
+          } else {
+            // 倒计时完成，再次触发响铃提醒！
+            this.ringingAlarm.remainingSnoozeSeconds = 0
+            this.ringingAlarm.status = 'ringing'
+            this.islandExpanded = true
+          }
+        }
+
+        // 2. 检查真实时间是否触发已启用的闹钟
+        const now = new Date()
+        const hh = String(now.getHours()).padStart(2, '0')
+        const mm = String(now.getMinutes()).padStart(2, '0')
+        const currentHM = `${hh}:${mm}`
+        if (now.getSeconds() === 0 && this._lastTriggeredMinute !== currentHM) {
+          const matched = this.alarms.find((a) => a.enabled && a.time === currentHM)
+          if (matched && !this.ringingAlarm) {
+            this._lastTriggeredMinute = currentHM
+            this.triggerAlarm(matched)
+          }
+        }
+      }, 1000)
+    },
+
+    stopAlarmTicker() {
+      if (this._alarmTickerId) {
+        clearInterval(this._alarmTickerId)
+        this._alarmTickerId = null
       }
     },
 

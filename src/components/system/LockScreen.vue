@@ -15,7 +15,6 @@ import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
-import { clamp } from '../../utils/math'
 import { getNotificationStackLayout } from '../../utils/notificationStack'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import albumArt from '../../assets/img/album-2.jpg'
@@ -48,6 +47,8 @@ if (typeof window !== 'undefined') {
 }
 
 const rootRef = ref(null)
+const unlockRef = ref(null)
+const listRef = ref(null)
 const UNLOCK_SPAN = 460
 
 /* ---------- 响应式屏幕高度与自适应布局常量 ---------- */
@@ -77,18 +78,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (resizeObserver) resizeObserver.disconnect()
   window.removeEventListener('resize', updateScreenHeight)
-  // 回弹 rAF 循环必须取消：唯一出口是 isDragging 变 false，而拖拽中解锁时
-  // 组件被 v-if 卸载、touchend 不再派发，循环会永久空转占用主线程
-  if (boundsLoopId !== null) {
-    cancelAnimationFrame(boundsLoopId)
-    boundsLoopId = null
-  }
-  // 滚轮惯性定时器：卸载后仍会触发 isWheeling 写入
-  if (wheelTimeout) {
-    clearTimeout(wheelTimeout)
-    wheelTimeout = null
-  }
-  isSpringing.value = false
+  if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
 })
 
 const BASE_Y = computed(() => screenHeight.value - 254)
@@ -102,8 +92,18 @@ const DATE_TOP = 55
 const DATE_HEIGHT = 28
 const CLOCK_TOP = DATE_TOP + DATE_HEIGHT - 6 // 77
 const TOP_GAP = 16
-const CLOCK_MIN_HEIGHT = 140
+const CLOCK_MAX_HEIGHT = 220
+const CLOCK_MIN_HEIGHT = 110
 const SAFE_GAP = TOP_GAP
+const LOCK_STACK_BOTTOM_INSET = 140
+const LOCK_STACK_MAX_VISUAL_OFFSET = 36
+const LOCK_CARD_HEIGHT = 90
+const LOCK_CARD_BASE_ALPHA = 0.7
+const LOCK_STACK_FRONT_ALPHA = 0.98
+const LOCK_STACK_BACK_ALPHA = 0.54
+const LOCK_STACK_DEPTH_ALPHA = 0.4
+const LOCK_STACK_ALPHA_OVERLAP = 48
+const NATIVE_EXPAND_OFFSET = 20
 const activityBottomY = computed(() => control.mediaActive ? PLAYER_START_Y.value : BASE_Y.value)
 const standaloneActivityCapacity = computed(() => {
   const available = activityBottomY.value - (CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP + 4)
@@ -135,7 +135,7 @@ function getActivityCollapsedY(index) {
 function getActivityStartY(index) {
   const totalH = totalActivitiesHeight.value
   const baseY = Math.max(clipTop.value + 4, activityBottomY.value - totalH) + index * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP)
-  return isCollapsed.value ? getActivityCollapsedY(index) : baseY - scrollOffset.value - playerStretch.value
+  return isCollapsed.value ? getActivityCollapsedY(index) : baseY - scrollOffset.value
 }
 
 // 有独立展示活动时，顶部可用空间需考虑其总高度；溢出活动进入通知堆叠。
@@ -144,11 +144,9 @@ const TOP_WIDGET_START_Y = computed(() => {
     ? activityBottomY.value - totalActivitiesHeight.value
     : activityBottomY.value
 })
-const CLOCK_INITIAL_HEIGHT = computed(() => Math.max(140, TOP_WIDGET_START_Y.value - CLOCK_TOP - TOP_GAP))
+const CLOCK_INITIAL_HEIGHT = computed(() => CLOCK_MAX_HEIGHT)
 const HIT_DISTANCE = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - (CLOCK_TOP + CLOCK_INITIAL_HEIGHT.value) - SAFE_GAP))
 const EXPAND_SCROLL_Y = computed(() => CLOCK_INITIAL_HEIGHT.value - CLOCK_MIN_HEIGHT)
-const STRETCH_FACTOR = 0.15
-const COLLAPSE_THRESHOLD = -26
 
 /* 锁屏队列最多容纳 6 项；空间不足的灵动岛活动优先进入队列。 */
 const lockNotifs = computed(() => notifications.list.slice(0, 6))
@@ -165,103 +163,30 @@ const lockItems = computed(() => {
 /* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
 const notifCountLabel = computed(() => i18n.t('notifCount')(lockItems.value.length))
 const MAX_SCROLL = computed(() => Math.max(0, (lockItems.value.length - 1) * NOTIF_SPACING))
+const scrollSpacerStyle = computed(() => ({ height: `${NATIVE_EXPAND_OFFSET + MAX_SCROLL.value}px` }))
 
-/* ---------- 滚动状态 ---------- */
+/* ---------- 原生滚动状态：与通知中心一样由浏览器处理触摸惯性 ---------- */
 const scrollY = ref(0)
 const isCollapsed = ref(true)
-const isDragging = ref(false)
-const isWheeling = ref(false)
-const isSpringing = ref(false)
-let touchStartY = 0
-let dragDistance = 0
-let wheelTimeout = null
-let boundsLoopId = null
+const isScrolling = ref(false)
+let scrollIdleTimer = null
+let lastNativeScrollY = 0
 
-function startBoundsLoop() {
-  if (boundsLoopId) return
-  isSpringing.value = true
-  const loop = () => {
-    if (isDragging.value) {
-      boundsLoopId = requestAnimationFrame(loop)
-      return
-    }
-    const target = clamp(scrollY.value, 0, MAX_SCROLL.value)
-    const diff = target - scrollY.value
-    if (Math.abs(diff) > 0.5) {
-      scrollY.value += diff * 0.15
-      boundsLoopId = requestAnimationFrame(loop)
-    } else {
-      scrollY.value = target
-      isSpringing.value = false
-      boundsLoopId = null
-    }
-  }
-  boundsLoopId = requestAnimationFrame(loop)
-}
-
-function move(deltaY) {
-  let next = scrollY.value + deltaY
-  if (next > MAX_SCROLL.value) {
-    next = scrollY.value > MAX_SCROLL.value
-      ? scrollY.value + deltaY * 0.12
-      : MAX_SCROLL.value + (next - MAX_SCROLL.value) * 0.12
-  }
-  if (next < 0) {
-    next = scrollY.value < 0 ? scrollY.value + deltaY * 0.12 : next * 0.12
-  }
-  let triggered = false
-  if (!isCollapsed.value && next <= COLLAPSE_THRESHOLD) {
-    isCollapsed.value = true
-    scrollY.value = 0
-    triggered = true
-  } else if (isCollapsed.value && next >= 20) {
+function handleListScroll(e) {
+  const nativeY = e.currentTarget.scrollTop
+  scrollY.value = Math.max(0, nativeY - NATIVE_EXPAND_OFFSET)
+  if (nativeY >= 1) {
     isCollapsed.value = false
-    scrollY.value = 0
-    triggered = true
-  } else {
-    scrollY.value = next
+  } else if (lastNativeScrollY >= 1) {
+    isCollapsed.value = true
   }
-  return triggered
-}
-
-function handleWheel(e) {
-  isWheeling.value = true
-  const triggered = move(e.deltaY * 0.8)
-  if (triggered) { isWheeling.value = false; return }
-  
-  if (scrollY.value > MAX_SCROLL.value || scrollY.value < 0) {
-    startBoundsLoop()
-  }
-
-  if (wheelTimeout) clearTimeout(wheelTimeout)
-  wheelTimeout = setTimeout(() => {
-    isWheeling.value = false
-  }, 150)
-}
-
-function handleTouchStart(e) {
-  if (isSwipingCard) return
-  touchStartY = e.touches[0].clientY
-  dragDistance = 0
-  isDragging.value = true
-}
-function handleTouchMove(e) {
-  if (!isDragging.value || isSwipingCard) return
-  const currentY = e.touches[0].clientY
-  dragDistance = Math.abs(currentY - touchStartY)
-  const deltaY = (touchStartY - currentY) * 1.5
-  const triggered = move(deltaY)
-  if (triggered) { isDragging.value = false; touchStartY = 0 }
-  else touchStartY = currentY
-}
-function handleTouchEnd() {
-  isDragging.value = false
-  if (scrollY.value > MAX_SCROLL.value || scrollY.value < 0) {
-    startBoundsLoop()
-  } else {
-    scrollY.value = clamp(scrollY.value, 0, MAX_SCROLL.value)
-  }
-  touchStartY = 0
+  lastNativeScrollY = nativeY
+  isScrolling.value = true
+  if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
+  scrollIdleTimer = setTimeout(() => {
+    isScrolling.value = false
+    scrollIdleTimer = null
+  }, 90)
 }
 
 /* ---------- 卡片横向滑动（左滑露操作按钮） ---------- */
@@ -310,7 +235,6 @@ function onCardPointerMove(e, id) {
       swipeGestureDecided = true
       if (Math.abs(dx) > Math.abs(dy)) {
         isSwipingCard = true
-        isDragging.value = false // 禁止垂直拖动
         try {
           cardPointerTarget?.setPointerCapture(cardPointerId)
         } catch (_) {}
@@ -417,7 +341,9 @@ function onRequestDeleteActivity(act) {
 
 function stopActivityInstance(act) {
   if (!act) return
-  if (act.isRecorder || act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
+  if (act.type === 'alarm' || act.id === 'alarm') {
+    clock.dismissAlarm()
+  } else if (act.isRecorder || act.type === 'recorder' || act.id === '__recorder__' || act.id === 'recorder') {
     recorder.stopRecording()
   } else if (act.type === 'timer' || act.id === 'timer') {
     clock.cancelTimer()
@@ -457,7 +383,9 @@ function handleCancelIslandModal() {
 }
 
 function onDeleteCard(item) {
-  if (item.isRecorder || item.id === '__recorder__' || item.id === 'recorder') {
+  if (item.type === 'alarm' || item.id === 'alarm') {
+    clock.dismissAlarm()
+  } else if (item.isRecorder || item.id === '__recorder__' || item.id === 'recorder') {
     recorder.stopRecording()
   } else if (item.id === 'timer') {
     clock.cancelTimer()
@@ -481,7 +409,7 @@ function onJumpSettings() {
 }
 
 function handleActivityCardClick(act) {
-  if (dragDistance > 10 || isSwipingCard) return
+  if (isSwipingCard) return
   if (justSwipedId === act.id) {
     justSwipedId = null
     return
@@ -492,7 +420,11 @@ function handleActivityCardClick(act) {
     swipeOffsets.value = next
     return
   }
-  if (act.type === 'recorder') {
+  if (act.type === 'alarm') {
+    clock.setActiveTab('alarm')
+    system.unlock()
+    system.openApp('clock')
+  } else if (act.type === 'recorder') {
     system.unlock()
     system.openApp('voicememos')
   } else if (act.type === 'timer') {
@@ -511,7 +443,7 @@ function handleActivityCardClick(act) {
 }
 
 function handleCardClick(item) {
-  if (dragDistance > 10 || isSwipingCard) return
+  if (isSwipingCard) return
   if (justSwipedId === item.id) {
     justSwipedId = null
     return
@@ -532,12 +464,15 @@ function handleCardClick(item) {
 
 /* 点击播放器/通知/胶囊：折叠→展开；已展开且未滚远→滚到挤压位 */
 function handleExpand() {
-  if (dragDistance > 10) return
   if (isCollapsed.value) {
     isCollapsed.value = false
     scrollY.value = 0
+    listRef.value?.scrollTo({ top: NATIVE_EXPAND_OFFSET, behavior: 'smooth' })
   } else if (scrollY.value < EXPAND_SCROLL_Y.value) {
-    scrollY.value = EXPAND_SCROLL_Y.value
+    listRef.value?.scrollTo({
+      top: NATIVE_EXPAND_OFFSET + EXPAND_SCROLL_Y.value,
+      behavior: 'smooth'
+    })
   }
 }
 
@@ -545,7 +480,7 @@ function handleExpand() {
 const { value: progress, animateTo, snapTo } = useSpring(0, 'ios-gentle')
 let unlocked = false
 
-useSwipeGesture(rootRef, {
+useSwipeGesture(unlockRef, {
   axis: 'y',
   direction: -1,
   span: UNLOCK_SPAN,
@@ -591,6 +526,7 @@ function onBackdropTap(e) {
   if (!isCollapsed.value && !e.target.closest('.ls-interact')) {
     isCollapsed.value = true
     scrollY.value = 0
+    listRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
@@ -609,18 +545,26 @@ const containerStyle = computed(() => {
   return { opacity: fade }
 })
 
-const effectiveScrollY = computed(() => Math.min(scrollY.value, MAX_SCROLL.value))
-const overscroll = computed(() => {
-  const raw = Math.max(0, scrollY.value - MAX_SCROLL.value)
-  return 30 * Math.log1p(raw / 30)
-})
-const notifScrollY = computed(() => (scrollY.value < 0 ? 0 : effectiveScrollY.value))
 const squeeze = computed(() => Math.max(0, scrollY.value > 0 ? scrollY.value - HIT_DISTANCE.value : 0))
 const clockHeight = computed(() => Math.max(CLOCK_MIN_HEIGHT, CLOCK_INITIAL_HEIGHT.value - squeeze.value))
 const clipTop = computed(() => CLOCK_TOP + clockHeight.value + SAFE_GAP)
-const expandClip = computed(() => scrollY.value <= 0 || isCollapsed.value)
-const playerStretch = computed(() => lockItems.value.length * overscroll.value * STRETCH_FACTOR)
-const scrollOffset = computed(() => (scrollY.value < 0 ? scrollY.value : effectiveScrollY.value))
+const scrollOffset = computed(() => scrollY.value)
+const expandedPlayerBaseY = computed(() => Math.max(
+  PLAYER_START_Y.value,
+  clipTop.value + 4 + totalActivitiesHeight.value
+))
+const expandedNotificationBaseY = computed(() => {
+  if (control.mediaActive) {
+    return Math.max(
+      BASE_Y.value,
+      expandedPlayerBaseY.value + PLAYER_HEIGHT + PLAYER_NOTIF_GAP
+    )
+  }
+  if (standaloneActivities.value.length > 0) {
+    return Math.max(BASE_Y.value, clipTop.value + 4 + totalActivitiesHeight.value)
+  }
+  return BASE_Y.value
+})
 const currentPlayerY = computed(() => {
   if (isCollapsed.value) {
     if (standaloneActivities.value.length > 0) {
@@ -629,28 +573,29 @@ const currentPlayerY = computed(() => {
     }
     return PLAYER_COLLAPSED_Y.value
   }
-  return PLAYER_START_Y.value - scrollOffset.value - playerStretch.value
+  return expandedPlayerBaseY.value - scrollOffset.value
 })
 function activityCardStyle(index) {
   const y = getActivityStartY(index)
   return {
-    transform: `translateY(${y}px)`,
+    transform: `translate3d(0, ${y}px, 0)`,
     transition: transitionStyle.value,
     zIndex: 190 - index
   }
 }
-const animating = computed(() => (!isDragging.value && !isWheeling.value && !isSpringing.value && !isSwipingCard) || isCollapsed.value)
+const animating = computed(() => (!isScrolling.value && !isSwipingCard) || isCollapsed.value)
 const transitionStyle = computed(() =>
   animating.value
     ? 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease-out, clip-path 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)'
     : 'none'
 )
 const clipStyle = computed(() => {
-  const sideInset = expandClip.value ? -50 : 0
+  const sideInset = isCollapsed.value ? -50 : 0
   return {
     clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px round 22px 22px 0px 0px)`,
     WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px round 22px 22px 0px 0px)`,
-    transition: transitionStyle.value
+    transition: transitionStyle.value,
+    pointerEvents: isCollapsed.value ? 'none' : 'auto'
   }
 })
 const clockStyle = computed(() => ({
@@ -664,32 +609,70 @@ const pillStyle = computed(() => ({
   pointerEvents: isCollapsed.value ? 'auto' : 'none'
 }))
 
-function notifStyle(i) {
-  const currentY = i * NOTIF_SPACING - notifScrollY.value
-  const distanceFromBottom = lockItems.value.length - 1 - i
-  const stretchAmount = distanceFromBottom * overscroll.value * STRETCH_FACTOR
-  const naturalY = BASE_Y.value + currentY - stretchAmount
+function getLockNotificationGeometry(i) {
+  const naturalY = expandedNotificationBaseY.value + i * NOTIF_SPACING - scrollY.value
   const layout = getNotificationStackLayout({
-    cardBottom: naturalY + 90,
-    viewportHeight: screenHeight.value
+    cardBottom: naturalY + LOCK_CARD_HEIGHT,
+    viewportHeight: screenHeight.value,
+    bottomInset: LOCK_STACK_BOTTOM_INSET,
+    maxVisualOffset: LOCK_STACK_MAX_VISUAL_OFFSET
   })
+  const visualY = naturalY + layout.translateY
+  const bottomThreshold = screenHeight.value - LOCK_STACK_BOTTOM_INSET
+  const stackDepthProgress = Math.min(
+    1,
+    Math.max(0, (naturalY + LOCK_CARD_HEIGHT - bottomThreshold) / LOCK_STACK_ALPHA_OVERLAP)
+  )
+  return {
+    naturalY,
+    visualY,
+    visualBottom: visualY + LOCK_CARD_HEIGHT * layout.scale,
+    stackDepthProgress,
+    layout
+  }
+}
+
+function getLockCardOverlap(front, back) {
+  if (!front || !back) return 0
+  const overlap = Math.max(0, front.visualBottom - back.visualY)
+  return Math.min(1, overlap / LOCK_STACK_ALPHA_OVERLAP)
+}
+
+function notifStyle(i) {
+  const geometry = getLockNotificationGeometry(i)
+  const next = i < lockItems.value.length - 1 ? getLockNotificationGeometry(i + 1) : null
+  const coveringProgress = getLockCardOverlap(geometry, next)
+  const backgroundAlpha = Math.min(
+    LOCK_STACK_FRONT_ALPHA,
+    Math.max(
+      LOCK_STACK_BACK_ALPHA,
+      LOCK_CARD_BASE_ALPHA
+        + (LOCK_STACK_FRONT_ALPHA - LOCK_CARD_BASE_ALPHA) * coveringProgress
+        - LOCK_STACK_DEPTH_ALPHA * geometry.stackDepthProgress
+    )
+  )
+  const { naturalY, layout } = geometry
   let yPos, scale, opacity
   if (isCollapsed.value) {
     yPos = BASE_Y.value + 140
-    scale = 0.7
+    scale = 0.8
     opacity = 0
+  } else if (!layout.stacked) {
+    yPos = naturalY
+    scale = 1
+    opacity = 1
   } else {
     yPos = naturalY + layout.translateY
     scale = layout.scale
     opacity = layout.opacity
   }
   return {
-    transform: `translateY(${yPos}px) scale(${scale})`,
+    transform: `translate3d(0, ${yPos}px, 0) scale(${scale})`,
     opacity,
     zIndex: 100 - i,
     transition: transitionStyle.value,
     pointerEvents: opacity === 0 || !layout.interactive ? 'none' : 'auto',
-    '--ls-card-bg-alpha': layout.backgroundAlpha == null ? 0.7 : layout.backgroundAlpha
+    '--ls-card-bg-alpha': backgroundAlpha.toFixed(3)
   }
 }
 </script>
@@ -698,6 +681,7 @@ function notifStyle(i) {
   <div ref="rootRef" class="lock-screen" :style="containerStyle" @click="onBackdropTap">
     <!-- 壁纸 -->
     <div class="ls-wallpaper" :style="{ backgroundImage: `url(${wallpaper})` }"></div>
+    <div ref="unlockRef" class="ls-unlock-surface"></div>
     <!-- 解锁进度驱动的整体容器 -->
     <div class="ls-inner" :style="layerStyle">
       <!-- 日期 -->
@@ -712,14 +696,13 @@ function notifStyle(i) {
 
       <!-- 裁剪容器：播放器 + 通知队列 -->
       <div
+        ref="listRef"
         class="ls-clip ls-interact"
+        tabindex="0"
         :style="clipStyle"
-        @wheel.prevent="handleWheel"
-        @touchstart.passive="handleTouchStart"
-        @touchmove.passive="handleTouchMove"
-        @touchend.passive="handleTouchEnd"
-        @touchcancel.passive="handleTouchEnd"
+        @scroll.passive="handleListScroll"
       >
+        <div class="ls-scroll-stage">
         <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
         <template v-for="(act, actIdx) in standaloneActivities" :key="act.id">
           <div
@@ -769,8 +752,44 @@ function notifStyle(i) {
               @pointercancel="onCardPointerUp($event, act.id)"
               @click="handleActivityCardClick(act)"
             >
+              <!-- 闹钟类型 -->
+              <template v-if="act.type === 'alarm'">
+                <div class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
+                  <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+                    <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                    <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                    <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
+                    <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                  </svg>
+                </div>
+                <div class="ls-rc-info">
+                  <div class="ls-rc-time">{{ act.title }}</div>
+                  <div class="ls-rc-sub">{{ act.subtitle }}</div>
+                </div>
+                <div class="ls-act-ctrls">
+                  <button
+                    class="ls-act-ctrl-btn btn-snooze"
+                    @click.stop="clock.snoozeAlarm()"
+                    :title="clock.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
+                  >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                      <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
+                      <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                      <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
+                      <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
+                      <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
+                      <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+                    </svg>
+                  </button>
+                  <button class="ls-act-ctrl-btn btn-cancel" @click.stop="clock.dismissAlarm()" title="关闭">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path :d="CLOCK_ICONS.close" fill="#fff" /></svg>
+                  </button>
+                </div>
+              </template>
+
               <!-- 录音类型 -->
-              <template v-if="act.type === 'recorder'">
+              <template v-else-if="act.type === 'recorder'">
                 <div class="ls-rc-icon-wrap">
                   <div class="ls-rc-audio-bars">
                     <span class="bar bar-1"></span>
@@ -935,7 +954,16 @@ function notifStyle(i) {
             @click="handleCardClick(item)"
           >
             <template v-if="item.isActivity">
-              <div v-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
+              <div v-if="item.activity.type === 'alarm'" class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
+                <svg width="26" height="26" viewBox="0 0 34 34" fill="none">
+                  <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                  <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
+                  <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
+                  <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                </svg>
+              </div>
+              <div v-else-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
                 <div class="ls-rc-audio-bars">
                   <span class="bar bar-1"></span><span class="bar bar-2"></span><span class="bar bar-3"></span>
                   <span class="bar bar-main"></span><span class="bar bar-5"></span><span class="bar bar-6"></span><span class="bar bar-7"></span>
@@ -966,6 +994,8 @@ function notifStyle(i) {
             </template>
           </div>
         </div>
+        </div>
+        <div class="ls-scroll-spacer" :style="scrollSpacerStyle"></div>
       </div>
 
       <!-- 微缩通知胶囊（折叠态） -->
@@ -1013,11 +1043,17 @@ function notifStyle(i) {
   inset: 0;
   z-index: var(--z-lock-screen);
   overflow: hidden;
-  touch-action: none;
+  touch-action: auto;
   cursor: grab;
   background: #000;
 }
 .lock-screen:active { cursor: grabbing; }
+
+.ls-unlock-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
 
 .ls-wallpaper {
   position: absolute;
@@ -1036,7 +1072,9 @@ function notifStyle(i) {
 .ls-inner {
   position: absolute;
   inset: 0;
+  z-index: 1;
   will-change: transform, opacity, filter;
+  pointer-events: none;
 }
 
 /* 日期 */
@@ -1061,6 +1099,7 @@ function notifStyle(i) {
   right: 0;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   opacity: 0.95;
   will-change: height;
   pointer-events: none;
@@ -1068,6 +1107,7 @@ function notifStyle(i) {
 .ls-clock svg {
   width: 85%;
   height: 100%;
+  flex: none;
   filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.2));
   font-family: -apple-system, "SF Pro Rounded", "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
 }
@@ -1080,10 +1120,26 @@ function notifStyle(i) {
   transform: translateX(-50%);
   width: 90%;
   bottom: 0;
-  pointer-events: none;
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  touch-action: pan-y;
+  pointer-events: auto;
   will-change: clip-path;
 }
-.ls-clip > * { pointer-events: auto; }
+.ls-clip::-webkit-scrollbar { display: none; }
+.ls-scroll-stage {
+  position: sticky;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+}
+.ls-scroll-stage > * { pointer-events: auto; }
+.ls-scroll-spacer {
+  width: 1px;
+  pointer-events: none;
+}
 
 /* removed ls-player css */
 
@@ -1189,7 +1245,7 @@ function notifStyle(i) {
   z-index: 2;
   user-select: none;
   touch-action: pan-y;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s linear;
 }
 .ls-card-front.is-swiping,
 .ls-activity-card.is-swiping {
@@ -1220,6 +1276,23 @@ function notifStyle(i) {
   align-items: center;
   justify-content: center;
 }
+.ls-act-icon-wrap.icon-alarm {
+  background: transparent;
+}
+.ls-act-icon-wrap.icon-alarm.is-ringing svg {
+  animation: alarmRingWiggle 1.4s ease-in-out infinite;
+  transform-origin: 17px 17px;
+}
+@keyframes alarmRingWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(-10deg) scale(1.05); }
+  20% { transform: rotate(10deg) scale(1.05); }
+  30% { transform: rotate(-8deg) scale(1.03); }
+  40% { transform: rotate(8deg) scale(1.03); }
+  50% { transform: rotate(-3deg); }
+  60% { transform: rotate(3deg); }
+  70% { transform: rotate(0deg); }
+}
 .ls-act-icon-wrap.icon-timer,
 .ls-act-icon-wrap.icon-stopwatch {
   background: rgba(255, 149, 0, 0.16);
@@ -1249,7 +1322,8 @@ function notifStyle(i) {
 .ls-act-ctrl-btn:active {
   transform: scale(0.92);
 }
-.ls-act-ctrl-btn.btn-cancel {
+.ls-act-ctrl-btn.btn-cancel,
+.ls-act-ctrl-btn.btn-snooze {
   background: rgba(255, 255, 255, 0.16);
 }
 .ls-act-ctrl-btn.btn-action {
