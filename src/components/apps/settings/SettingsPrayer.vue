@@ -7,6 +7,8 @@ import { useI18nStore } from '../../../stores/i18nStore'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import TimePickerModal from '../../ui/TimePickerModal.vue'
+import ListCell from '../../ui/ListCell.vue'
+import ActionModal from '../../ui/ActionModal.vue'
 import { GLYPHS } from '../../../assets/icons/glyphs'
 
 const emit = defineEmits(['back-to-dnd', 'back'])
@@ -59,7 +61,21 @@ function handleReminderBack() {
   currentView.value = 'list'
 }
 
+/* 启用穆斯林闹钟弹窗状态与选择拦截 */
+const showEnableMuslimAlarmModal = ref(false)
+const pendingReminderVal = ref(null)
+
 function selectReminderOption(val) {
+  // 如果穆斯林闹钟未开启或当前处于未联动状态，点击选择提前 5-15 分钟，弹窗提示用户授权开启
+  if (val > 0 && (!clockStore?.settings?.muslimAlarmEnabled || !prayerStore?.alarmLinkageEnabled)) {
+    pendingReminderVal.value = val
+    showEnableMuslimAlarmModal.value = true
+    return
+  }
+  applyReminderOption(val)
+}
+
+function applyReminderOption(val) {
   if (val === -1) {
     if (prayerStore) {
       prayerStore.alarmLinkageEnabled = false
@@ -74,6 +90,9 @@ function selectReminderOption(val) {
     if (clockStore?.settings) {
       clockStore.settings.muslimAlarmEnabled = false
     }
+    if (typeof clockStore?.setMuslimAlarmEnabled === 'function') {
+      clockStore.setMuslimAlarmEnabled(false)
+    }
   } else {
     if (prayerStore) {
       prayerStore.alarmLinkageEnabled = true
@@ -87,8 +106,41 @@ function selectReminderOption(val) {
     }
     if (clockStore?.settings) {
       clockStore.settings.muslimAlarmEnabled = true
+      clockStore.settings.calcMethod = '自定义'
+      clockStore.settings.prayerTimeMethod = '自定义'
+    }
+    if (typeof clockStore?.setMuslimAlarmEnabled === 'function') {
+      clockStore.setMuslimAlarmEnabled(true)
+    }
+    // 开启后穆斯林闹钟的时间按设定的时间进行同步修改，且计算方法与哺礼时间法切换到自定义
+    if (typeof clockStore?.setMuslimTimeMode === 'function') {
+      clockStore.setMuslimTimeMode('custom')
     }
   }
+}
+
+function confirmEnableMuslimAlarm() {
+  if (clockStore?.settings) {
+    clockStore.settings.muslimAlarmEnabled = true
+    clockStore.settings.calcMethod = '自定义'
+    clockStore.settings.prayerTimeMethod = '自定义'
+  }
+  if (typeof clockStore?.setMuslimAlarmEnabled === 'function') {
+    clockStore.setMuslimAlarmEnabled(true)
+  }
+  if (typeof clockStore?.setMuslimTimeMode === 'function') {
+    clockStore.setMuslimTimeMode('custom')
+  }
+  if (pendingReminderVal.value !== null) {
+    applyReminderOption(pendingReminderVal.value)
+  }
+  pendingReminderVal.value = null
+  showEnableMuslimAlarmModal.value = false
+}
+
+function cancelEnableMuslimAlarm() {
+  pendingReminderVal.value = null
+  showEnableMuslimAlarmModal.value = false
 }
 
 /* 兼容性保留字段与方法 */
@@ -166,16 +218,16 @@ function handleEditBack() {
 }
 
 function back() {
-  if (showAdvancePicker.value) {
-    closeAdvancePicker()
-    return true
-  }
-  if (showRingtonePicker.value) {
-    closeRingtonePicker()
+  if (showEnableMuslimAlarmModal.value) {
+    cancelEnableMuslimAlarm()
     return true
   }
   if (showTimePicker.value) {
     closeTimePicker()
+    return true
+  }
+  if (currentView.value === 'reminder') {
+    handleReminderBack()
     return true
   }
   if (currentView.value === 'edit') {
@@ -324,25 +376,16 @@ function saveEdit() {
           <!-- 闹钟提醒入口（小标题为唤礼提醒，标题为闹钟提醒） -->
           <div class="group-header">{{ tr('prayerAlarmHeader', '唤礼提醒', 'ADHAN REMINDER', 'আযান স্মারক') }}</div>
           <div class="cell-group">
-            <div class="list-cell clickable" @click="openReminderSubpage">
-              <div class="lc-icon" style="background: #FF9500;">
-                <svg width="17" height="17" viewBox="0 0 24 24">
-                  <path :d="GLYPHS.bell" fill="#fff" />
-                </svg>
-              </div>
-              <div class="lc-main no-sep">
-                <div class="lc-title-col">
-                  <span class="lc-title">{{ tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক') }}</span>
-                  <span class="lc-sub-desc">{{ tr('prayerAlarmLinkageDesc', '礼拜开始前，使用闹钟提醒', 'Use alarm reminder before prayer begins', 'নামাজ শুরুর পূর্বে অ্যালার্ম স্মারক ব্যবহার করুন') }}</span>
-                </div>
-                <div class="lc-right">
-                  <span class="lc-sub-val dark-text">{{ currentReminderLabel }}</span>
-                  <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
-                    <path d="M1 1L6 6L1 11" stroke="#C7C7CC" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
+            <ListCell
+              glyph="bell"
+              icon-bg="#FF9500"
+              :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')"
+              :subtitle="tr('prayerAlarmLinkageDesc', '礼拜开始前，使用穆斯林闹钟进行提醒', 'Use Muslim alarm for reminders before prayer begins', 'নামাজ শুরুর পূর্বে মুসলিম অ্যালার্ম দিয়ে স্মারক পান')"
+              :value="currentReminderLabel"
+              chevron
+              last
+              @click="openReminderSubpage"
+            />
           </div>
 
           <!-- 功能：AI 自动接听 -->
@@ -478,7 +521,6 @@ function saveEdit() {
         <AppNavBar :title="tr('prayerAlarmLinkage', '闹钟提醒', 'Alarm Reminder', 'অ্যালার্ম স্মারক')" :back-label="tr('prayerDnd', '礼拜模式', 'Prayer Mode', 'নামাজ মোড')" @back="handleReminderBack" />
 
         <div class="scrollable detail-body">
-          <div class="group-header">{{ tr('alarmAdvanceTime', '提醒时间', 'REMINDER TIME', 'স্মারক সময়') }}</div>
           <div class="cell-group">
             <div
               v-for="(opt, idx) in reminderOptions"
@@ -497,7 +539,7 @@ function saveEdit() {
             </div>
           </div>
           <div class="group-footer">
-            {{ tr('reminderDesc', '开启后将在每个礼拜时段开始前收到闹钟或唤礼提醒。', 'You will receive an alarm or adhan reminder before each prayer time begins.', 'প্রতিটি নামাজের সময় শুরু হওয়ার পূর্বে অ্যালার্ম বা আযানের স্মারক পাবেন।') }}
+            {{ tr('reminderDesc', '开启后将在设定的每个礼拜开始时间前启用穆斯林闹钟进行唤礼提醒。', 'Once enabled, Muslim alarm will be activated for adhan reminder before each scheduled prayer starts.', 'চালু করার পর প্রতিটি নির্ধারিত নামাজের সময় শুরু হওয়ার পূর্বে আযান স্মারকের জন্য মুসলিম অ্যালার্ম সক্রিয় হবে।') }}
           </div>
         </div>
       </div>
@@ -511,6 +553,21 @@ function saveEdit() {
       :confirm-text="i18n.t('confirm')"
       @confirm="handleTimePickerConfirm"
       @cancel="closeTimePicker"
+    />
+
+    <!-- ================= 启用穆斯林闹钟确认弹窗 ================= -->
+    <ActionModal
+      :visible="showEnableMuslimAlarmModal"
+      :title="tr('enableMuslimAlarmTitle', '启用穆斯林闹钟？', 'Enable Muslim Alarm?', 'মুসলিম অ্যালার্ম চালু করবেন?')"
+      :desc="tr('enableMuslimAlarmDesc', '使用该功能需先启用穆斯林闹钟！', 'You need to enable Muslim Alarm first to use this feature!', 'এই বৈশিষ্ট্যটি ব্যবহার করতে প্রথমে মুসলিম অ্যালার্ম চালু করতে হবে!')"
+      :cancel-text="tr('cancel', '取消', 'Cancel', 'বাতিল')"
+      :confirm-text="tr('enableNow', '立即开启', 'Turn On Now', 'এখনই চালু করুন')"
+      :confirm-danger="false"
+      align-title="center"
+      align-desc="center"
+      @confirm="confirmEnableMuslimAlarm"
+      @cancel="cancelEnableMuslimAlarm"
+      @backdrop="cancelEnableMuslimAlarm"
     />
 
   </div>

@@ -34,11 +34,15 @@ const emit = defineEmits(['click'])
         <slot name="title">
           <span class="lc-title">{{ title }}</span>
         </slot>
-        <span v-if="subtitle" class="lc-subtitle">{{ subtitle }}</span>
+        <slot name="subtitle">
+          <span v-if="subtitle" class="lc-subtitle">{{ subtitle }}</span>
+        </slot>
       </div>
       <div class="lc-right">
         <slot name="right">
-          <span v-if="value" class="lc-value">{{ value }}</span>
+          <slot name="value">
+            <span v-if="value" class="lc-value">{{ value }}</span>
+          </slot>
           <svg v-if="chevron" width="8" height="13" viewBox="0 0 8 13">
             <path d="M1 1l6 5.5L1 12" fill="none" stroke="#C7C7CC" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>

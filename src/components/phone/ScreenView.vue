@@ -55,6 +55,20 @@ function onHeroFrame(nextFrame) {
 /** 应用打开时桌面不响应手势 */
 const homeInteractive = computed(() => system.baseLayer !== 'app')
 
+/**
+ * 桌面与壁纸可见性：
+ * 基础层为 app 时，若应用处于静态铺满 open 态且无手势拉起（homeGestureProgress === 0），
+ * 隐藏底部的 wallpaper 与 home-layer，杜绝四角圆角拟合误差及页面缩放时的透底。
+ */
+const isDesktopVisible = computed(() => {
+  if (system.baseLayer === 'app') {
+    if (heroVisual.value?.phase === 'open' && system.homeGestureProgress === 0) {
+      return false
+    }
+  }
+  return true
+})
+
 /** 状态栏/Home 条配色：浅色背景应用内切换为深色（相机、时钟、录音等深色应用除外） */
 const DARK_BG_APPS = ['camera', 'clock', 'voicememos']
 const chromeLight = computed(() => {
@@ -242,10 +256,18 @@ useSwipeGesture(sideEdgeRef, {
 <template>
   <div ref="rootEl" class="screen-view">
     <!-- 桌面/锁屏统一壁纸（notificationscreen.tsx 同款，本地化） -->
-    <div class="wallpaper" :style="{ backgroundImage: `url(${wallpaper})` }"></div>
+    <div
+      v-show="isDesktopVisible"
+      class="wallpaper"
+      :style="{ backgroundImage: `url(${wallpaper})` }"
+    ></div>
 
     <!-- 桌面（lock 层时也常驻，支撑解锁入场动效） -->
-    <div class="home-layer" :style="{ pointerEvents: homeInteractive ? 'auto' : 'none' }">
+    <div
+      v-show="isDesktopVisible"
+      class="home-layer"
+      :style="{ pointerEvents: homeInteractive ? 'auto' : 'none' }"
+    >
       <HomeScreen @open-library="libDriver.toggle()" />
     </div>
 
@@ -310,6 +332,7 @@ useSwipeGesture(sideEdgeRef, {
   inset: 0;
   overflow: hidden;
   border-radius: var(--screen-radius);
+  background: #000;
 }
 
 .home-layer {

@@ -170,6 +170,34 @@ export const useClockStore = defineStore('clock', {
         snooze: '10 分钟, 3 次',
         vibration: '跟随音乐节奏',
         folaxBroadcast: '已关闭'
+      },
+      {
+        id: 'a7',
+        time: '09:24',
+        days: [],
+        repeatLabel: '仅一次',
+        enabled: true,
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
+      },
+      {
+        id: 'a8',
+        time: '18:35',
+        days: [1, 2, 3, 4, 5],
+        repeatLabel: '周一至周五',
+        enabled: true,
+        label: '',
+        ringDateEnabled: false,
+        ringDate: '',
+        ringtone: '默认铃声',
+        snooze: '10 分钟, 3 次',
+        vibration: '跟随音乐节奏',
+        folaxBroadcast: '已关闭'
       }
     ],
 
@@ -180,7 +208,9 @@ export const useClockStore = defineStore('clock', {
       { id: 'london', city: '伦敦', country: '英国', timezone: 'Europe/London', offset: 1, isLocal: false },
       { id: 'ny', city: '纽约', country: '美国', timezone: 'America/New_York', offset: -4, isLocal: false },
       { id: 'tokyo', city: '东京', country: '日本', timezone: 'Asia/Tokyo', offset: 9, isLocal: false },
-      { id: 'dubai', city: '迪拜', country: '阿联酋', timezone: 'Asia/Dubai', offset: 4, isLocal: false }
+      { id: 'dubai', city: '迪拜', country: '阿联酋', timezone: 'Asia/Dubai', offset: 4, isLocal: false },
+      { id: 'paris', city: '巴黎', country: '法国', timezone: 'Europe/Paris', offset: 2, isLocal: false },
+      { id: 'sydney', city: '悉尼', country: '澳大利亚', timezone: 'Australia/Sydney', offset: 10, isLocal: false }
     ],
 
     // 定时器
@@ -220,9 +250,13 @@ export const useClockStore = defineStore('clock', {
     _lastTriggeredMinute: '',
     _alarmTickerId: null,
 
+    // 穆斯林闹钟时间模式：'default' (默认时间) | 'custom' (设定时间)
+    muslimTimeMode: 'default',
+    subpage: null,
+
     // 设置项
     settings: {
-      muslimAlarmEnabled: true,
+      muslimAlarmEnabled: false,
       calcMethod: '穆斯林世界联盟',
       prayerTimeMethod: '莎菲懿法学派',
       ramadanAdjustDays: 0,
@@ -561,6 +595,54 @@ export const useClockStore = defineStore('clock', {
     /* ---- 灵动岛与标签切换 ---- */
     setActiveTab(tab) {
       this.activeTab = tab
+    },
+
+    setMuslimAlarmEnabled(val) {
+      this.settings.muslimAlarmEnabled = Boolean(val)
+      if (!this.settings.muslimAlarmEnabled && this.activeTab === 'muslim') {
+        this.activeTab = 'alarm'
+      }
+    },
+
+    setMuslimTimeMode(mode) {
+      this.muslimTimeMode = mode
+      if (mode === 'custom') {
+        this.settings.calcMethod = '自定义'
+        this.settings.prayerTimeMethod = '自定义'
+      } else if (mode === 'default') {
+        this.settings.calcMethod = '穆斯林世界联盟'
+        this.settings.prayerTimeMethod = '莎菲懿法学派'
+      }
+    },
+
+    setCalcMethod(method) {
+      this.settings.calcMethod = method
+      if (method === '自定义') {
+        this.muslimTimeMode = 'custom'
+      } else if (this.settings.prayerTimeMethod !== '自定义') {
+        this.muslimTimeMode = 'default'
+      }
+    },
+
+    setPrayerTimeMethod(method) {
+      this.settings.prayerTimeMethod = method
+      if (method === '自定义') {
+        this.muslimTimeMode = 'custom'
+      } else if (this.settings.calcMethod !== '自定义') {
+        this.muslimTimeMode = 'default'
+      }
+    },
+
+    setRamadanAdjustDays(days) {
+      this.settings.ramadanAdjustDays = days
+    },
+
+    setRingtone(ringtone) {
+      this.settings.ringtone = ringtone
+    },
+
+    setSubpage(page) {
+      this.subpage = page
     },
 
     toggleIslandExpanded() {

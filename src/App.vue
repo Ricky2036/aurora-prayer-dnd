@@ -278,7 +278,14 @@ function takeScreenshot() {
 <style>
 body.is-capturing .screen,
 body.is-capturing .screen-view,
-body.is-capturing .mobile-screen {
+body.is-capturing .mobile-screen,
+body.is-capturing .app-window,
+body.is-capturing .aw-clip {
   border-radius: 0 !important;
+  clip-path: none !important;
+}
+
+body.is-capturing:has(.app-window) .wallpaper {
+  opacity: 0 !important;
 }
 </style>

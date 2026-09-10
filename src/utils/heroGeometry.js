@@ -209,7 +209,7 @@ export function deriveHeroFrame({
   startRect,
   startRadius,
   startBackdropStrength,
-  viewportRadius = 47,
+  viewportRadius = 44,
   anchorRadius = 60 * ICON_SQUIRCLE_RADIUS_RATIO
 }) {
   const elapsed = Math.min(duration, Math.max(0, timeMs))
@@ -270,7 +270,7 @@ export function deriveHandoffFrame(frame, progress) {
 }
 
 /** 应用内返回手势的跟手预览；提交时该矩形会成为关闭动画的实际起点。 */
-export function derivePreviewFrame(viewportRect, progress, viewportRadius = 47) {
+export function derivePreviewFrame(viewportRect, progress, viewportRadius = 44) {
   const p = clamp01(progress)
   const scale = 1 - p * 0.08
   const width = viewportRect.width * scale

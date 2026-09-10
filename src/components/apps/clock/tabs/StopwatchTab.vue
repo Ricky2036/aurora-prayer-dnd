@@ -193,9 +193,9 @@ const formattedCurrentLapTime = computed(() => {
 
 /* 底部操作栏（在悬浮Tab上方整齐排列，绝对不重叠） */
 .stopwatch-control-footer {
-  height: 100px;
-  padding: 0 36px 14px;
-  margin-bottom: calc(var(--safe-bottom, 20px) + 54px);
+  height: 96px;
+  padding: 0 36px 10px;
+  margin-bottom: calc(22px + 62px + 12px);
   display: flex;
   align-items: center;
   justify-content: space-between;

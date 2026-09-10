@@ -21,25 +21,36 @@ const home = useHomeStore()
 const hero = useHeroTransition()
 const ready = ref(false)
 const viewportRect = ref(null)
-const viewportRadius = ref(47)
+const viewportRadius = ref(44)
 
 const app = computed(() => getApp(props.appId))
 const activeComp = computed(() => appComponents[props.appId] || PlaceholderApp)
 const phase = hero.phase
 const frame = hero.frame
+const isOpen = computed(() => phase.value === 'open')
 
 function readViewport() {
   const element = screenRef.el
   if (!element) return null
   viewportRect.value = makeViewportRect(element.offsetWidth, element.offsetHeight)
   const radius = Number.parseFloat(getComputedStyle(element).borderTopLeftRadius)
-  viewportRadius.value = Number.isFinite(radius) ? radius : 47
+  viewportRadius.value = Number.isFinite(radius) ? radius : 44
   return viewportRect.value
 }
 
 const windowStyle = computed(() => {
   const current = frame.value
   if (!current) return { visibility: 'hidden' }
+  if (isOpen.value) {
+    return {
+      visibility: ready.value ? 'visible' : 'hidden',
+      inset: '0px',
+      width: '100%',
+      height: '100%',
+      transform: 'none',
+      borderRadius: '0px'
+    }
+  }
   const rect = current.windowRect
   return {
     visibility: ready.value ? 'visible' : 'hidden',
@@ -56,13 +67,20 @@ const fixedContainerStyle = computed(() => {
   const current = frame.value
   const viewport = viewportRect.value
   if (!current || !viewport) return {}
-  
+  if (isOpen.value) {
+    return {
+      width: '100%',
+      height: '100%',
+      transform: 'none'
+    }
+  }
+
   // 使用等比缩放 (Uniform Scale) 以防拉伸/挤压变形
   const scale = current.windowRect.width / viewport.width
   const scaledHeight = viewport.height * scale
   // 垂直居中补偿：让外部裁剪框（clipPath）自然裁剪多余的上下部分
   const yOffset = (current.windowRect.height - scaledHeight) / 2
-  
+
   return {
     width: `${viewport.width}px`,
     height: `${viewport.height}px`,
@@ -73,6 +91,12 @@ const fixedContainerStyle = computed(() => {
 const clipStyle = computed(() => {
   const current = frame.value
   if (!current) return {}
+  if (isOpen.value) {
+    return {
+      borderRadius: '0px',
+      clipPath: 'none'
+    }
+  }
   return {
     borderRadius: `${current.radius}px`,
     clipPath: buildHeroClipPath(current)
@@ -168,9 +192,9 @@ watch(
 )
 
 watch(
-  frame,
-  (current) => emit('hero-frame', current
-    ? { phase: phase.value, backdropStrength: current.backdropStrength }
+  [frame, phase],
+  ([current, currentPhase]) => emit('hero-frame', current
+    ? { phase: currentPhase, backdropStrength: current.backdropStrength }
     : null),
   { immediate: true, flush: 'sync' }
 )
@@ -217,11 +241,17 @@ onBeforeUnmount(() => {
   z-index: var(--z-app-window);
   will-change: transform, width, height, border-radius;
 }
+.app-window[data-phase="open"] {
+  will-change: auto;
+}
 .aw-clip {
   position: absolute;
   inset: 0;
   overflow: hidden;
   will-change: border-radius;
+}
+.app-window[data-phase="open"] .aw-clip {
+  will-change: auto;
 }
 .aw-fixed-container {
   position: absolute;
