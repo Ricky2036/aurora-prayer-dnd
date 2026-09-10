@@ -7,6 +7,7 @@ import ListCell from '../../ui/ListCell.vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import SettingsSearchBar from '../../ui/SettingsSearchBar.vue'
+import SettingsSystemIcon from '../../ui/SettingsSystemIcon.vue'
 import SettingsNotifications from './SettingsNotifications.vue'
 import SettingsSound from './SettingsSound.vue'
 import SettingsDND from './SettingsDND.vue'
@@ -119,6 +120,16 @@ const networks = ['Ricky_5G', 'Office_5G', 'Tencent-Guest', 'CoffeeLab_2.4G']
 /* 搜索功能 */
 const searchQuery = ref('')
 const searchActive = ref(false)
+const settingsScrollTop = ref(0)
+const titleCollapseProgress = computed(() => clamp(settingsScrollTop.value / 72, 0, 1))
+const titleSize = computed(() => 36 - 14 * titleCollapseProgress.value)
+const titleInset = computed(() => 30 - 8 * titleCollapseProgress.value)
+const titleTopInset = computed(() => 22 - 44 * titleCollapseProgress.value)
+const titleHeight = computed(() => 72 - 8 * titleCollapseProgress.value)
+
+function onSettingsScroll(event) {
+  settingsScrollTop.value = event.currentTarget.scrollTop
+}
 
 const allSearchableItems = [
   { id: 'flight', title: '飞行模式', group: '网络与连接', action: () => {}, isToggle: true },
@@ -161,9 +172,18 @@ const filteredSearchResults = computed(() => {
     <Transition :name="isBack ? 'slide-back' : 'slide'" mode="out-in">
       <!-- ================= 首页 ================= -->
       <div v-if="view === 'main'" key="main" class="settings-page">
-        <div class="settings-scroll-container scrollable">
+        <div class="settings-scroll-container scrollable" @scroll.passive="onSettingsScroll">
           <!-- 顶部大标题 -->
-          <div class="large-title">设置</div>
+          <div
+            class="large-title"
+            :style="{
+              '--title-progress': titleCollapseProgress,
+              '--title-size': `${titleSize}px`,
+              '--title-inset': `${titleInset}px`,
+              '--title-top-inset': `${titleTopInset}px`,
+              '--title-height': `${titleHeight}px`
+            }"
+          ><span>设置</span></div>
 
           <!-- 搜索结果列表（当有输入时激活） -->
           <div v-if="searchQuery.trim()" class="search-results-wrap">
@@ -218,10 +238,7 @@ const filteredSearchResults = computed(() => {
             <div class="settings-card single-item-card" @click="push('general')">
               <div class="device-item">
                 <div class="squircle-icon bg-device">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="5" y="2" width="14" height="20" rx="3" />
-                    <line x1="12" y1="18" x2="12.01" y2="18" stroke-width="3" />
-                  </svg>
+                  <SettingsSystemIcon name="device" :size="20" />
                 </div>
                 <span class="device-title">Infinix GT 50 Pro</span>
               </div>
@@ -250,9 +267,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="SIM卡与网络设置" chevron @click="pushUnimplemented('SIM卡与网络设置')">
                 <template #icon>
                   <div class="squircle-icon bg-sim">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M7 4v13M7 4L4 7M7 4l3 3M17 20V7M17 20l-3-3M17 20l3-3" />
-                    </svg>
+                    <SettingsSystemIcon name="sim" />
                   </div>
                 </template>
               </ListCell>
@@ -261,9 +276,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="WLAN" value="Ricky_5G" chevron @click="push('wifi')">
                 <template #icon>
                   <div class="squircle-icon bg-wifi">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path :d="GLYPHS.wifi" />
-                    </svg>
+                    <SettingsSystemIcon name="wifi" />
                   </div>
                 </template>
               </ListCell>
@@ -272,9 +285,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="蓝牙" chevron @click="pushUnimplemented('蓝牙')">
                 <template #icon>
                   <div class="squircle-icon bg-bluetooth">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path :d="GLYPHS.bluetooth" />
-                    </svg>
+                    <SettingsSystemIcon name="bluetooth" />
                   </div>
                 </template>
               </ListCell>
@@ -283,10 +294,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="多设备连接" chevron last @click="pushUnimplemented('多设备连接')">
                 <template #icon>
                   <div class="squircle-icon bg-multidevice">
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="2" y="3" width="13" height="10" rx="2" />
-                      <rect x="9" y="11" width="13" height="10" rx="2" />
-                    </svg>
+                    <SettingsSystemIcon name="multi-device" :size="19" />
                   </div>
                 </template>
               </ListCell>
@@ -298,10 +306,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="Infinix AI" chevron @click="pushUnimplemented('Infinix AI')">
                 <template #icon>
                   <div class="squircle-icon bg-infinix-ai">
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="7" stroke="#fff" stroke-width="3" />
-                      <circle cx="12" cy="12" r="2.5" fill="#fff" />
-                    </svg>
+                    <SettingsSystemIcon name="ai" :size="19" />
                   </div>
                 </template>
               </ListCell>
@@ -310,11 +315,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="壁纸与个性化" chevron @click="pushUnimplemented('壁纸与个性化')">
                 <template #icon>
                   <div class="squircle-icon bg-wallpaper">
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none">
-                      <rect x="5" y="3.5" width="14" height="6.5" rx="2" fill="#fff" />
-                      <path d="M19 7h2v6.5a2 2 0 0 1-2 2h-6v4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                      <rect x="11.5" y="17.5" width="3" height="4.5" rx="1" fill="#fff" />
-                    </svg>
+                    <SettingsSystemIcon name="wallpaper" :size="19" />
                   </div>
                 </template>
               </ListCell>
@@ -323,9 +324,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="显示与亮度" chevron @click="push('display')">
                 <template #icon>
                   <div class="squircle-icon bg-display">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path :d="GLYPHS.sun" />
-                    </svg>
+                    <SettingsSystemIcon name="display" />
                   </div>
                 </template>
               </ListCell>
@@ -334,9 +333,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="声音与振动" chevron @click="push('sound')">
                 <template #icon>
                   <div class="squircle-icon bg-sound">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path :d="GLYPHS.speaker" />
-                    </svg>
+                    <SettingsSystemIcon name="sound" />
                   </div>
                 </template>
               </ListCell>
@@ -346,9 +343,7 @@ const filteredSearchResults = computed(() => {
                 <template #icon>
                   <div class="squircle-icon bg-notifications">
                     <div class="notif-bell-wrap">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                        <path :d="GLYPHS.bell" />
-                      </svg>
+                      <SettingsSystemIcon name="notifications" />
                       <span class="red-badge-dot"></span>
                     </div>
                   </div>
@@ -362,9 +357,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="密码与安全" chevron @click="pushUnimplemented('密码与安全')">
                 <template #icon>
                   <div class="squircle-icon bg-security">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path :d="GLYPHS.lock" />
-                    </svg>
+                    <SettingsSystemIcon name="security" />
                   </div>
                 </template>
               </ListCell>
@@ -373,9 +366,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="权限与隐私" chevron @click="pushUnimplemented('权限与隐私')">
                 <template #icon>
                   <div class="squircle-icon bg-privacy">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                    </svg>
+                    <SettingsSystemIcon name="privacy" />
                   </div>
                 </template>
               </ListCell>
@@ -384,12 +375,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="应用管理" chevron @click="pushUnimplemented('应用管理')">
                 <template #icon>
                   <div class="squircle-icon bg-apps">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <circle cx="7" cy="7" r="3" />
-                      <circle cx="17" cy="7" r="3" />
-                      <circle cx="7" cy="17" r="3" />
-                      <circle cx="17" cy="17" r="3" />
-                    </svg>
+                    <SettingsSystemIcon name="apps" />
                   </div>
                 </template>
               </ListCell>
@@ -398,9 +384,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="位置信息" chevron last @click="pushUnimplemented('位置信息')">
                 <template #icon>
                   <div class="squircle-icon bg-location">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path :d="GLYPHS.location" />
-                    </svg>
+                    <SettingsSystemIcon name="location" />
                   </div>
                 </template>
               </ListCell>
@@ -421,11 +405,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="辅助功能" chevron @click="pushUnimplemented('辅助功能')">
                 <template #icon>
                   <div class="squircle-icon bg-accessibility">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M10 2v5.5L4.5 18A2 2 0 0 0 6.2 21h11.6a2 2 0 0 0 1.7-3L14 7.5V2" />
-                      <line x1="8.5" y1="2" x2="15.5" y2="2" />
-                      <line x1="7" y1="15" x2="17" y2="15" />
-                    </svg>
+                    <SettingsSystemIcon name="accessibility" />
                   </div>
                 </template>
               </ListCell>
@@ -434,11 +414,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="电池与省电" chevron @click="pushUnimplemented('电池与省电')">
                 <template #icon>
                   <div class="squircle-icon bg-battery">
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="2" y="7" width="16" height="10" rx="2" />
-                      <line x1="22" y1="11" x2="22" y2="13" stroke-width="2.5" />
-                      <path d="M10 9l-2 3h3l-1 3" fill="#fff" stroke="none" />
-                    </svg>
+                    <SettingsSystemIcon name="battery" :size="19" />
                   </div>
                 </template>
               </ListCell>
@@ -447,10 +423,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="存储" chevron last @click="pushUnimplemented('存储')">
                 <template #icon>
                   <div class="squircle-icon bg-storage">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
-                      <path d="M22 12A10 10 0 0 0 12 2v10z" fill="#fff" />
-                    </svg>
+                    <SettingsSystemIcon name="storage" />
                   </div>
                 </template>
               </ListCell>
@@ -462,9 +435,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="数字健康与家长控制" chevron @click="pushUnimplemented('数字健康与家长控制')">
                 <template #icon>
                   <div class="squircle-icon bg-health">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-                    </svg>
+                    <SettingsSystemIcon name="health" />
                   </div>
                 </template>
               </ListCell>
@@ -486,9 +457,7 @@ const filteredSearchResults = computed(() => {
               <ListCell title="用户与账号" chevron @click="pushUnimplemented('用户与账号')">
                 <template #icon>
                   <div class="squircle-icon bg-user">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                    </svg>
+                    <SettingsSystemIcon name="user" />
                   </div>
                 </template>
               </ListCell>
@@ -512,9 +481,7 @@ const filteredSearchResults = computed(() => {
             <div class="settings-card single-item-card" @click="push('general')">
               <div class="device-item">
                 <div class="squircle-icon bg-system">
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="#fff">
-                    <path :d="GLYPHS.gear" />
-                  </svg>
+                  <SettingsSystemIcon name="system" :size="19" />
                 </div>
                 <span class="device-title">系统</span>
               </div>
@@ -686,11 +653,43 @@ const filteredSearchResults = computed(() => {
 
 /* ================= 顶层大标题 ================= */
 .large-title {
-  font-size: 28px;
-  font-weight: 700;
+  position: sticky;
+  top: 0;
+  height: calc(var(--safe-top, 20px) + var(--title-height));
+  z-index: 12;
+  display: flex;
+  align-items: flex-start;
+  box-sizing: border-box;
+  padding: calc(var(--safe-top, 20px) + var(--title-top-inset)) var(--title-inset) 0;
+  isolation: isolate;
+}
+
+.large-title::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(244, 245, 247, 0.99) 0%,
+    rgba(244, 245, 247, 0.99) 62%,
+    rgba(244, 245, 247, 0.7) 76%,
+    rgba(244, 245, 247, 0.24) 90%,
+    rgba(244, 245, 247, 0) 100%
+  );
+  opacity: var(--title-progress);
+  pointer-events: none;
+}
+
+.large-title > span {
+  display: block;
   color: #111111;
-  padding: calc(var(--safe-top, 20px) + 16px) 20px 14px 20px;
-  letter-spacing: -0.5px;
+  font-size: var(--title-size);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  transform-origin: left top;
+  will-change: font-size;
 }
 
 /* ================= 统一卡片规范 ================= */
@@ -854,6 +853,24 @@ const filteredSearchResults = computed(() => {
   right: 16px;
   z-index: 10;
   pointer-events: auto;
+}
+
+.settings-floating-search::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -16px;
+  right: -16px;
+  top: -34px;
+  bottom: -20px;
+  background: linear-gradient(
+    to bottom,
+    rgba(244, 245, 247, 0) 0%,
+    rgba(244, 245, 247, 0.88) 38%,
+    #F4F5F7 68%,
+    #F4F5F7 100%
+  );
+  pointer-events: none;
 }
 
 .scroll-bottom-spacer {

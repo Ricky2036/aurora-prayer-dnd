@@ -168,4 +168,18 @@ test('DynamicIsland.vue contains alarm templates, snooze and dismiss buttons', (
   assert.ok(content.includes('clockStore.snoozeAlarm()'), 'Must call snoozeAlarm')
   assert.ok(content.includes('clockStore.dismissAlarm()'), 'Must call dismissAlarm')
   assert.ok(content.includes('formattedSnoozeCountdown'), 'Must render countdown')
+  assert.ok(content.includes('class="alarm-activity-icon"'), 'Alarm card must use the shared clock alarm vector')
+  assert.ok(content.includes('class="snooze-activity-icon"'), 'Snooze control must use a dedicated vector icon')
+  assert.ok(content.includes(':d="CLOCK_ICONS.alarm"'), 'Alarm artwork must reuse the Clock app icon path')
+  assert.ok(!content.includes('<text x="14.8"'), 'Snooze artwork must not use text glyphs')
+})
+
+test('DevConsole uses the vector alarm icon and concise copy without emoji', () => {
+  const compPath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.match(content, /CLOCK_ICONS\.alarm/, 'Must render the Clock alarm vector icon')
+  assert.match(content, /isAlarmRinging \? '关闭闹钟' : '闹钟'/, 'Idle control copy should be concise')
+  assert.doesNotMatch(content, /🔔/, 'Alarm control must not use emoji')
+  assert.doesNotMatch(content, /触发 20:44 闹钟/, 'Alarm control must not expose fixture time copy')
 })

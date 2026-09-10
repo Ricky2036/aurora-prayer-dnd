@@ -6,6 +6,7 @@ import { usePrayerStore } from '../../stores/prayerStore'
 import { useClockStore } from '../../stores/clockStore'
 import { useI18nStore } from '../../stores/i18nStore'
 import { useCapture } from '../../composables/useCapture'
+import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import LIcon from '../ui/LIcon.vue'
 
 /* 微调面板（373 行）改为按需异步加载：线上演示默认不进入微调模式，
@@ -552,6 +553,51 @@ function onCopyFineTune() {
             </div>
           </div>
 
+          <!-- 穆斯林闹钟时间模式切换卡片 -->
+          <div class="pc-card">
+            <div class="pc-card-header">
+              <span class="pc-card-title">穆斯林闹钟</span>
+              <span class="pc-state-tag" :class="{ 'is-on': clockStore.settings.muslimAlarmEnabled }">
+                {{ clockStore.settings.muslimAlarmEnabled ? '已开启' : '已关闭' }}
+              </span>
+            </div>
+            <!-- 穆斯林闹钟开关控制 -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <button
+                class="pc-prayer-btn"
+                style="flex: 1;"
+                :class="{ on: clockStore.settings.muslimAlarmEnabled }"
+                @click="clockStore.setMuslimAlarmEnabled(!clockStore.settings.muslimAlarmEnabled)"
+              >
+                {{ clockStore.settings.muslimAlarmEnabled ? '关闭穆斯林闹钟' : '开启穆斯林闹钟' }}
+              </button>
+            </div>
+            <div class="pc-seg">
+              <div
+                class="pc-seg-thumb"
+                :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
+              ></div>
+              <button
+                class="pc-seg-btn"
+                :class="{ on: clockStore.muslimTimeMode === 'default' }"
+                @click="clockStore.setMuslimTimeMode('default')"
+              >
+                默认时间
+              </button>
+              <button
+                class="pc-seg-btn"
+                :class="{ on: clockStore.muslimTimeMode === 'custom' }"
+                @click="clockStore.setMuslimTimeMode('custom')"
+              >
+                设定时间
+              </button>
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: #8e8e93; display: flex; justify-content: space-between;">
+              <span>计算: {{ clockStore.settings.calcMethod }}</span>
+              <span>哺礼: {{ clockStore.settings.prayerTimeMethod }}</span>
+            </div>
+          </div>
+
           <!-- 灵动岛模拟 -->
           <div class="pc-card">
             <div class="pc-card-header">
@@ -582,12 +628,15 @@ function onCopyFineTune() {
               </div>
               <div style="display: flex; gap: 8px;">
                 <button
-                  class="pc-prayer-btn"
+                  class="pc-prayer-btn pc-alarm-trigger-btn"
                   style="flex: 1;"
                   :class="{ on: clockStore.isAlarmRinging }"
                   @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
                 >
-                  {{ clockStore.isAlarmRinging ? '关闭闹钟' : '🔔 触发 20:44 闹钟' }}
+                  <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.alarm" />
+                  </svg>
+                  <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '闹钟' }}</span>
                 </button>
                 <button
                   v-if="clockStore.isAlarmActive"
@@ -941,6 +990,51 @@ function onCopyFineTune() {
                     </div>
                   </div>
 
+                  <!-- 穆斯林闹钟时间模式切换卡片 -->
+                  <div class="pc-card">
+                    <div class="pc-card-header">
+                      <span class="pc-card-title">穆斯林闹钟</span>
+                      <span class="pc-state-tag" :class="{ 'is-on': clockStore.settings.muslimAlarmEnabled }">
+                        {{ clockStore.settings.muslimAlarmEnabled ? '已开启' : '已关闭' }}
+                      </span>
+                    </div>
+                    <!-- 穆斯林闹钟开关控制 -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                      <button
+                        class="pc-prayer-btn"
+                        style="flex: 1;"
+                        :class="{ on: clockStore.settings.muslimAlarmEnabled }"
+                        @click="clockStore.setMuslimAlarmEnabled(!clockStore.settings.muslimAlarmEnabled)"
+                      >
+                        {{ clockStore.settings.muslimAlarmEnabled ? '关闭穆斯林闹钟' : '开启穆斯林闹钟' }}
+                      </button>
+                    </div>
+                    <div class="pc-seg">
+                      <div
+                        class="pc-seg-thumb"
+                        :style="{ transform: clockStore.muslimTimeMode === 'default' ? 'translateX(0)' : 'translateX(100%)' }"
+                      ></div>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: clockStore.muslimTimeMode === 'default' }"
+                        @click="clockStore.setMuslimTimeMode('default')"
+                      >
+                        默认时间
+                      </button>
+                      <button
+                        class="pc-seg-btn"
+                        :class="{ on: clockStore.muslimTimeMode === 'custom' }"
+                        @click="clockStore.setMuslimTimeMode('custom')"
+                      >
+                        设定时间
+                      </button>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 11px; color: #8e8e93; display: flex; justify-content: space-between;">
+                      <span>计算: {{ clockStore.settings.calcMethod }}</span>
+                      <span>哺礼: {{ clockStore.settings.prayerTimeMethod }}</span>
+                    </div>
+                  </div>
+
                   <!-- 灵动岛模拟 -->
                   <div class="pc-card">
                     <div class="pc-card-header">
@@ -971,12 +1065,15 @@ function onCopyFineTune() {
                       </div>
                       <div style="display: flex; gap: 8px;">
                         <button
-                          class="pc-prayer-btn"
+                          class="pc-prayer-btn pc-alarm-trigger-btn"
                           style="flex: 1;"
                           :class="{ on: clockStore.isAlarmRinging }"
                           @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
                         >
-                          {{ clockStore.isAlarmRinging ? '关闭闹钟' : '🔔 触发 20:44 闹钟' }}
+                          <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="CLOCK_ICONS.alarm" />
+                          </svg>
+                          <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '闹钟' }}</span>
                         </button>
                         <button
                           v-if="clockStore.isAlarmActive"
@@ -1583,6 +1680,20 @@ function onCopyFineTune() {
   color: #ffffff;
   font-weight: 700;
   box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
+}
+
+.pc-alarm-trigger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pc-alarm-icon {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  fill: currentColor;
 }
 
 /* 开关控件 */

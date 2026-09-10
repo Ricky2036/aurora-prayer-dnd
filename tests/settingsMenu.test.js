@@ -6,6 +6,15 @@ import path from 'node:path'
 const SETTINGS_APP_PATH = path.resolve('src/components/apps/settings/SettingsApp.vue')
 const SEARCH_BAR_PATH = path.resolve('src/components/ui/SettingsSearchBar.vue')
 const LIST_CELL_PATH = path.resolve('src/components/ui/ListCell.vue')
+const SYSTEM_ICON_PATH = path.resolve('src/components/ui/SettingsSystemIcon.vue')
+const SYSTEM_ICON_DIR = path.resolve('src/assets/icons/settings')
+const MICROPHONE_ICON_PATH = path.join(SYSTEM_ICON_DIR, 'microphone.svg')
+
+const FIGMA_SETTING_ICONS = [
+  'accessibility', 'ai', 'apps', 'battery', 'bluetooth', 'device', 'display', 'health',
+  'location', 'multi-device', 'notifications', 'privacy', 'security', 'sim',
+  'sound', 'storage', 'system', 'user', 'wallpaper', 'wifi'
+]
 
 test('SettingsApp.vue exists and includes all 8 standardized card groups matching reference recording', () => {
   assert.ok(fs.existsSync(SETTINGS_APP_PATH), 'SettingsApp.vue should exist')
@@ -63,6 +72,15 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   assert.match(content, /SettingsSearchBar/, 'Should mount SettingsSearchBar component')
   assert.match(content, /settings-floating-search/, 'Should have floating container for search bar')
   assert.match(content, /scroll-bottom-spacer/, 'Should include scroll spacer to prevent content cutoff')
+  assert.match(content, /--title-size/, 'The same title node should resize continuously while scrolling')
+  assert.doesNotMatch(content, /settings-compact-header/, 'Settings title must not cross-fade between duplicate nodes')
+  assert.match(content, /titleCollapseProgress/, 'Title size transition should follow scroll progress')
+  assert.match(content, /36 - 14 \* titleCollapseProgress\.value/, 'Title should scale between the measured reference sizes')
+  assert.match(content, /22 - 44 \* titleCollapseProgress\.value/, 'Title should travel vertically between the measured reference positions')
+  assert.match(content, /72 - 8 \* titleCollapseProgress\.value/, 'Title region should match the measured title-to-card spacing')
+  assert.match(content, /@scroll\.passive="onSettingsScroll"/, 'Settings home should track native scrolling')
+  assert.match(content, /settings-floating-search::before/, 'Floating search should mask content scrolling behind it')
+  assert.match(content, /rgba\(244, 245, 247, 0\.24\)/, 'Title mask should fade smoothly into the list')
 
   // Card border-radius 24px and pure white background
   assert.match(content, /border-radius:\s*24px/, 'Cards should have standardized 24px border radius')
@@ -76,6 +94,9 @@ test('SettingsSearchBar component provides search magnifying glass and microphon
 
   assert.match(content, /search-icon/, 'Should render search magnifying glass icon')
   assert.match(content, /mic-icon/, 'Should render microphone icon')
+  assert.match(content, /microphoneIcon/, 'Should use the exported Figma microphone asset')
+  assert.ok(fs.existsSync(MICROPHONE_ICON_PATH), 'Exported Figma microphone SVG should exist')
+  assert.match(fs.readFileSync(MICROPHONE_ICON_PATH, 'utf-8'), /^<svg\b/, 'Microphone asset should be a real SVG')
   assert.match(content, /btn-clear/, 'Should render clear button when input has value')
   assert.match(content, /border-radius:\s*24px/, 'Search bar should have capsule 24px radius')
   assert.match(content, /height:\s*48px/, 'Search bar should have 48px height')
@@ -89,4 +110,20 @@ test('ListCell styling complies with updated squircle icon and divider norms', (
   assert.match(content, /height:\s*36px/, 'Icon height should be standardized to 36px')
   assert.match(content, /border-radius:\s*10px/, 'Icon squircle radius should be 10px')
   assert.match(content, /#F0F1F3/, 'Divider separator color should be #F0F1F3')
+})
+
+test('Settings home uses the exported Figma system icon set', () => {
+  const app = fs.readFileSync(SETTINGS_APP_PATH, 'utf-8')
+  const component = fs.readFileSync(SYSTEM_ICON_PATH, 'utf-8')
+
+  for (const name of FIGMA_SETTING_ICONS) {
+    const assetPath = path.join(SYSTEM_ICON_DIR, `${name}.svg`)
+    assert.ok(fs.existsSync(assetPath), `Missing exported Figma icon: ${name}.svg`)
+    assert.match(fs.readFileSync(assetPath, 'utf-8'), /^<svg\b/, `${name}.svg should be a real SVG asset`)
+    assert.match(component, new RegExp(`['\"]?${name}['\"]?`), `${name} should be registered`)
+  }
+
+  for (const name of FIGMA_SETTING_ICONS) {
+    assert.match(app, new RegExp(`SettingsSystemIcon name="${name}"`), `${name} should be used on Settings home`)
+  }
 })

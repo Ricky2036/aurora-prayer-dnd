@@ -122,5 +122,16 @@ test('MuslimTab component faithfully implements Islamic prayer compass wheel and
   assert.ok(content.includes('设置'), 'Popover must contain Settings option')
   assert.ok(content.includes('large-title-section'), 'Must include large title section')
   assert.ok(content.includes('page-title'), 'Must include page title element')
+
+  // Geometry: outward flaring crescents, 4 compass teeth, NWSE alignment, 12-petal rosette, white Kaaba badge
+  assert.ok(content.includes('center-rosette-bg'), 'Must include center 12-petal lotus rosette')
+  assert.ok(content.includes('center-rosette-inner-contour'), 'Must include decorative inner rosette contour')
+  assert.ok(content.includes('26, 116, 206, 296'), '4 compass teeth must align with 4 cardinal compass axes')
+  assert.ok(content.includes('rotate(26 190 190)'), 'Letter N must align with North tooth at 26 deg')
+  assert.ok(content.includes('rotate(116 190 190)'), 'Letter E must align with East tooth at 116 deg')
+  assert.ok(content.includes('rotate(206 190 190)'), 'Letter S must align with South tooth at 206 deg')
+  assert.ok(content.includes('rotate(296 190 190)'), 'Letter W must align with West tooth at 296 deg')
+  assert.ok(content.includes('fill="#FFFFFF" stroke="#E6981A"'), 'Kaaba badge must have white disc with gold border')
+  assert.ok(content.includes('Bab al-Kaaba'), 'Kaaba badge must feature Golden Door on right face')
 })
 

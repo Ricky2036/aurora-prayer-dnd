@@ -59,6 +59,18 @@ watch(isMuslimAlarmEnabled, (enabled) => {
   }
 })
 
+// 监听 store 派发的二级页面跳转
+watch(
+  () => clock.subpage,
+  (val) => {
+    if (val) {
+      subpage.value = val
+      clock.subpage = null
+    }
+  },
+  { immediate: true }
+)
+
 function openSubpage(name) {
   subpage.value = name
 }
