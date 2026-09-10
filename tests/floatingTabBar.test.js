@@ -114,5 +114,13 @@ test('MuslimTab component faithfully implements Islamic prayer compass wheel and
   assert.ok(content.includes('center-compass-dial'), 'Must include center compass dial')
   assert.ok(content.includes('kaaba-compass-needle'), 'Must include red compass needle')
   assert.ok(content.includes('filigree-mandala-bg'), 'Must include arabesque mandala background')
+
+  // Top header button, popover modal, and large title
+  assert.ok(content.includes('more-menu-btn'), 'Must include 44px top right circular menu button')
+  assert.ok(content.includes('popover-menu'), 'Must include popover menu card')
+  assert.ok(content.includes('穆斯林闹钟'), 'Popover must contain Muslim Alarm option')
+  assert.ok(content.includes('设置'), 'Popover must contain Settings option')
+  assert.ok(content.includes('large-title-section'), 'Must include large title section')
+  assert.ok(content.includes('page-title'), 'Must include page title element')
 })
 
