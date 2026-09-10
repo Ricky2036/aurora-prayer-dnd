@@ -38,6 +38,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Replace Settings account avatar with cute cartoon avatar | `antigravity/lane` | `src/components/apps/settings/SettingsApp.vue`; `src/assets/img/account-avatar.jpg` | `51a24b2` | `56e8d40` |
 | Merged | Antigravity | Restore AppWindow and ScreenView hero anchor transition and add anchor cache fallback | `antigravity/lane` | `src/components/system/AppWindow.vue`; `src/components/phone/ScreenView.vue`; `src/utils/appIconAnchors.js` | `a559fec` | `6939000` |
 | Merged | Antigravity | Replace music player dynamic island fav and shuffle icons from Downloads | `antigravity/lane` | `src/components/system/MusicPlayerCard.vue`; `src/assets/icons/favor.svg`; `src/assets/icons/shuffle.svg` | `86fbd02` | `0447258` |
+| Merged | Antigravity | Implement Scheme 1 Snooze SVG icon and ensure button alignment | `antigravity/lane` | `src/components/apps/clock/clockIcons.js`; `src/components/system/DynamicIsland.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue` | `7d647ff` | `797c51e` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 

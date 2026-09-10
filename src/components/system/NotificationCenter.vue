@@ -572,13 +572,8 @@ watch(expandedId, async () => {
                     @click.stop="clock.snoozeAlarm()"
                     :title="clock.isAlarmSnoozing ? '重新延时' : '稍后提醒'"
                   >
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <circle cx="10.5" cy="13.5" r="5.8" fill="#ffffff" />
-                      <path d="M10.5 10.5V13.5H13" stroke="#333336" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-                      <path d="M9.5 5.5H11.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" />
-                      <path d="M10.5 5.5V7.5" stroke="#ffffff" stroke-width="1.5" />
-                      <text x="14.8" y="7.5" fill="#ffffff" font-size="6" font-weight="700" font-family="-apple-system, sans-serif">z</text>
-                      <text x="18.2" y="6" fill="#ffffff" font-size="7.5" font-weight="700" font-family="-apple-system, sans-serif">Z</text>
+                    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+                      <path :d="CLOCK_ICONS.snooze" fill="#fff" />
                     </svg>
                   </button>
                   <button class="nc-act-ctrl-btn btn-cancel" @click.stop="clock.dismissAlarm()" title="关闭">
@@ -954,6 +949,7 @@ watch(expandedId, async () => {
 .nc-act-ctrl-btn {
   width: 40px;
   height: 40px;
+  padding: 0;
   border-radius: 50%;
   border: none;
   display: flex;
@@ -961,6 +957,10 @@ watch(expandedId, async () => {
   justify-content: center;
   cursor: pointer;
   transition: transform 0.15s, opacity 0.15s;
+}
+.nc-act-ctrl-btn svg {
+  display: block;
+  flex: none;
 }
 .nc-act-ctrl-btn:active {
   transform: scale(0.92);
