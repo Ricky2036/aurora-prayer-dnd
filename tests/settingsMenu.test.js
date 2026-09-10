@@ -10,7 +10,7 @@ const SYSTEM_ICON_PATH = path.resolve('src/components/ui/SettingsSystemIcon.vue'
 const SYSTEM_ICON_DIR = path.resolve('src/assets/icons/settings')
 
 const FIGMA_SETTING_ICONS = [
-  'accessibility', 'ai', 'apps', 'bluetooth', 'device', 'display', 'health',
+  'accessibility', 'ai', 'apps', 'battery', 'bluetooth', 'device', 'display', 'health',
   'location', 'multi-device', 'notifications', 'privacy', 'security', 'sim',
   'sound', 'storage', 'system', 'user', 'wallpaper', 'wifi'
 ]
