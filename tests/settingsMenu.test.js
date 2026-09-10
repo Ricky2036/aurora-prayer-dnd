@@ -76,7 +76,8 @@ test('SettingsApp includes floating search bar and standardized card styling', (
   assert.match(content, /titleCollapseProgress/, 'Title size transition should follow scroll progress')
   assert.match(content, /@scroll\.passive="onSettingsScroll"/, 'Settings home should track native scrolling')
   assert.match(content, /settings-floating-search::before/, 'Floating search should mask content scrolling behind it')
-  assert.match(content, /backdrop-filter:\s*blur/, 'Compact title mask should blur content behind the status area')
+  assert.match(content, /rgba\(244, 245, 247, 0\.28\)/, 'Compact title mask should fade smoothly into the list')
+  assert.doesNotMatch(content, /settings-compact-header[\s\S]*?backdrop-filter/, 'Compact title must not create a hard blur boundary')
 
   // Card border-radius 24px and pure white background
   assert.match(content, /border-radius:\s*24px/, 'Cards should have standardized 24px border radius')
