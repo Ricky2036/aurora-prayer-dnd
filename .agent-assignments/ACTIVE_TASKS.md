@@ -30,6 +30,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Standardize ListCell right value layout, update prayer reminder copy, add Muslim alarm enable modal, and sync DevConsole time mode | `antigravity/lane` | `src/components/ui/ListCell.vue`; `src/components/apps/settings/SettingsPrayer.vue`; `src/components/apps/clock/tabs/MuslimTab.vue`; `src/components/dev/DevConsole.vue`; `src/stores/clockStore.js`; `src/stores/i18nStore.js`; `tests/prayerAlarmLinkage.test.js` | `54cd783` | `e40716e` |
 | Merged | Antigravity | Refine Muslim alarm settings menu, 2-line layout, custom options, bottom sheet modal, and prayer reminder linkage | `antigravity/lane` | `src/components/apps/clock/**`; `src/components/apps/settings/SettingsPrayer.vue`; `src/components/dev/DevConsole.vue`; `src/stores/clockStore.js`; `src/stores/i18nStore.js`; `tests/prayerAlarmLinkage.test.js` | `e40716e` | `b04277a` |
 | Merged | Antigravity | Center 4 diagonal petals in MuslimTab, ensure authorization modal on prayer reminder enable, and add alarm toggle in DevConsole | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue`; `src/components/apps/settings/SettingsPrayer.vue`; `src/components/dev/DevConsole.vue`; `tests/prayerAlarmLinkage.test.js` | `b04277a` | `f1e84dc` |
+| Merged | Antigravity | Fix AppWindow full-screen and scaled corner/edge wallpaper leaking in ScreenView and AppWindow | `antigravity/lane` | `src/components/system/AppWindow.vue`; `src/components/phone/ScreenView.vue`; `src/utils/heroGeometry.js` | `20a5a73` | `6829c48` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
 
