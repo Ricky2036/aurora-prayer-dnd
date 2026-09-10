@@ -22,6 +22,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Codex | LockScreen native stack scrolling, clock compression (220 to 110), unlock surface separation, and card overlap opacity | `codex/lane` | `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `src/utils/notificationStack.js`; `tests/notificationStack.test.js` | `622a79a` | `ca22154` |
 | Merged | Antigravity | Pixel-level alignment of Clock floating bottom tab bar, scroll mask gradient, and global FloatingTabBar component extraction | `antigravity/lane` | `src/components/ui/FloatingTabBar.vue`; `src/components/apps/clock/**`; `tests/floatingTabBar.test.js` | `f87fbda` | `09f3741` |
 | Merged | Antigravity | Restore high-fidelity Muslim prayer page, complete 5-Tab floating bar norm, and link tab visibility to Muslim alarm toggle | `antigravity/lane` | `src/components/apps/clock/**`; `src/stores/clockStore.js`; `tests/floatingTabBar.test.js` | `dcad619` | `5720593` |
+| Merged | Antigravity | Pixel-level optimization and restoration of Muslim page: 44px vertical ellipsis button, popover menu, large title, and prayer wheel SVG geometry | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue`; `tests/floatingTabBar.test.js` | `52a141a` | `7709889` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
