@@ -1,7 +1,9 @@
 <script setup>
+import { ref } from 'vue'
 import { useControlStore } from '../../stores/controlStore'
 import albumCover from '../../assets/icons/album_cover.png'
 import LIcon from '../ui/LIcon.vue'
+import { GLYPHS } from '../../assets/icons/glyphs'
 
 const props = defineProps({
   isIsland: {
@@ -11,6 +13,8 @@ const props = defineProps({
 })
 
 const control = useControlStore()
+const isFavorite = ref(false)
+const isShuffle = ref(false)
 
 function togglePlay(e) {
   e.stopPropagation()
@@ -38,8 +42,15 @@ function togglePlay(e) {
       <span class="lp-time">3:20</span>
     </div>
     <div class="lp-controls">
-      <button class="lp-btn" @click.stop="" title="喜爱">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+      <button
+        class="lp-btn"
+        :class="{ 'is-active-fav': isFavorite }"
+        @click.stop="isFavorite = !isFavorite"
+        title="喜爱"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path :d="GLYPHS.fav" />
+        </svg>
       </button>
       <div class="lp-main">
         <button class="lp-btn lp-skip-btn" @click.stop="" title="上一首">
@@ -53,8 +64,15 @@ function togglePlay(e) {
           <LIcon name="skipForward" :size="20" :filled="true" />
         </button>
       </div>
-      <button class="lp-btn" @click.stop="" title="随机播放">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="m15 15 6 6"/><path d="M4 4l5 5"/></svg>
+      <button
+        class="lp-btn"
+        :class="{ 'is-active-shuffle': isShuffle }"
+        @click.stop="isShuffle = !isShuffle"
+        title="随机播放"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path :d="GLYPHS.shuffle" />
+        </svg>
       </button>
     </div>
   </div>
@@ -190,14 +208,20 @@ function togglePlay(e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.85);
   cursor: pointer;
   border-radius: 50%;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, color 0.15s ease;
 }
 .lp-btn:active {
   transform: scale(0.88);
   opacity: 0.8;
+}
+.lp-btn.is-active-fav {
+  color: #ff3b30;
+}
+.lp-btn.is-active-shuffle {
+  color: #1ed760;
 }
 .lp-skip-btn {
   color: #fff;
