@@ -74,3 +74,45 @@ test('TimerTab and StopwatchTab avoid footer collision with the 62px floating ta
   assert.ok(timerContent.includes('margin-bottom: calc(22px + 62px + 12px)'), 'Timer control footer must clear 62px tab bar with 12px gap')
   assert.ok(stopwatchContent.includes('margin-bottom: calc(22px + 62px + 12px)'), 'Stopwatch control footer must clear 62px tab bar with 12px gap')
 })
+
+test('ClockApp conditionally renders 5-Tab when muslimAlarmEnabled is true and 4-Tab when false', () => {
+  const clockAppPath = path.resolve(__dirname, '../src/components/apps/clock/ClockApp.vue')
+  const content = fs.readFileSync(clockAppPath, 'utf8')
+
+  assert.ok(content.includes('isMuslimAlarmEnabled'), 'Must compute isMuslimAlarmEnabled')
+  assert.ok(content.includes('clock.settings.muslimAlarmEnabled'), 'Must bind to clock.settings.muslimAlarmEnabled')
+  assert.ok(content.includes("id: 'muslim', name: '穆斯林'"), 'Must define 穆斯林 tab')
+  assert.ok(content.includes("activeTab.value = 'alarm'"), 'Must fallback to alarm tab when disabled')
+})
+
+test('MuslimTab component faithfully implements Islamic prayer compass wheel and reference design', () => {
+  const muslimPath = path.resolve(__dirname, '../src/components/apps/clock/tabs/MuslimTab.vue')
+  assert.ok(fs.existsSync(muslimPath), 'MuslimTab.vue must exist')
+
+  const content = fs.readFileSync(muslimPath, 'utf8')
+
+  // Date and location
+  assert.ok(content.includes('gregorianDate = \'10\''), 'Must show day 10')
+  assert.ok(content.includes('gregorianMonth = \'九月\''), 'Must show month September')
+  assert.ok(content.includes('weekDayStr = \'星期四\''), 'Must show Thursday')
+  assert.ok(content.includes('locationCity = \'深圳市\''), 'Must show Shenzhen')
+  assert.ok(content.includes('hijriDate = \'27\''), 'Must show Hijri date 27')
+  assert.ok(content.includes('hijriMonth = \'回历 3 月\''), 'Must show Hijri month 3')
+
+  // 6 prayer slots and exact times
+  assert.ok(content.includes('04:54'), '晨礼 must be 04:54')
+  assert.ok(content.includes('06:07'), '日出 must be 06:07')
+  assert.ok(content.includes('12:21'), '晌礼 must be 12:21')
+  assert.ok(content.includes('15:48'), '哺礼 must be 15:48')
+  assert.ok(content.includes('18:34'), '昏礼 must be 18:34')
+  assert.ok(content.includes('19:45'), '宵礼 must be 19:45')
+
+  // Highlights and Kaaba
+  assert.ok(content.includes('orange-highlight'), '晌礼 must be orange highlighted')
+  assert.ok(content.includes('dhuhr-curled-tail'), '晌礼 must feature curled tail and sparkle')
+  assert.ok(content.includes('kaaba-badge-indicator'), '宵礼 must feature Kaaba badge indicator')
+  assert.ok(content.includes('center-compass-dial'), 'Must include center compass dial')
+  assert.ok(content.includes('kaaba-compass-needle'), 'Must include red compass needle')
+  assert.ok(content.includes('filigree-mandala-bg'), 'Must include arabesque mandala background')
+})
+

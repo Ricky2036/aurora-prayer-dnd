@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useBackHandler } from '../../../composables/backRegistry'
 import { useClockStore } from '../../../stores/clockStore'
 import { usePrayerStore } from '../../../stores/prayerStore'
@@ -29,6 +29,12 @@ const activeTab = computed({
 // 二级页面导航栈：null | 'muslim-alarm' | 'general-settings'
 const subpage = ref(null)
 
+// 穆斯林闹钟是否开启
+const isMuslimAlarmEnabled = computed(() => {
+  return Boolean(clock.settings.muslimAlarmEnabled)
+})
+
+// 底部悬浮 5-Tab / 4-Tab 规范：在穆斯林闹钟开启后显示穆斯林Tab，关闭后不显示
 const tabs = computed(() => {
   const base = [
     { id: 'alarm', name: '闹钟', icon: CLOCK_ICONS.alarm },
@@ -36,7 +42,7 @@ const tabs = computed(() => {
     { id: 'timer', name: '定时器', icon: CLOCK_ICONS.timer },
     { id: 'stopwatch', name: '秒表', icon: CLOCK_ICONS.stopwatch }
   ]
-  if (prayer.userMode === 'muslim' || clock.activeTab === 'muslim') {
+  if (isMuslimAlarmEnabled.value) {
     return [
       base[0],
       { id: 'muslim', name: '穆斯林', icon: CLOCK_ICONS.muslim },
@@ -44,6 +50,13 @@ const tabs = computed(() => {
     ]
   }
   return base
+})
+
+// 监听穆斯林闹钟开关，关闭后若当前处于穆斯林 Tab 则平滑回退到闹钟
+watch(isMuslimAlarmEnabled, (enabled) => {
+  if (!enabled && activeTab.value === 'muslim') {
+    activeTab.value = 'alarm'
+  }
 })
 
 function openSubpage(name) {

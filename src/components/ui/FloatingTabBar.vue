@@ -238,6 +238,7 @@ function selectTab(tab) {
   letter-spacing: -0.1px;
   transition: color 0.2s ease;
   line-height: 1;
+  white-space: nowrap;
 }
 
 .floating-tab-item.active .tab-label-text {

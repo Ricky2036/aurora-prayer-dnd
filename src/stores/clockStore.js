@@ -593,6 +593,13 @@ export const useClockStore = defineStore('clock', {
       this.activeTab = tab
     },
 
+    setMuslimAlarmEnabled(val) {
+      this.settings.muslimAlarmEnabled = Boolean(val)
+      if (!this.settings.muslimAlarmEnabled && this.activeTab === 'muslim') {
+        this.activeTab = 'alarm'
+      }
+    },
+
     toggleIslandExpanded() {
       this.islandExpanded = !this.islandExpanded
     },
