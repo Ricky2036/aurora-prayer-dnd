@@ -66,8 +66,8 @@ const showEnableMuslimAlarmModal = ref(false)
 const pendingReminderVal = ref(null)
 
 function selectReminderOption(val) {
-  // 如果穆斯林闹钟未开启，点击选择提前 5-15 分钟，弹窗提示
-  if (val > 0 && !clockStore?.settings?.muslimAlarmEnabled) {
+  // 如果穆斯林闹钟未开启或当前处于未联动状态，点击选择提前 5-15 分钟，弹窗提示用户授权开启
+  if (val > 0 && (!clockStore?.settings?.muslimAlarmEnabled || !prayerStore?.alarmLinkageEnabled)) {
     pendingReminderVal.value = val
     showEnableMuslimAlarmModal.value = true
     return
@@ -86,6 +86,12 @@ function applyReminderOption(val) {
         if (typeof prayerStore.setAlarmLinkage === 'function') prayerStore.setAlarmLinkage(false)
         if (typeof prayerStore.setAlarmAdvanceMinutes === 'function') prayerStore.setAlarmAdvanceMinutes(-1)
       }
+    }
+    if (clockStore?.settings) {
+      clockStore.settings.muslimAlarmEnabled = false
+    }
+    if (typeof clockStore?.setMuslimAlarmEnabled === 'function') {
+      clockStore.setMuslimAlarmEnabled(false)
     }
   } else {
     if (prayerStore) {

@@ -202,3 +202,30 @@ test('SettingsPrayer reminder linkage switches Muslim alarm methods to 自定义
   assert.ok(content.includes("clockStore.settings.prayerTimeMethod = '自定义'"), 'Must switch prayerTimeMethod to 自定义 on enabling reminder')
 })
 
+test('Muslim prayer wheel petals are symmetrically centered matching reference design', () => {
+  const componentPath = path.resolve(__dirname, '../src/components/apps/clock/tabs/MuslimTab.vue')
+  const content = fs.readFileSync(componentPath, 'utf-8')
+
+  // Petal coordinates centered inside each circular petal
+  assert.ok(content.includes('left: 260px;'), 'Sunrise and Dhuhr centered at x=260px')
+  assert.ok(content.includes('left: 86px;'), 'Isha and Maghrib centered at x=86px')
+  assert.ok(content.includes('top: 121px;'), 'Sunrise and Isha centered at y=121px')
+  assert.ok(content.includes('top: 218px;'), 'Dhuhr and Maghrib centered at y=218px')
+})
+
+test('SettingsPrayer requires user authorization modal when activating reminder linkage', () => {
+  const componentPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsPrayer.vue')
+  const content = fs.readFileSync(componentPath, 'utf-8')
+
+  // Interception check for both un-enabled Muslim alarm and unlinked reminder state
+  assert.ok(
+    content.includes('!clockStore?.settings?.muslimAlarmEnabled || !prayerStore?.alarmLinkageEnabled'),
+    'Must prompt authorization modal when Muslim alarm is not enabled or reminder linkage is inactive'
+  )
+  assert.ok(
+    content.includes('clockStore.settings.muslimAlarmEnabled = false'),
+    'Must reset muslimAlarmEnabled when user selects no reminder (val === -1)'
+  )
+})
+
+

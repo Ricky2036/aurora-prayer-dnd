@@ -556,9 +556,20 @@ function onCopyFineTune() {
           <div class="pc-card">
             <div class="pc-card-header">
               <span class="pc-card-title">穆斯林闹钟</span>
-              <span class="pc-state-tag" :class="{ 'is-on': clockStore.muslimTimeMode === 'custom' }">
-                {{ clockStore.muslimTimeMode === 'custom' ? '设定时间' : '默认时间' }}
+              <span class="pc-state-tag" :class="{ 'is-on': clockStore.settings.muslimAlarmEnabled }">
+                {{ clockStore.settings.muslimAlarmEnabled ? '已开启' : '已关闭' }}
               </span>
+            </div>
+            <!-- 穆斯林闹钟开关控制 -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <button
+                class="pc-prayer-btn"
+                style="flex: 1;"
+                :class="{ on: clockStore.settings.muslimAlarmEnabled }"
+                @click="clockStore.setMuslimAlarmEnabled(!clockStore.settings.muslimAlarmEnabled)"
+              >
+                {{ clockStore.settings.muslimAlarmEnabled ? '关闭穆斯林闹钟' : '开启穆斯林闹钟' }}
+              </button>
             </div>
             <div class="pc-seg">
               <div
@@ -979,9 +990,20 @@ function onCopyFineTune() {
                   <div class="pc-card">
                     <div class="pc-card-header">
                       <span class="pc-card-title">穆斯林闹钟</span>
-                      <span class="pc-state-tag" :class="{ 'is-on': clockStore.muslimTimeMode === 'custom' }">
-                        {{ clockStore.muslimTimeMode === 'custom' ? '设定时间' : '默认时间' }}
+                      <span class="pc-state-tag" :class="{ 'is-on': clockStore.settings.muslimAlarmEnabled }">
+                        {{ clockStore.settings.muslimAlarmEnabled ? '已开启' : '已关闭' }}
                       </span>
+                    </div>
+                    <!-- 穆斯林闹钟开关控制 -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                      <button
+                        class="pc-prayer-btn"
+                        style="flex: 1;"
+                        :class="{ on: clockStore.settings.muslimAlarmEnabled }"
+                        @click="clockStore.setMuslimAlarmEnabled(!clockStore.settings.muslimAlarmEnabled)"
+                      >
+                        {{ clockStore.settings.muslimAlarmEnabled ? '关闭穆斯林闹钟' : '开启穆斯林闹钟' }}
+                      </button>
                     </div>
                     <div class="pc-seg">
                       <div
