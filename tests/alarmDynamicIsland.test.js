@@ -192,7 +192,7 @@ test('DevConsole uses the vector alarm icon and concise copy without emoji', () 
   const content = fs.readFileSync(compPath, 'utf8')
 
   assert.match(content, /CLOCK_ICONS\.alarm/, 'Must render the Clock alarm vector icon')
-  assert.match(content, /isAlarmRinging \? '关闭闹钟' : '闹钟'/, 'Idle control copy should be concise')
+  assert.match(content, /isAlarmRinging \? '关闭闹钟' : '开启闹钟'/, 'Idle control copy should be concise')
   assert.doesNotMatch(content, /🔔/, 'Alarm control must not use emoji')
   assert.doesNotMatch(content, /触发 20:44 闹钟/, 'Alarm control must not expose fixture time copy')
 })

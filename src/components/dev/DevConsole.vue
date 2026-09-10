@@ -626,7 +626,7 @@ function onCopyFineTune() {
                   <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path :d="CLOCK_ICONS.alarm" />
                   </svg>
-                  <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '闹钟' }}</span>
+                  <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '开启闹钟' }}</span>
                 </button>
                 <button
                   v-if="clockStore.isAlarmActive"
@@ -1053,7 +1053,7 @@ function onCopyFineTune() {
                           <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <path :d="CLOCK_ICONS.alarm" />
                           </svg>
-                          <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '闹钟' }}</span>
+                          <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '开启闹钟' }}</span>
                         </button>
                         <button
                           v-if="clockStore.isAlarmActive"
