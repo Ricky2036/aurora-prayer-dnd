@@ -26,6 +26,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 
 | Merged | Antigravity | Pixel-level geometry alignment of Muslim wheel outer crescents, compass teeth NWSE, large lotus rosette, isometric Kaaba badge, and capture corner leak fix | `antigravity/lane` | `src/App.vue`; `src/components/apps/clock/tabs/MuslimTab.vue`; `tests/floatingTabBar.test.js` | `b5fba18` | `1bce2fa` |
 | Merged | Antigravity | Refine Muslim wheel astrolabe rosette and crescent moon wings matching reference image 1 | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue`; `tests/floatingTabBar.test.js` | `b29fc3e` | `06ee71e` |
+| Merged | Antigravity | Fine-tune Muslim prayer wheel text & icon anchor positions (r=116) to eliminate overlap with compass dial | `antigravity/lane` | `src/components/apps/clock/tabs/MuslimTab.vue` | `06ee71e` | `54cd783` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
