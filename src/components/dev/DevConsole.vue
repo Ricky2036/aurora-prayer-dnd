@@ -718,10 +718,10 @@ function onToggleFineTune(enabled) {
             <!-- 虚线分割 -->
             <div class="pc-divider-dashed"></div>
 
-            <!-- 区域 2：礼拜灵动岛模拟 -->
+            <!-- 区域 2：礼拜模式模拟 -->
             <div class="pc-section">
               <div class="pc-card-header">
-                <span class="pc-card-title">礼拜灵动岛</span>
+                <span class="pc-card-title">礼拜模式</span>
                 <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                   {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
                 </span>
@@ -734,7 +734,102 @@ function onToggleFineTune(enabled) {
                   :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                   @click="prayerStore.toggleSimulatedPrayer(p.id)"
                 >
-                  {{ i18n.prayerName(p.id) }}
+                  <!-- 晨礼：朝阳破晓 -->
+                  <svg
+                    v-if="p.id === 'fajr'"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 2v6" />
+                    <path d="m4.93 10.93 2.83 2.83" />
+                    <path d="m19.07 10.93-2.83 2.83" />
+                    <path d="M2 18h20" />
+                    <path d="M6 18a6 6 0 0 1 12 0" />
+                  </svg>
+                  <!-- 晌礼：正午烈日 -->
+                  <svg
+                    v-else-if="p.id === 'dhuhr'"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2" />
+                    <path d="M12 20v2" />
+                    <path d="m4.93 4.93 1.41 1.41" />
+                    <path d="m17.66 17.66 1.41 1.41" />
+                    <path d="M2 12h2" />
+                    <path d="M20 12h2" />
+                    <path d="m6.34 17.66-1.41 1.41" />
+                    <path d="m19.07 4.93-1.41 1.41" />
+                  </svg>
+                  <!-- 哺礼：斜阳斜影 -->
+                  <svg
+                    v-else-if="p.id === 'asr'"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="9" cy="9" r="3.5" />
+                    <path d="M9 2v2.5" />
+                    <path d="M2 9h2.5" />
+                    <path d="m4.05 4.05 1.77 1.77" />
+                    <path d="M13 13l6 6" />
+                    <path d="M20 16v4h-4" />
+                    <path d="M2 21h8" />
+                  </svg>
+                  <!-- 昏礼：落日余晖 -->
+                  <svg
+                    v-else-if="p.id === 'maghrib'"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 10v6" />
+                    <path d="m9 13 3 3 3-3" />
+                    <path d="m4.93 10.93 2.83 2.83" />
+                    <path d="m19.07 10.93-2.83 2.83" />
+                    <path d="M2 18h20" />
+                    <path d="M6 18a6 6 0 0 1 12 0" />
+                  </svg>
+                  <!-- 宵礼：夜空星月 -->
+                  <svg
+                    v-else
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    <path d="M19 4v3" />
+                    <path d="M17.5 5.5h3" />
+                  </svg>
+                  <span>{{ i18n.prayerName(p.id) }}</span>
                 </button>
               </div>
             </div>
@@ -1156,10 +1251,10 @@ function onToggleFineTune(enabled) {
                     <!-- 虚线分割 -->
                     <div class="pc-divider-dashed"></div>
 
-                    <!-- 区域 2：礼拜灵动岛模拟 -->
+                    <!-- 区域 2：礼拜模式模拟 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
-                        <span class="pc-card-title">礼拜灵动岛</span>
+                        <span class="pc-card-title">礼拜模式</span>
                         <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                           {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
                         </span>
@@ -1172,7 +1267,102 @@ function onToggleFineTune(enabled) {
                           :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                           @click="prayerStore.toggleSimulatedPrayer(p.id)"
                         >
-                          {{ i18n.prayerName(p.id) }}
+                          <!-- 晨礼：朝阳破晓 -->
+                          <svg
+                            v-if="p.id === 'fajr'"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 2v6" />
+                            <path d="m4.93 10.93 2.83 2.83" />
+                            <path d="m19.07 10.93-2.83 2.83" />
+                            <path d="M2 18h20" />
+                            <path d="M6 18a6 6 0 0 1 12 0" />
+                          </svg>
+                          <!-- 晌礼：正午烈日 -->
+                          <svg
+                            v-else-if="p.id === 'dhuhr'"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="4" />
+                            <path d="M12 2v2" />
+                            <path d="M12 20v2" />
+                            <path d="m4.93 4.93 1.41 1.41" />
+                            <path d="m17.66 17.66 1.41 1.41" />
+                            <path d="M2 12h2" />
+                            <path d="M20 12h2" />
+                            <path d="m6.34 17.66-1.41 1.41" />
+                            <path d="m19.07 4.93-1.41 1.41" />
+                          </svg>
+                          <!-- 哺礼：斜阳斜影 -->
+                          <svg
+                            v-else-if="p.id === 'asr'"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <circle cx="9" cy="9" r="3.5" />
+                            <path d="M9 2v2.5" />
+                            <path d="M2 9h2.5" />
+                            <path d="m4.05 4.05 1.77 1.77" />
+                            <path d="M13 13l6 6" />
+                            <path d="M20 16v4h-4" />
+                            <path d="M2 21h8" />
+                          </svg>
+                          <!-- 昏礼：落日余晖 -->
+                          <svg
+                            v-else-if="p.id === 'maghrib'"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 10v6" />
+                            <path d="m9 13 3 3 3-3" />
+                            <path d="m4.93 10.93 2.83 2.83" />
+                            <path d="m19.07 10.93-2.83 2.83" />
+                            <path d="M2 18h20" />
+                            <path d="M6 18a6 6 0 0 1 12 0" />
+                          </svg>
+                          <!-- 宵礼：夜空星月 -->
+                          <svg
+                            v-else
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                            <path d="M19 4v3" />
+                            <path d="M17.5 5.5h3" />
+                          </svg>
+                          <span>{{ i18n.prayerName(p.id) }}</span>
                         </button>
                       </div>
                     </div>
@@ -1790,20 +1980,42 @@ function onToggleFineTune(enabled) {
 
 .pc-prayer-btn {
   padding: 8px 0;
-  border-radius: 9px;
-  font: 600 12px/1 var(--font-stack);
-  background: #101014;
-  border: 1px solid #27272a;
-  color: #d4d4d8;
+  border-radius: 8px;
+  font: 500 12px/1 var(--font-stack);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
   user-select: none;
 }
 
+.prayer-buttons-grid .pc-prayer-btn {
+  height: 52px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.prayer-buttons-grid .pc-prayer-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.prayer-buttons-grid .pc-prayer-btn span {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+}
+
 .pc-prayer-btn:hover {
-  background: #27272a;
+  background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
 }
 

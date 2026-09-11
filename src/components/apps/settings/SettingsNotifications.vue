@@ -108,32 +108,36 @@ const notificationApps = computed(() => {
   return Array.from(map.values())
 })
 
+function getIslandKeyForApp(id) {
+  if (id === 'recorder' || id === 'voicememos') return 'recorder'
+  if (id === 'timer' || id === 'clock') return 'timer'
+  if (id === 'stopwatch') return 'stopwatch'
+  if (id === 'media' || id === 'music' || id === 'spotify') return 'media'
+  if (id === 'prayer') return 'prayer'
+  return null
+}
+
 const appStates = ref({})
 function getAppState(id) {
-  if (id === 'recorder' || id === 'voicememos') {
-    return appStates.value[id] !== false && notificationsStore.islandSettings.recorder !== false
-  }
   return appStates.value[id] !== false
 }
 function toggleAppState(id) {
-  const next = !getAppState(id)
-  appStates.value[id] = next
-  if (id === 'recorder' || id === 'voicememos') {
-    notificationsStore.setIslandEnabled('recorder', next)
-  }
+  appStates.value[id] = !getAppState(id)
 }
 
 const appLiveActivityStates = ref({})
 function getAppLiveActivityState(id) {
-  if (id === 'recorder' || id === 'voicememos') {
-    return notificationsStore.isIslandEnabled('recorder')
+  const islandKey = getIslandKeyForApp(id)
+  if (islandKey && islandKey in notificationsStore.islandSettings) {
+    return notificationsStore.isIslandEnabled(islandKey)
   }
   return appLiveActivityStates.value[id] !== false
 }
 function toggleAppLiveActivityState(id) {
-  if (id === 'recorder' || id === 'voicememos') {
-    const next = !notificationsStore.isIslandEnabled('recorder')
-    notificationsStore.setIslandEnabled('recorder', next)
+  const islandKey = getIslandKeyForApp(id)
+  if (islandKey && islandKey in notificationsStore.islandSettings) {
+    const next = !notificationsStore.isIslandEnabled(islandKey)
+    notificationsStore.setIslandEnabled(islandKey, next)
     appLiveActivityStates.value[id] = next
     return
   }

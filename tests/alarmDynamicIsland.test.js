@@ -291,4 +291,32 @@ test('notifIcons and i18nStore provide recorder icon and title definitions', () 
   assert.match(i18nContent, /recorder:\s*'Voice Memos'/, 'i18nStore en must define recorder title as Voice Memos')
 })
 
+test('SettingsNotifications decouples master switch and links live activity toggle to islandSettings', () => {
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const content = fs.readFileSync(notifSettingsPath, 'utf8')
+
+  // Master switch is purely appStates and decoupled from islandSettings
+  assert.match(content, /function getAppState\(id\) \{\s*return appStates\.value\[id\] !== false\s*\}/, 'getAppState must be decoupled from islandSettings')
+
+  // Live activity switch links to notificationsStore islandSettings
+  assert.match(content, /getIslandKeyForApp/, 'Must resolve island key for application')
+  assert.match(content, /notificationsStore\.isIslandEnabled\(islandKey\)/, 'getAppLiveActivityState must check isIslandEnabled')
+  assert.match(content, /notificationsStore\.setIslandEnabled\(islandKey,\s*next\)/, 'toggleAppLiveActivityState must call setIslandEnabled')
+})
+
+test('DevConsole prayer card uses 礼拜模式 title and provides SVG icons for all 5 prayers', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const content = fs.readFileSync(devConsolePath, 'utf8')
+
+  assert.doesNotMatch(content, /礼拜灵动岛/, 'DevConsole must no longer use 礼拜灵动岛')
+  assert.match(content, /<span class="pc-card-title">礼拜模式<\/span>/, 'Must use 礼拜模式 title')
+
+  // Check 5 prayer SVGs
+  assert.match(content, /p\.id === 'fajr'[\s\S]*?<svg[\s\S]*?<path d="M12 2v6"/, 'Fajr must have sunrise SVG')
+  assert.match(content, /p\.id === 'dhuhr'[\s\S]*?<circle cx="12" cy="12" r="4"/, 'Dhuhr must have midday sun SVG')
+  assert.match(content, /p\.id === 'asr'[\s\S]*?<circle cx="9" cy="9"/, 'Asr must have afternoon slanting sun SVG')
+  assert.match(content, /p\.id === 'maghrib'[\s\S]*?<path d="M12 10v6"/, 'Maghrib must have sunset SVG')
+  assert.match(content, /p\.id === 'isha'|else[\s\S]*?<path d="M21 12\.79A9 9 0 1 1 11\.21 3/, 'Isha must have night moon SVG')
+})
+
 
