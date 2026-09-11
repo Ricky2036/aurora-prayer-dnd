@@ -25,6 +25,11 @@ watch(springVal, (v) => system.setHomeGestureProgress(v))
 
 /** 当前应该执行的「回退/前进」动作 */
 function doAction() {
+  // 切换器打开时：点击手势条 = 关闭切换器（回到之前所在层）
+  if (system.appSwitcherOpen) {
+    system.closeSwitcher()
+    return
+  }
   const o = system.overlays
   if (o.appLibrary.status !== 'closed') {
     system.requestCloseOverlay('appLibrary')
@@ -55,7 +60,10 @@ const gesture = useSwipeGesture(rootRef, {
   canStart: () =>
     system.baseLayer === 'app' ||
     system.baseLayer === 'lock' ||
-    system.anyOverlayOpen(),
+    system.appSwitcherOpen ||
+    system.anyOverlayOpen() ||
+    // 桌面上也允许：有最近任务时，上滑停驻 = 打开切换器（iOS 同样支持）
+    (system.baseLayer === 'home' && system.recentApps.length > 0),
   onStart() {
     snapTo(system.homeGestureProgress)
   },
@@ -63,6 +71,32 @@ const gesture = useSwipeGesture(rootRef, {
     snapTo(p)
   },
   onRelease(p, velocity) {
+    /* 切换器入口（Ricky 2026-09-11，iOS 卡片堆叠 Recent）：
+     *   慢速松手 + 进度过三分之一 = 「滑到一半停住」→ 打开切换器；
+     *   快速甩（原逻辑 velocity > 0.4）或进度很小 → 回桌面/回弹，行为不变。
+     *   桌面上没有回桌面语义，慢滑进切换器、快滑/小进度都回弹。 */
+    const dwellOpen =
+      Math.abs(velocity) <= 0.25 &&
+      p >= 0.35 &&
+      system.recentApps.length > 0 &&
+      !system.anyOverlayOpen() &&
+      system.baseLayer !== 'lock'
+
+    if (system.baseLayer === 'home') {
+      if (dwellOpen) {
+        system.openSwitcher()
+        return 0
+      }
+      animateTo(0, { initialVelocity: velocity })
+      return 0
+    }
+
+    if (dwellOpen) {
+      system.openSwitcher()
+      animateTo(0)
+      return 0
+    }
+
     const goHome = p > 0.16 || velocity > 0.4
     if (goHome) {
       // AppWindow 必须先捕获当前跟手矩形；动画接管后再清空进度。

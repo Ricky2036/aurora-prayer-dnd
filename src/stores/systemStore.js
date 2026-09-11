@@ -16,7 +16,14 @@ export const useSystemStore = defineStore('system', {
       notificationCenter: { status: 'closed', progress: 0 },
       controlCenter: { status: 'closed', progress: 0 },
       appLibrary: { status: 'closed', progress: 0 }
-    }
+    },
+    /* ---- 最近任务（App Switcher / Recent） ----
+     * recentApps：最近使用的 appId 列表，LIFO 去重，最多 5 个。
+     *   注意它**包含**当前 activeAppId（列表第 0 项），渲染切换器时按此排列。
+     *   openApp 时自动 touchRecent，无需应用自己维护。
+     * appSwitcherOpen：切换器是否展开（手势驱动时由 HomeIndicator 直写）。 */
+    recentApps: [],
+    appSwitcherOpen: false
   }),
 
   getters: {
@@ -50,6 +57,7 @@ export const useSystemStore = defineStore('system', {
     lock() {
       this.baseLayer = 'lock'
       this.activeAppId = null
+      this.appSwitcherOpen = false
       for (const key of Object.keys(this.overlays)) {
         this.overlays[key] = { status: 'closed', progress: 0 }
       }
@@ -76,12 +84,53 @@ export const useSystemStore = defineStore('system', {
       if (this.baseLayer === 'lock') return
       this.baseLayer = 'app'
       this.activeAppId = appId
-      // 打开应用时收起所有叠层
+      this.touchRecent(appId)
+      // 打开应用时收起所有叠层与切换器
+      this.appSwitcherOpen = false
       for (const key of Object.keys(this.overlays)) {
         if (this.overlays[key].status !== 'closed') {
           this.overlays[key] = { status: 'closed', progress: 0 }
         }
       }
+    },
+
+    /* ---- 最近任务 ---- */
+
+    /** 把 appId 提到最近列表最前（LIFO 去重，上限 5 个） */
+    touchRecent(appId) {
+      if (!appId) return
+      this.recentApps = [appId, ...this.recentApps.filter((id) => id !== appId)].slice(0, 5)
+    },
+
+    /** 打开切换器（无最近任务时不打开） */
+    openSwitcher() {
+      if (this.recentApps.length === 0) return
+      this.appSwitcherOpen = true
+    },
+
+    /** 关闭切换器，回到 baseLayer（home 或 app） */
+    closeSwitcher() {
+      this.appSwitcherOpen = false
+    },
+
+    /** 切换器里上滑移除某个应用卡片 */
+    dismissApp(appId) {
+      this.recentApps = this.recentApps.filter((id) => id !== appId)
+      // 移除的是当前应用：若列表还有剩余就回到桌面，桌面兜底
+      if (this.activeAppId === appId) {
+        this.activeAppId = null
+        this.baseLayer = 'home'
+      }
+      if (this.recentApps.length === 0) this.appSwitcherOpen = false
+    },
+
+    /** 切换器里点卡片恢复某个应用 */
+    resumeApp(appId) {
+      if (!this.recentApps.includes(appId)) return
+      this.activeAppId = appId
+      this.baseLayer = 'app'
+      this.touchRecent(appId)
+      this.appSwitcherOpen = false
     },
 
     /** 返回桌面：app → home（hero 收缩完成后由 AppWindow 调用 finishGoHome） */
@@ -119,6 +168,8 @@ export const useSystemStore = defineStore('system', {
         // 互斥：开 NC 时关 CC，反之亦然
         if (name === 'notificationCenter') this.closeOverlay('controlCenter')
         if (name === 'controlCenter') this.closeOverlay('notificationCenter')
+        // 打开叠层时收起切换器（层级语义：叠层更高）
+        this.appSwitcherOpen = false
         o.status = 'open'
         o.progress = 1
       } else {

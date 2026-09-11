@@ -15,6 +15,7 @@ import AppWindow from '../system/AppWindow.vue'
 import NotificationCenter from '../system/NotificationCenter.vue'
 import ControlCenter from '../system/ControlCenter.vue'
 import AppLibrary from '../system/AppLibrary.vue'
+import AppSwitcher from '../system/AppSwitcher.vue'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
@@ -294,6 +295,9 @@ useSwipeGesture(sideEdgeRef, {
     <NotificationCenter />
     <ControlCenter />
     <AppLibrary />
+
+    <!-- 最近任务切换器（App Switcher / Recent） -->
+    <AppSwitcher />
 
     <!-- 顶部边缘手势热区：左/中 = 通知中心，右 1/4 = 控制中心 (当叠层打开时禁用热区避免遮挡头部按钮) -->
     <div
