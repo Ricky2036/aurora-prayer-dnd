@@ -116,3 +116,15 @@ export function moveHomeItem(pages, itemId, targetPage, targetIndex) {
 export function cloneHomeState(value) {
   return JSON.parse(JSON.stringify(value))
 }
+
+export function resolveDesktopPage({ currentPage, pageCount, delta, velocity = 0, threshold = 72 }) {
+  const lastPage = Math.max(0, pageCount - 1)
+  if (delta < -threshold || velocity < -0.55) {
+    if (currentPage >= lastPage) return { page: lastPage, openLibrary: true }
+    return { page: currentPage + 1, openLibrary: false }
+  }
+  if (delta > threshold || velocity > 0.55) {
+    return { page: Math.max(0, currentPage - 1), openLibrary: false }
+  }
+  return { page: currentPage, openLibrary: false }
+}
