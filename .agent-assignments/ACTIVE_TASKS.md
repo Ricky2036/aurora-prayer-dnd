@@ -60,5 +60,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Adjust status bar horizontal inset to pull icons inward from screen edge | `antigravity/lane` | `src/components/phone/StatusBar.vue`; `tests/statusBar.test.js` | `fe10deb` | `3a315c8` |
 | Merged | Antigravity | Fix Spotify notification settings jump and direct MP4 unframed screen recording | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/App.vue`; `src/composables/useCapture.js`; `tests/notificationsLinkage.test.js` | `5474bfe` | `e4ff671` |
 | Merged | Codex | Desktop foundation capabilities | `codex/lane` | None (desktop file locks released) | `00c594f` | `d6a6d43..fa375da` |
+| Active | Antigravity | Fix mobile LockScreen notification swipe flickering and refine Dynamic Island compact capsule & icon size | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/DynamicIsland.vue`; `src/components/phone/StatusBar.vue`; `tests/alarmDynamicIsland.test.js` | `2bb765b` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
