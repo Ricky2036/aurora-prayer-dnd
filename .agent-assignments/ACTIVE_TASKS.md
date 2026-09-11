@@ -51,6 +51,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Update settings avatar, set DevConsole default module to island, rename to 灵动岛, and implement 5-button system apps island control | `antigravity/lane` | `src/assets/img/account-avatar.jpg`; `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `cbe9c26` | `92e7788` |
 | Merged | Antigravity | Decouple notification master switch from island settings, link Live Activity switch to dynamic island settings, rename DevConsole prayer card to 礼拜模式 and design SVG icons for 5 prayer buttons | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `f0e6ee3` | `774e5be` |
 | Merged | Antigravity | Unify DevConsole prayer buttons style and size to system apps style, and rename dropdown module to 礼拜模式 | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `cd7419d` | `92e059e` |
+| Merged | Antigravity | Default capture and record to without frame, move Control Center module to last in DevConsole dropdown, and remove alarm snooze button | `antigravity/lane` | `src/composables/useCapture.js`; `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `92e059e` | `8a36c78` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
