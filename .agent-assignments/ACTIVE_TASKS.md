@@ -66,6 +66,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Voice Memos launch notification authorization modal & permission linkage | `antigravity/lane` | None (locks released) | `aef175f` | `675f68e` |
 | Merged | Antigravity | Refine notification authorization modal to record click trigger & Control Center bell icon | `antigravity/lane` | None (locks released) | d91f06d | `4e8a6e9` |
 | Merged | Codex | Restore app taps after desktop editing | `codex/lane` | None (locks released) | `20174e4` | `4b2d285` |
-| Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `35ea7fb` |
+| Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `763378f` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
