@@ -347,5 +347,41 @@ test('DevConsole dropdown puts Control Center last, useCapture defaults to witho
   assert.match(captureContent, /const screenshotWithFrame = ref\(false\)/, 'screenshotWithFrame must default to false')
 })
 
+test('SettingsNotifications and Island components implement deep jump with 3-flash highlight', () => {
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const notifContent = fs.readFileSync(notifSettingsPath, 'utf8')
+
+  assert.match(notifContent, /triggerIslandHighlight/, 'Must define triggerIslandHighlight')
+  assert.match(notifContent, /highlightedIslandKey/, 'Must track highlightedIslandKey')
+  assert.match(notifContent, /is-highlight-flash/, 'Must bind is-highlight-flash class')
+  assert.match(notifContent, /@keyframes island-cell-flash/, 'Must define 3-cycle island-cell-flash keyframes')
+  assert.match(notifContent, /animation:\s*island-cell-flash 0\.6s ease-in-out 3/, 'Must flash exactly 3 times')
+  assert.match(notifContent, /data-island-key="recorder"/, 'Must annotate recorder row')
+  assert.match(notifContent, /data-island-key="alarm"/, 'Must annotate alarm row')
+  assert.match(notifContent, /data-island-key="timer"/, 'Must annotate timer row')
+  assert.match(notifContent, /data-island-key="stopwatch"/, 'Must annotate stopwatch row')
+  assert.match(notifContent, /data-island-key="prayer"/, 'Must annotate prayer row')
+  assert.match(notifContent, /data-island-key="media"/, 'Must annotate media row')
+
+  const storePath = path.resolve(__dirname, '../src/stores/notificationsStore.js')
+  const storeContent = fs.readFileSync(storePath, 'utf8')
+  assert.match(storeContent, /targetIslandKey:\s*null/, 'notificationsStore must support targetIslandKey')
+  assert.match(storeContent, /setTargetView\(view,\s*subView\s*=\s*null,\s*islandKey\s*=\s*null\)/, 'setTargetView must accept islandKey')
+})
+
+test('DevConsole module big card implements smooth height transition and seamless list expansion', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const devContent = fs.readFileSync(devConsolePath, 'utf8')
+
+  assert.match(devContent, /ref="desktopCardRef"/, 'Desktop card must use desktopCardRef')
+  assert.match(devContent, /ref="mobileCardRef"/, 'Mobile card must use mobileCardRef')
+  assert.match(devContent, /animateCardTransition/, 'Must implement animateCardTransition')
+  assert.match(devContent, /name="pc-module-swap"/, 'Must use pc-module-swap transition')
+  assert.match(devContent, /\.pc-module-swap-leave-active\s*\{[^}]*position:\s*absolute/s, 'Outgoing view must be absolutely positioned during cross-fade')
+  assert.match(devContent, /@keyframes pc-section-unfold/, 'Must define pc-section-unfold keyframes')
+  assert.match(devContent, /\.pc-module-section-group\.is-control\s*\.pc-section:nth-of-type\(1\)/, 'Control center sections must stagger unfold')
+})
+
+
 
 

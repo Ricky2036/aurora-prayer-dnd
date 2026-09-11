@@ -224,7 +224,7 @@ function handleCancelIslandModal() {
 
 function onJumpSettings(item) {
   isExpanded.value = false
-  notificationsStore.setTargetView('notifications', 'dynamicBar')
+  notificationsStore.setTargetView('notifications', 'dynamicBar', item)
   system.openApp('settings')
   swipeOffsets.value = {}
 }

@@ -9,6 +9,7 @@ export const useNotificationsStore = defineStore('notifications', {
     list: seedNotifications(),
     targetView: null, // 'notifications' | null
     targetSubView: null, // 'dynamicBar' | 'main' | null
+    targetIslandKey: null, // 'recorder' | 'alarm' | 'timer' | 'stopwatch' | 'prayer' | 'media' | null
     islandSettings: {
       master: true,
       alarm: true,
@@ -54,9 +55,10 @@ export const useNotificationsStore = defineStore('notifications', {
 
     clearAll() { this.list = [] },
 
-    setTargetView(view, subView = null) {
+    setTargetView(view, subView = null, islandKey = null) {
       this.targetView = view
       this.targetSubView = subView
+      this.targetIslandKey = islandKey
     },
 
     setIslandEnabled(key, enabled) {

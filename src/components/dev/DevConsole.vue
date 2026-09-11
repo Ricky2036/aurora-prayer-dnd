@@ -133,13 +133,61 @@ const initialModule = (urlParams?.get('overlay') === 'controlCenter' || urlParam
       : 'island'
 
 const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim'
+const desktopCardRef = ref(null)
+const mobileCardRef = ref(null)
 
-watch(selectedModule, (mod) => {
-  if (mod === 'control') {
+function animateCardTransition(cardEl) {
+  if (!cardEl) return
+  const prevHeight = cardEl.offsetHeight
+  if (prevHeight <= 0) return
+
+  cardEl.style.height = `${prevHeight}px`
+  cardEl.style.overflow = 'hidden'
+  cardEl.style.transition = 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
+
+  nextTick(() => {
+    const nextEl = cardEl.querySelector('.pc-module-section-group:not(.pc-module-swap-leave-active)')
+    const targetHeight = nextEl ? nextEl.offsetHeight + 24 : cardEl.scrollHeight
+
+    void cardEl.offsetHeight
+    cardEl.style.height = `${targetHeight}px`
+
+    const onEnd = (e) => {
+      if (e.target !== cardEl || e.propertyName !== 'height') return
+      cardEl.removeEventListener('transitionend', onEnd)
+      cardEl.style.height = ''
+      cardEl.style.overflow = ''
+      cardEl.style.transition = ''
+      if (selectedModule.value === 'control') {
+        desktopPresetThumb.syncThumb()
+        mobilePresetThumb.syncThumb()
+      }
+    }
+    cardEl.addEventListener('transitionend', onEnd)
+    setTimeout(() => {
+      if (cardEl.style.transition) {
+        cardEl.style.height = ''
+        cardEl.style.overflow = ''
+        cardEl.style.transition = ''
+      }
+    }, 450)
+  })
+}
+
+watch(selectedModule, (newMod, oldMod) => {
+  if (newMod !== oldMod) {
+    if (desktopCardRef.value) animateCardTransition(desktopCardRef.value)
+    if (mobileCardRef.value) animateCardTransition(mobileCardRef.value)
+  }
+  if (newMod === 'control') {
     nextTick(() => {
       desktopPresetThumb.syncThumb()
       mobilePresetThumb.syncThumb()
     })
+    setTimeout(() => {
+      desktopPresetThumb.syncThumb()
+      mobilePresetThumb.syncThumb()
+    }, 120)
   }
 })
 
@@ -510,10 +558,10 @@ function onToggleFineTune(enabled) {
 
     <!-- 单一模块大卡片：所有设置项收纳于一张大卡内，按需用虚线分割 -->
     <main class="pc-content-body">
-      <Transition name="tab-fade" mode="out-in">
-        <div class="pc-card pc-module-big-card" :key="selectedModule">
+      <div class="pc-card pc-module-big-card" ref="desktopCardRef">
+        <Transition name="pc-module-swap">
           <!-- 模块 1: 控制中心 -->
-          <div v-if="selectedModule === 'control'" class="pc-module-section-group">
+          <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
             <!-- 区域 1：默认布局 -->
             <div class="pc-section">
               <div class="pc-card-header">
@@ -626,7 +674,7 @@ function onToggleFineTune(enabled) {
           </div>
 
           <!-- 模块 2: 灵动岛 -->
-          <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
+          <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
             <!-- 区域 1：系统应用 -->
             <div class="pc-section">
               <div class="pc-card-header">
@@ -824,7 +872,7 @@ function onToggleFineTune(enabled) {
           </div>
 
           <!-- 模块 3: 礼拜模式 -->
-          <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
+          <div v-else-if="selectedModule === 'muslim'" key="muslim" class="pc-module-section-group is-muslim">
             <!-- 区域 1：智慧建议模式 -->
             <div class="pc-section">
               <div class="pc-card-header">
@@ -890,8 +938,8 @@ function onToggleFineTune(enabled) {
               </div>
             </div>
           </div>
-        </div>
-      </Transition>
+        </Transition>
+      </div>
     </main>
   </aside>
 
@@ -1031,10 +1079,10 @@ function onToggleFineTune(enabled) {
 
             <!-- 单一模块大卡片 -->
             <main class="pc-content-body">
-              <Transition name="tab-fade" mode="out-in">
-                <div class="pc-card pc-module-big-card" :key="'mob-' + selectedModule">
+              <div class="pc-card pc-module-big-card" ref="mobileCardRef">
+                <Transition name="pc-module-swap">
                   <!-- 模块 1: 控制中心 -->
-                  <div v-if="selectedModule === 'control'" class="pc-module-section-group">
+                  <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
                     <!-- 区域 1：默认布局 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
@@ -1147,7 +1195,7 @@ function onToggleFineTune(enabled) {
                   </div>
 
                   <!-- 模块 2: 灵动岛 -->
-                  <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
+                  <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
                     <!-- 区域 1：系统应用 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
@@ -1345,7 +1393,7 @@ function onToggleFineTune(enabled) {
                   </div>
 
                   <!-- 模块 3: 礼拜模式 -->
-                  <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
+                  <div v-else-if="selectedModule === 'muslim'" key="muslim" class="pc-module-section-group is-muslim">
                     <!-- 区域 1：智慧建议模式 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
@@ -1411,8 +1459,8 @@ function onToggleFineTune(enabled) {
                       </div>
                     </div>
                   </div>
-                </div>
-              </Transition>
+                </Transition>
+              </div>
             </main>
           </div>
         </Transition>
@@ -1614,12 +1662,17 @@ function onToggleFineTune(enabled) {
 }
 
 .pc-module-big-card {
+  position: relative;
   padding: 12px 13px;
+  box-sizing: border-box;
+  will-change: height;
 }
 
 .pc-module-section-group {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pc-section {
@@ -2111,20 +2164,56 @@ function onToggleFineTune(enabled) {
   color: #ffffff;
 }
 
-/* ================= 切换过渡动画 ================= */
-.tab-fade-enter-active,
-.tab-fade-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+/* ================= 模块切换卡片内部过渡与无缝展开 ================= */
+.pc-module-swap-enter-active {
+  transition: opacity 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.tab-fade-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
+.pc-module-swap-leave-active {
+  position: absolute;
+  top: 12px;
+  left: 13px;
+  right: 13px;
+  transition: opacity 0.18s cubic-bezier(0.4, 0, 1, 1), transform 0.18s cubic-bezier(0.4, 0, 1, 1);
+  pointer-events: none;
 }
 
-.tab-fade-leave-to {
+.pc-module-swap-enter-from {
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(14px);
+}
+
+.pc-module-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 控制中心列表内部内容平滑移动与无缝展开 */
+.pc-module-section-group.is-control .pc-section:nth-of-type(1) {
+  animation: pc-section-unfold 0.34s cubic-bezier(0.22, 1, 0.36, 1) 0.02s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(2) {
+  animation: pc-section-unfold 0.36s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(3) {
+  animation: pc-section-unfold 0.38s cubic-bezier(0.22, 1, 0.36, 1) 0.10s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(4) {
+  animation: pc-section-unfold 0.40s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(5) {
+  animation: pc-section-unfold 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+}
+
+@keyframes pc-section-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 弹窗背景淡入淡出 */

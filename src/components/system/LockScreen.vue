@@ -401,8 +401,8 @@ function onDeleteCard(item) {
   swipeOffsets.value = next
 }
 
-function onJumpSettings() {
-  notifications.setTargetView('notifications', 'dynamicBar')
+function onJumpSettings(itemKey = null) {
+  notifications.setTargetView('notifications', 'dynamicBar', itemKey)
   system.unlock()
   system.openApp('settings')
   swipeOffsets.value = {}
@@ -710,7 +710,7 @@ function notifStyle(i) {
               <button
                 class="ls-action-btn ls-btn-settings"
                 :style="getActionBtnStyle(act.id, 'settings')"
-                @click.stop="onJumpSettings"
+                @click.stop="onJumpSettings(act.type || act.id)"
                 :title="i18n.t('islandSettings')"
               >
                 <LIcon name="headerSettings" :size="20" />
@@ -903,7 +903,7 @@ function notifStyle(i) {
             <button
               class="ls-action-btn ls-btn-settings"
               :style="getActionBtnStyle(item.id, 'settings')"
-              @click.stop="onJumpSettings"
+              @click.stop="onJumpSettings(item.activity?.type || item.activity?.id || item.appId || item.id)"
               :title="i18n.t('islandSettings')"
             >
               <LIcon name="headerSettings" :size="20" />

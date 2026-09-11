@@ -294,8 +294,8 @@ function getActionBtnStyle(id, type) {
   }
 }
 
-function onJumpSettings() {
-  notifications.setTargetView('notifications', 'dynamicBar')
+function onJumpSettings(itemKey = null) {
+  notifications.setTargetView('notifications', 'dynamicBar', itemKey)
   system.requestCloseOverlay('notificationCenter')
   system.openApp('settings')
   swipeOffsets.value = {}
@@ -513,7 +513,7 @@ watch(expandedId, async () => {
               <button
                 class="nc-action-btn nc-btn-settings"
                 :style="getActionBtnStyle(act.id, 'settings')"
-                @click.stop="onJumpSettings"
+                @click.stop="onJumpSettings(act.type || act.id)"
                 :title="i18n.t('islandSettings')"
               >
                 <LIcon name="headerSettings" :size="20" />
@@ -692,7 +692,7 @@ watch(expandedId, async () => {
             <button
               class="nc-action-btn nc-btn-settings"
               :style="getActionBtnStyle('media', 'settings')"
-              @click.stop="onJumpSettings"
+              @click.stop="onJumpSettings('media')"
               :title="i18n.t('islandSettings')"
             >
               <LIcon name="headerSettings" :size="20" />
@@ -741,7 +741,7 @@ watch(expandedId, async () => {
               <button
                 class="nc-action-btn nc-btn-settings"
                 :style="getActionBtnStyle(n.id, 'settings')"
-                @click.stop="onJumpSettings"
+                @click.stop="onJumpSettings(n.appId || n.id)"
                 :title="i18n.t('islandSettings')"
               >
                 <LIcon name="headerSettings" :size="20" />
