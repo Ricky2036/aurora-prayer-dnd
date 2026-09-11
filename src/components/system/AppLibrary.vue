@@ -9,6 +9,7 @@ import SearchBar from '../ui/SearchBar.vue'
 import { clamp } from '../../utils/math'
 
 import { useI18nStore } from '../../stores/i18nStore'
+import { useHomeStore } from '../../stores/homeStore'
 
 /**
  * App 资源库：搜索实时过滤 + 分类网格。
@@ -17,6 +18,7 @@ import { useI18nStore } from '../../stores/i18nStore'
  */
 const system = useSystemStore()
 const i18n = useI18nStore()
+const home = useHomeStore()
 
 const overlay = computed(() => system.overlays.appLibrary)
 const visible = computed(() => overlay.value.status !== 'closed')
@@ -29,9 +31,9 @@ const blurStyle = computed(() => ({ opacity: clamp(overlay.value.progress * 1.2,
 /* 分类分组 */
 const CATEGORIES = [
   { key: 'social', ids: ['phone', 'messages'] },
-  { key: 'productivity', ids: ['settings', 'calendar', 'clock'] },
-  { key: 'creativity', ids: ['photos', 'camera'] },
-  { key: 'utilities', ids: ['safari'] }
+  { key: 'productivity', ids: ['settings', 'calendar', 'clock', 'notes', 'files', 'keynote'] },
+  { key: 'creativity', ids: ['photos', 'camera', 'voicememos', 'theme'] },
+  { key: 'utilities', ids: ['safari', 'weather', 'fitness', 'calculator', 'games', 'tips', 'compass'] }
 ]
 
 const query = ref('')
@@ -41,13 +43,13 @@ const filteredCategories = computed(() => {
   if (!q) {
     return CATEGORIES.map((c) => ({
       name: i18n.categoryName(c.key),
-      apps: c.ids.map(getAppById)
+      apps: c.ids.filter(home.appInstalled).map(getAppById)
     }))
   }
-  const matched = APPS.filter((a) => {
+  const matched = APPS.filter((a) => home.appInstalled(a.id) && (() => {
     const locName = i18n.appName(a.id)?.toLowerCase() || ''
     return a.name.toLowerCase().includes(q) || locName.includes(q) || a.id.toLowerCase().includes(q)
-  })
+  })())
   return matched.length ? [{ name: i18n.categoryName('searchResults'), apps: matched }] : []
 })
 
