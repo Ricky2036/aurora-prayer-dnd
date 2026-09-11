@@ -122,9 +122,11 @@ export const useSystemStore = defineStore('system', {
       this.switcherDwell = false
     },
 
-    /** 手势跟手进度：0 = 未进入，1 = 完全进入 */
+    /** 手势跟手进度：0 = 未进入，1 = 完全进入。
+     *  上限放到 1.35：拖到最终大小之后还可以继续过拉（卡片继续缩小变透明），
+     *  松手弹簧回到 1（Ricky 2026-09-11 四轮要求）。 */
     setSwitcherProgress(p) {
-      this.switcherProgress = Math.max(0, Math.min(1, p))
+      this.switcherProgress = Math.max(0, Math.min(1.35, p))
     },
 
     /** 切换器里上滑移除某个应用卡片 */

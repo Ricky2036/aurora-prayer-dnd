@@ -78,7 +78,10 @@ const gesture = useSwipeGesture(rootRef, {
   },
   onProgress(p) {
     const switcherCandidate =
-      system.recentApps.length > 0 && system.baseLayer !== 'lock' && !system.anyOverlayOpen()
+      system.recentApps.length > 0 &&
+      system.baseLayer !== 'lock' &&
+      !system.anyOverlayOpen() &&
+      !system.appSwitcherOpen // 切换器已打开时不再驱动跟手进度（否则会在堆叠上再叠跟手卡）
     if (switcherCandidate) {
       // 跟手缩放：进度全程直写（AppSwitcher 的跟手卡据此从全屏连续缩到卡位）
       system.setSwitcherProgress(p)
