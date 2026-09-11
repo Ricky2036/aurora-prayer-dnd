@@ -125,21 +125,22 @@ watch(
   { immediate: true }
 )
 
-/* ---- 前卡槽位：随焦点变化（参考两张参考图） ----
-        焦点 0（列表首）→ 左缘 3.5%，右邻露出 ~16%（image3）；
-        焦点 ≥1（浏览）  → 左缘 16%，左侧新卡露出 + 右侧后卡堆叠（image2）。 */
-const frontX = computed(() => screenW.value * (0.035 + Math.min(Math.max(focus.value, 0), 1) * PILE_FRAC))
+/* ---- 前卡槽位（2026-09-11 四轮，Ricky 纠正：当前卡在最右侧） ----
+        焦点 0（列表首）→ 当前/最近卡左缘 31%（右缘 95%，最右侧）；
+        焦点 ≥1（浏览）  → 前卡左缘 23.5%，左右各留 ~12.5% 露出（对称）。 */
+const frontX = computed(() => screenW.value * (0.31 - Math.min(Math.max(focus.value, 0), 1) * 0.075))
 
-/* ---- 卡片位姿：o = i - focus（o<0 = 比焦点更新，向左滑出只留露出；
-        o≥0 = 焦点及更早，向右后方逐层堆叠）。
-        后卡每层右移 12.5% 屏宽、亮度 ×0.78 递减，尺寸不变。 ---- */
+/* ---- 卡片位姿：o = i - focus。
+        o≥0（比焦点更早）：向左堆叠，每层左移 12.5% 屏宽、亮度递减；
+        o<0（比焦点更新）：向右滑出，只留 ~12.5% 露出。
+        尺寸不变，差异在亮度与 z。 ---- */
 function pose(i) {
   const o = i - focus.value
   const ao = Math.abs(o)
   const x =
     o >= 0
-      ? frontX.value + o * screenW.value * PILE_FRAC // 后卡向右堆叠
-      : frontX.value + o * screenW.value * (0.64 - PILE_FRAC) // 新卡向左滑出，只留 PILE 露出
+      ? frontX.value - o * screenW.value * PILE_FRAC // 后卡向左堆叠
+      : frontX.value - o * screenW.value * (0.64 - PILE_FRAC) // 新卡向右滑出留露出
   const scale = 1
   const bright = 1 - 0.22 * Math.min(ao, 1.5)
   return { x, scale, bright, z: 100 - Math.round(ao * 10), o }
@@ -172,7 +173,7 @@ function stackStyle(i) {
   let opacity = 1
   let delay = '0ms'
   if (i === frontIndex.value && hasFollow.value) {
-    opacity = system.switcherProgress >= 0.999 ? 1 : 0
+    opacity = settledOne.value ? 1 : 0
   } else if (!neighborsIn.value) {
     opacity = 0
     if (homePath.value) y += screenH.value * 0.3
@@ -192,32 +193,41 @@ function stackStyle(i) {
   }
 }
 
-/* ---- 跟手缩放：switcherProgress 0→1 时，前台应用卡从全屏连续收缩到卡位 ---- */
+/* ---- 跟手缩放（2026-09-11 四轮，Ricky 纠正）：
+        ① 锚点是【屏幕中心】——缩放围绕中心进行，不是左上角；
+        ② 进度可过拉到 1.35：到最终大小后继续拖，卡片继续缩小并变透明，
+           松手弹簧回到 1（最终大小）。
+        进度 1 时恰好落到前卡槽位（与堆叠卡同位姿，无缝交接）。 ---- */
+const settledOne = computed(
+  () => openP.value >= 0.999 && system.switcherProgress >= 0.999 && system.switcherProgress <= 1.001
+)
 const followStyle = computed(() => {
   const p = system.switcherProgress
-  if (p <= 0 || p >= 1) return null
+  if (p <= 0 || settledOne.value) return null
   const idx = frontIndex.value
   const slot = pose(idx)
-  const x = slot.x * p
-  const y = cardY.value * p
-  const w = screenW.value + (cardW.value - screenW.value) * p
-  const h = screenH.value + (cardH.value - screenH.value) * p
+  // 槽位中心（p=1 时卡位中心）；p=0 时屏幕中心，随 p 连续过渡
+  const slotCx = slot.x + cardW.value / 2
+  const slotCy = cardY.value + cardH.value / 2
+  const cx = screenW.value / 2 + (slotCx - screenW.value / 2) * Math.min(1, p)
+  const cy = screenH.value / 2 + (slotCy - screenH.value / 2) * Math.min(1, p)
+  const s = 1 + (previewScale.value - 1) * p // p=1 → 0.64；过拉继续变小
+  const over = Math.max(0, p - 1)
+  const opacity = 1 - Math.min(1, over / 0.35) // 过拉变透明，1.35 时全透明
   return {
-    width: w + 'px',
-    height: h + 'px',
-    transform: `translate3d(${x}px, ${y}px, 0) scale(${1 - (1 - slot.scale) * p})`,
-    borderRadius: RADIUS * p + 'px',
+    width: screenW.value + 'px',
+    height: screenH.value + 'px',
+    transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(${s})`,
+    borderRadius: (RADIUS * Math.min(1, p)) / Math.max(s, 0.01) + 'px', // 缩放空间补偿，视觉恒为 24*p
+    opacity,
     zIndex: 300
   }
 })
 
-/* 预览内容缩放：全屏时 scale=1（跟手卡），到卡位后 = 卡宽/屏宽（顶对齐裁底） */
+/* 预览内容缩放：跟手卡的外层 transform 已经负责缩放，内容恒为 1；
+   堆叠卡 = 卡宽/屏宽（与屏幕同比例缩放，零裁切） */
 function contentScale(isFollow) {
-  if (isFollow) {
-    const p = system.switcherProgress
-    return (screenW.value + (cardW.value - screenW.value) * p) / screenW.value
-  }
-  return previewScale.value
+  return isFollow ? 1 : previewScale.value
 }
 
 /* ---- 前卡标题（图标 + 名称，跟焦点走） ---- */

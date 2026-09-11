@@ -96,8 +96,7 @@ const firstCardText = await page.locator('.switcher-card:not(.is-follow)').first
 check('卡片预览有内容（非空白）', firstCardText.trim().length > 0, firstCardText.slice(0, 30))
 
 // ---- 横滑浏览（快滑切到下一张）----
-// 小幅度拖拽会按 iOS 行为吸附回原位，所以要用快速甩动（大速度 → 跨卡）。
-// 测量第 1 张卡（当前前卡）：快滑后它应该向左滑出（新槽位在它右边）
+// 布局：当前/最近卡在最右侧。快滑到更早的卡后，原前卡向右滑出（让出前卡槽位）。
 const beforeX = (await page.locator('.switcher-card:not(.is-follow)').first().boundingBox()).x
 await page.mouse.move(215, 500)
 await page.mouse.down()
@@ -105,7 +104,7 @@ await page.mouse.move(60, 500, { steps: 3 })
 await page.mouse.up()
 await page.waitForTimeout(800)
 const afterX = (await page.locator('.switcher-card:not(.is-follow)').first().boundingBox()).x
-check('快滑后卡片发生位移', Math.abs(afterX - beforeX) > 30, `Δx=${(afterX - beforeX).toFixed(1)}`)
+check('快滑后原前卡向右滑出', afterX > beforeX + 30, `Δx=${(afterX - beforeX).toFixed(1)}`)
 
 // ---- 点卡片恢复（快滑后居中的是第 2 张卡 = clock）----
 await page.locator('.switcher-card:not(.is-follow)').nth(1).click()
