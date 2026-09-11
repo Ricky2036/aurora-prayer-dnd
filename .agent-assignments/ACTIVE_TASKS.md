@@ -47,6 +47,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Unify Live Activity interactions across LockScreen, NotificationCenter, and DynamicIsland (swipe delete & settings jump, align alarm icon) | `antigravity/lane` | `src/components/system/DynamicIsland.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `tests/alarmDynamicIsland.test.js` | `7aae047` | `ac4b1b0` |
 | Merged | Antigravity | LockScreen Live Activity screen-edge clipping and DynamicIsland expanded swipe without black background | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/DynamicIsland.vue`; `tests/alarmDynamicIsland.test.js` | `9e1c4d2` | `22fbb21` |
 | Merged | Antigravity | Restore LockScreen default stacked notifications and sink Live Activity cards when collapsed | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/alarmDynamicIsland.test.js` | `48014f5` | `cf30c87` |
+| Merged | Antigravity | Add recorder notification settings item to top of notification settings list | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/ui/notifIcons.js`; `src/stores/i18nStore.js`; `tests/alarmDynamicIsland.test.js` | `a7f5798` | `cd7bdc7` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
