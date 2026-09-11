@@ -19,9 +19,9 @@ const clockStore = useClockStore()
 const prayerStore = usePrayerStore()
 const { activeActivities, isMediaActive } = useActiveActivities()
 
-/** 当正在录音且不在录音应用内（灵动岛已激活显示）时，或者锁屏层时，隐藏状态栏原始时间 */
+/** 锁屏层时隐藏状态栏时间（锁屏有居中大时钟）；在桌面或应用内始终显示状态栏时钟，不受录音等灵动岛活动影响 */
 const hideTime = computed(() => {
-  return system.baseLayer === 'lock' || (recorder.isRecording && system.activeAppId !== 'voicememos')
+  return system.baseLayer === 'lock'
 })
 
 /** 判断是否有灵动岛处于活跃展示状态 */

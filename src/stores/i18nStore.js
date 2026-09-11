@@ -262,9 +262,11 @@ export const MESSAGES = {
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: '微信', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
       telegram: 'Telegram', youtube: 'YouTube', weather: '天气预警', system: '系统更新',
-      linkedin: 'LinkedIn', alipay: '支付宝'
+      linkedin: 'LinkedIn', alipay: '支付宝', recorder: '录音', voicememos: '录音'
     },
     demoNotifBodies: {
+      recorder: '录音已就绪，可在后台实时收音。',
+      voicememos: '录音已就绪，可在后台实时收音。',
       whatsapp: '周末有空聚聚吗？想带你去那家新餐厅。',
       facebook: '你关注的"周末车友会"将于明天下午举行。',
       tiktok: '@李四 刚刚发布了新视频，快来看看吧。',
@@ -639,9 +641,11 @@ export const MESSAGES = {
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: 'WeChat', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
       telegram: 'Telegram', youtube: 'YouTube', weather: 'Weather Alert', system: 'System Update',
-      linkedin: 'LinkedIn', alipay: 'Alipay'
+      linkedin: 'LinkedIn', alipay: 'Alipay', recorder: 'Voice Memos', voicememos: 'Voice Memos'
     },
     demoNotifBodies: {
+      recorder: 'Voice Memos is ready for background recording.',
+      voicememos: 'Voice Memos is ready for background recording.',
       whatsapp: 'Free this weekend? Want to take you to that new restaurant.',
       facebook: 'The "Weekend Car Club" you follow starts tomorrow afternoon.',
       tiktok: '@Li Si just posted a new video, come and check it out.',
@@ -1017,9 +1021,11 @@ export const MESSAGES = {
       gmail: 'Gmail', amazon: 'Amazon', snapchat: 'Snapchat', uber: 'Uber', google: 'Google',
       pinterest: 'Pinterest', wechat: 'WeChat', instagram: 'Instagram', x: 'X', netflix: 'Netflix',
       telegram: 'Telegram', youtube: 'YouTube', weather: 'আবহাওয়া সতর্কতা', system: 'সিস্টেম আপডেট',
-      linkedin: 'LinkedIn', alipay: 'Alipay'
+      linkedin: 'LinkedIn', alipay: 'Alipay', recorder: 'ভয়েস মেমো', voicememos: 'ভয়েস মেমো'
     },
     demoNotifBodies: {
+      recorder: 'ব্যাকগ্রাউন্ড রেকর্ডিংয়ের জন্য প্রস্তুত।',
+      voicememos: 'ভয়েস মেমো প্রস্তুত।',
       whatsapp: 'সপ্তাহান্তে ফ্রি আছো? সেই নতুন রেস্তোরাঁয় নিয়ে যাব।',
       facebook: 'তুমি ফলো করা "উইকেন্ড কার ক্লাব" আগামীকাল বিকেলে অনুষ্ঠিত হবে।',
       tiktok: '@লি সি এইমাত্র নতুন ভিডিও পোস্ট করেছে, দেখে নাও।',

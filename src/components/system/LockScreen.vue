@@ -81,7 +81,7 @@ onBeforeUnmount(() => {
   if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
 })
 
-const BASE_Y = computed(() => screenHeight.value - 254)
+const BASE_Y = computed(() => screenHeight.value - 224)
 const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
@@ -95,7 +95,7 @@ const TOP_GAP = 16
 const CLOCK_MAX_HEIGHT = 220
 const CLOCK_MIN_HEIGHT = 110
 const SAFE_GAP = TOP_GAP
-const LOCK_STACK_BOTTOM_INSET = 140
+const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
 const LOCK_CARD_BASE_ALPHA = 0.7
@@ -103,7 +103,7 @@ const LOCK_STACK_FRONT_ALPHA = 0.98
 const LOCK_STACK_BACK_ALPHA = 0.54
 const LOCK_STACK_DEPTH_ALPHA = 0.4
 const LOCK_STACK_ALPHA_OVERLAP = 48
-const NATIVE_EXPAND_OFFSET = 20
+const NATIVE_EXPAND_OFFSET = 0
 const activityBottomY = computed(() => control.mediaActive ? PLAYER_START_Y.value : BASE_Y.value)
 const standaloneActivityCapacity = computed(() => {
   const available = activityBottomY.value - (CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP + 4)
@@ -116,15 +116,22 @@ const totalActivitiesHeight = computed(() => {
   return count > 0 ? count * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP) : 0
 })
 
-// 播放器在折叠态的 Y 坐标
-const PLAYER_COLLAPSED_Y = computed(() => {
-  return screenHeight.value - PLAYER_HEIGHT - 105
+// 折叠态最底端可用基准线：若有通知胶囊则贴紧通知胶囊上方（留12px间距），若无通知则贴紧底部快捷按钮上方
+const COLLAPSED_BOTTOM_Y = computed(() => {
+  return screenHeight.value - (lockItems.value.length > 0 ? 104 : 84)
 })
 
-// 活动卡片队列在折叠态的起始 Y 坐标：位于播放器卡片正上方；若活动较多则自 clipTop 下方自然排布
+// 播放器在折叠态的 Y 坐标：紧贴在折叠底线正上方
+const PLAYER_COLLAPSED_Y = computed(() => {
+  return COLLAPSED_BOTTOM_Y.value - PLAYER_HEIGHT
+})
+
+// 活动卡片队列在折叠态的起始 Y 坐标：下沉至最底端；若播放器开启则位于播放器正上方，否则直接沉至折叠底线正上方
 function getActivityCollapsedY(index) {
   const totalH = totalActivitiesHeight.value
-  const bottomY = control.mediaActive ? PLAYER_COLLAPSED_Y.value : BASE_Y.value
+  const bottomY = control.mediaActive
+    ? PLAYER_COLLAPSED_Y.value - PLAYER_NOTIF_GAP
+    : COLLAPSED_BOTTOM_Y.value
   const idealStart = bottomY - totalH
   const minStart = clipTop.value + 4
   const startY = Math.max(minStart, idealStart)
@@ -167,20 +174,13 @@ const scrollSpacerStyle = computed(() => ({ height: `${NATIVE_EXPAND_OFFSET + MA
 
 /* ---------- 原生滚动状态：与通知中心一样由浏览器处理触摸惯性 ---------- */
 const scrollY = ref(0)
-const isCollapsed = ref(true)
+const isCollapsed = ref(false)
 const isScrolling = ref(false)
 let scrollIdleTimer = null
-let lastNativeScrollY = 0
 
 function handleListScroll(e) {
   const nativeY = e.currentTarget.scrollTop
-  scrollY.value = Math.max(0, nativeY - NATIVE_EXPAND_OFFSET)
-  if (nativeY >= 1) {
-    isCollapsed.value = false
-  } else if (lastNativeScrollY >= 1) {
-    isCollapsed.value = true
-  }
-  lastNativeScrollY = nativeY
+  scrollY.value = Math.max(0, nativeY)
   isScrolling.value = true
   if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
   scrollIdleTimer = setTimeout(() => {
@@ -295,6 +295,13 @@ function onCardPointerUp(e, id) {
       delete next[id]
       swipeOffsets.value = next
     }
+  } else if (!isCollapsed.value) {
+    // 纵向轻微下滑收起通知手势
+    const dy = e.clientY - cardPointerStartY
+    const dx = e.clientX - cardPointerStartX
+    if (dy > 22 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+      collapseNotifications()
+    }
   }
   try {
     cardPointerTarget?.releasePointerCapture(cardPointerId)
@@ -304,6 +311,102 @@ function onCardPointerUp(e, id) {
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
+}
+
+/* ---------- 下滑收起通知与手势处理 ---------- */
+let lastStateChangeTime = 0
+const STATE_TRANSITION_MS = 360
+const isStateTransitioning = ref(false)
+let stateTransitionTimer = null
+
+function triggerStateTransition() {
+  isStateTransitioning.value = true
+  if (stateTransitionTimer) clearTimeout(stateTransitionTimer)
+  stateTransitionTimer = setTimeout(() => {
+    isStateTransitioning.value = false
+    stateTransitionTimer = null
+  }, STATE_TRANSITION_MS)
+}
+
+function collapseNotifications() {
+  const now = Date.now()
+  if (isCollapsed.value || now - lastStateChangeTime < STATE_TRANSITION_MS) return
+  lastStateChangeTime = now
+  isCollapsed.value = true
+  triggerStateTransition()
+  scrollY.value = 0
+  if (listRef.value) {
+    listRef.value.scrollTop = 0
+  }
+}
+
+let clipPointerStartY = 0
+let clipPointerStartX = 0
+let clipPointerActive = false
+
+function onClipPointerDown(e) {
+  if (isCollapsed.value) return
+  clipPointerStartY = e.clientY
+  clipPointerStartX = e.clientX
+  clipPointerActive = true
+}
+
+function onClipPointerMove(e) {
+  if (!clipPointerActive || isCollapsed.value || isSwipingCard) return
+  const dy = e.clientY - clipPointerStartY
+  const dx = e.clientX - clipPointerStartX
+  if (dy > 28 && Math.abs(dy) > Math.abs(dx) * 1.5 && scrollY.value <= 0) {
+    collapseNotifications()
+    clipPointerActive = false
+  }
+}
+
+function onClipPointerUp(e) {
+  if (clipPointerActive && !isCollapsed.value && !isSwipingCard) {
+    const dy = e.clientY - clipPointerStartY
+    const dx = e.clientX - clipPointerStartX
+    if (dy > 22 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+      collapseNotifications()
+    }
+  }
+  clipPointerActive = false
+}
+
+function handleClipWheel(e) {
+  const now = Date.now()
+  if (now - lastStateChangeTime < STATE_TRANSITION_MS) return
+
+  if (isCollapsed.value) {
+    // 折叠状态下：必须向上滚轮/滑动手势（deltaY > 15）才反向展开，决不可用 deltaY < 0 同向触发展开
+    if (e.deltaY > 15) {
+      handleExpand()
+    }
+    return
+  }
+  // 展开状态且位于列表顶部：向下滚轮/滑动手势收起（deltaY < -12）
+  if (scrollY.value <= 0 && e.deltaY < -12) {
+    collapseNotifications()
+  }
+}
+
+let clipTouchStartY = 0
+let clipTouchStartX = 0
+function onClipTouchStart(e) {
+  clipTouchStartY = e.touches[0]?.clientY || 0
+  clipTouchStartX = e.touches[0]?.clientX || 0
+}
+function onClipTouchEnd(e) {
+  const now = Date.now()
+  if (now - lastStateChangeTime < STATE_TRANSITION_MS) return
+  const endY = e.changedTouches[0]?.clientY || 0
+  const endX = e.changedTouches[0]?.clientX || 0
+  const dy = endY - clipTouchStartY
+  const dx = endX - clipTouchStartX
+  if (!isCollapsed.value && dy > 24 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+    collapseNotifications()
+  } else if (isCollapsed.value && dy < -24) {
+    handleExpand()
+  }
 }
 
 /** 滑动操作按钮弹性物理与位移动画计算（不缩放图标，通过动态拉伸设置与删除按钮间距体现弹性） */
@@ -401,8 +504,15 @@ function onDeleteCard(item) {
   swipeOffsets.value = next
 }
 
-function onJumpSettings() {
-  notifications.setTargetView('notifications', 'dynamicBar')
+function onJumpAppNotificationSettings(appId) {
+  notifications.setAppTarget(appId)
+  system.unlock()
+  system.openApp('settings')
+  swipeOffsets.value = {}
+}
+
+function onJumpSettings(itemKey = null) {
+  notifications.setTargetView('notifications', 'dynamicBar', itemKey)
   system.unlock()
   system.openApp('settings')
   swipeOffsets.value = {}
@@ -467,10 +577,10 @@ function handleExpand() {
   if (isCollapsed.value) {
     isCollapsed.value = false
     scrollY.value = 0
-    listRef.value?.scrollTo({ top: NATIVE_EXPAND_OFFSET, behavior: 'smooth' })
+    listRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
   } else if (scrollY.value < EXPAND_SCROLL_Y.value) {
     listRef.value?.scrollTo({
-      top: NATIVE_EXPAND_OFFSET + EXPAND_SCROLL_Y.value,
+      top: EXPAND_SCROLL_Y.value,
       behavior: 'smooth'
     })
   }
@@ -567,10 +677,6 @@ const expandedNotificationBaseY = computed(() => {
 })
 const currentPlayerY = computed(() => {
   if (isCollapsed.value) {
-    if (standaloneActivities.value.length > 0) {
-      const activitiesBottom = getActivityCollapsedY(0) + totalActivitiesHeight.value
-      return Math.max(PLAYER_COLLAPSED_Y.value, activitiesBottom)
-    }
     return PLAYER_COLLAPSED_Y.value
   }
   return expandedPlayerBaseY.value - scrollOffset.value
@@ -583,7 +689,7 @@ function activityCardStyle(index) {
     zIndex: 190 - index
   }
 }
-const animating = computed(() => (!isScrolling.value && !isSwipingCard) || isCollapsed.value)
+const animating = computed(() => isStateTransitioning.value || (!isScrolling.value && !isSwipingCard) || isCollapsed.value)
 const transitionStyle = computed(() =>
   animating.value
     ? 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease-out, clip-path 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)'
@@ -592,8 +698,8 @@ const transitionStyle = computed(() =>
 const clipStyle = computed(() => {
   const sideInset = isCollapsed.value ? -50 : 0
   return {
-    clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px round 22px 22px 0px 0px)`,
-    WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px round 22px 22px 0px 0px)`,
+    clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
+    WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
     transition: transitionStyle.value,
     pointerEvents: isCollapsed.value ? 'none' : 'auto'
   }
@@ -615,7 +721,8 @@ function getLockNotificationGeometry(i) {
     cardBottom: naturalY + LOCK_CARD_HEIGHT,
     viewportHeight: screenHeight.value,
     bottomInset: LOCK_STACK_BOTTOM_INSET,
-    maxVisualOffset: LOCK_STACK_MAX_VISUAL_OFFSET
+    maxVisualOffset: 18,
+    visualOffsetScale: 0.2
   })
   const visualY = naturalY + layout.translateY
   const bottomThreshold = screenHeight.value - LOCK_STACK_BOTTOM_INSET
@@ -638,41 +745,95 @@ function getLockCardOverlap(front, back) {
   return Math.min(1, overlap / LOCK_STACK_ALPHA_OVERLAP)
 }
 
-function notifStyle(i) {
-  const geometry = getLockNotificationGeometry(i)
-  const next = i < lockItems.value.length - 1 ? getLockNotificationGeometry(i + 1) : null
-  const coveringProgress = getLockCardOverlap(geometry, next)
-  const backgroundAlpha = Math.min(
-    LOCK_STACK_FRONT_ALPHA,
-    Math.max(
-      LOCK_STACK_BACK_ALPHA,
-      LOCK_CARD_BASE_ALPHA
-        + (LOCK_STACK_FRONT_ALPHA - LOCK_CARD_BASE_ALPHA) * coveringProgress
-        - LOCK_STACK_DEPTH_ALPHA * geometry.stackDepthProgress
+const lockNotificationsLayout = computed(() => {
+  const items = lockItems.value
+  const count = items.length
+  if (count === 0) return []
+
+  const geometries = []
+  for (let i = 0; i < count; i++) {
+    geometries.push(getLockNotificationGeometry(i))
+  }
+
+  let maxCoveringBottom = -Infinity
+  const result = []
+
+  for (let i = 0; i < count; i++) {
+    const geo = geometries[i]
+    const next = i < count - 1 ? geometries[i + 1] : null
+    const coveringProgress = getLockCardOverlap(geo, next)
+    const backgroundAlpha = Math.min(
+      LOCK_STACK_FRONT_ALPHA,
+      Math.max(
+        LOCK_STACK_BACK_ALPHA,
+        LOCK_CARD_BASE_ALPHA
+          + (LOCK_STACK_FRONT_ALPHA - LOCK_CARD_BASE_ALPHA) * coveringProgress
+          - LOCK_STACK_DEPTH_ALPHA * geo.stackDepthProgress
+      )
     )
-  )
-  const { naturalY, layout } = geometry
-  let yPos, scale, opacity
-  if (isCollapsed.value) {
-    yPos = BASE_Y.value + 140
-    scale = 0.8
-    opacity = 0
-  } else if (!layout.stacked) {
-    yPos = naturalY
-    scale = 1
-    opacity = 1
-  } else {
-    yPos = naturalY + layout.translateY
-    scale = layout.scale
-    opacity = layout.opacity
+
+    let yPos, scale, opacity
+    if (isCollapsed.value) {
+      yPos = BASE_Y.value + 140
+      scale = 0.8
+      opacity = 0
+    } else if (!geo.layout.stacked) {
+      yPos = geo.naturalY
+      scale = 1
+      opacity = 1
+    } else {
+      yPos = geo.naturalY + geo.layout.translateY
+      scale = geo.layout.scale
+      opacity = geo.layout.opacity
+    }
+
+    // 遮挡检测与完全隐藏处理：
+    // 当卡片被前序可见卡片完全遮挡时（底部未超出前序卡片的最大底部），直接隐藏 (opacity = 0, visibility = hidden)
+    // 杜绝上拉通知时被完全遮挡的卡片提前透出显示
+    const bottomExposure = geo.visualBottom - maxCoveringBottom
+    const isCompletelyCovered = i > 0 && bottomExposure <= 0
+
+    if (isCompletelyCovered && !isCollapsed.value) {
+      opacity = 0
+    } else if (i > 0 && bottomExposure > 0 && bottomExposure < 20 && geo.layout.stacked && !isCollapsed.value) {
+      // 露出过渡：平滑按露出高度比例淡入
+      const emergeProgress = clamp(bottomExposure / 20, 0, 1)
+      opacity = Math.min(opacity, emergeProgress)
+    }
+
+    if (opacity > 0.02 && !isCollapsed.value) {
+      maxCoveringBottom = Math.max(maxCoveringBottom, geo.visualBottom)
+    }
+
+    result.push({
+      yPos,
+      scale,
+      opacity,
+      backgroundAlpha,
+      interactive: opacity > 0 && geo.layout.interactive,
+      isCompletelyCovered
+    })
+  }
+
+  return result
+})
+
+function notifStyle(i) {
+  const itemLayout = lockNotificationsLayout.value[i]
+  if (!itemLayout) {
+    return {
+      opacity: 0,
+      pointerEvents: 'none'
+    }
   }
   return {
-    transform: `translate3d(0, ${yPos}px, 0) scale(${scale})`,
-    opacity,
+    transform: `translate3d(0, ${itemLayout.yPos}px, 0) scale(${itemLayout.scale})`,
+    opacity: itemLayout.opacity,
+    visibility: itemLayout.opacity === 0 ? 'hidden' : 'visible',
     zIndex: 100 - i,
     transition: transitionStyle.value,
-    pointerEvents: opacity === 0 || !layout.interactive ? 'none' : 'auto',
-    '--ls-card-bg-alpha': backgroundAlpha.toFixed(3)
+    pointerEvents: itemLayout.interactive ? 'auto' : 'none',
+    '--ls-card-bg-alpha': itemLayout.backgroundAlpha.toFixed(3)
   }
 }
 </script>
@@ -701,6 +862,13 @@ function notifStyle(i) {
         tabindex="0"
         :style="clipStyle"
         @scroll.passive="handleListScroll"
+        @pointerdown="onClipPointerDown"
+        @pointermove="onClipPointerMove"
+        @pointerup="onClipPointerUp"
+        @pointercancel="clipPointerActive = false"
+        @wheel.passive="handleClipWheel"
+        @touchstart.passive="onClipTouchStart"
+        @touchend.passive="onClipTouchEnd"
       >
         <div class="ls-scroll-stage">
         <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
@@ -714,7 +882,7 @@ function notifStyle(i) {
               <button
                 class="ls-action-btn ls-btn-settings"
                 :style="getActionBtnStyle(act.id, 'settings')"
-                @click.stop="onJumpSettings"
+                @click.stop="onJumpSettings(act.type || act.id)"
                 :title="i18n.t('islandSettings')"
               >
                 <LIcon name="headerSettings" :size="20" />
@@ -755,12 +923,8 @@ function notifStyle(i) {
               <!-- 闹钟类型 -->
               <template v-if="act.type === 'alarm'">
                 <div class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
-                  <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
-                    <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                    <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                    <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
-                    <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                    <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                  <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.alarm" />
                   </svg>
                 </div>
                 <div class="ls-rc-info">
@@ -894,6 +1058,7 @@ function notifStyle(i) {
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard
           v-if="control.mediaActive"
+          class="ls-player-in-lock"
           :style="{ transform: `translateY(${currentPlayerY}px)`, transition: transitionStyle, zIndex: 200 }"
           @click="handleExpand"
         />
@@ -908,17 +1073,44 @@ function notifStyle(i) {
           <!-- 底层滑动操作按钮 -->
           <div class="ls-swipe-actions" :class="{ 'is-active': (swipeOffsets[item.id] || 0) < -2 }">
             <button
+              v-if="item.isActivity"
               class="ls-action-btn ls-btn-settings"
               :style="getActionBtnStyle(item.id, 'settings')"
-              @click.stop="onJumpSettings"
+              @click.stop="onJumpSettings(item.activity?.type || item.activity?.id)"
               :title="i18n.t('islandSettings')"
             >
               <LIcon name="headerSettings" :size="20" />
             </button>
             <button
+              v-else
+              class="ls-action-btn ls-btn-settings"
+              :style="getActionBtnStyle(item.id, 'settings')"
+              @click.stop="onJumpAppNotificationSettings(item.raw?.appId || item.appId || item.id)"
+              :title="i18n.t('notifications')"
+            >
+              <LIcon name="headerSettings" :size="20" />
+            </button>
+
+            <button
+              v-if="item.isActivity"
               class="ls-action-btn ls-btn-delete"
               :style="getActionBtnStyle(item.id, 'delete')"
-              @click.stop="item.isActivity ? onRequestDeleteActivity(item.activity) : onDeleteCard(item)"
+              @click.stop="onRequestDeleteActivity(item.activity)"
+              :title="i18n.t('delete')"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </button>
+            <button
+              v-else
+              class="ls-action-btn ls-btn-delete"
+              :style="getActionBtnStyle(item.id, 'delete')"
+              @click.stop="onDeleteCard(item)"
               :title="i18n.t('delete')"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -950,12 +1142,8 @@ function notifStyle(i) {
           >
             <template v-if="item.isActivity">
               <div v-if="item.activity.type === 'alarm'" class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
-                <svg width="26" height="26" viewBox="0 0 34 34" fill="none">
-                  <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                  <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                  <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
-                  <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                  <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                <svg class="alarm-activity-icon" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+                  <path :d="CLOCK_ICONS.alarm" />
                 </svg>
               </div>
               <div v-else-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
@@ -993,17 +1181,23 @@ function notifStyle(i) {
         <div class="ls-scroll-spacer" :style="scrollSpacerStyle"></div>
       </div>
 
-      <!-- 微缩通知胶囊（折叠态） -->
-      <div v-if="lockItems.length" class="ls-pill ls-interact" :style="pillStyle" @click="handleExpand">
-        <div class="lp-mini">
-          <template v-for="(item, idx) in lockItems.slice(0, 3)" :key="item.id">
-            <div v-if="item.isActivity" class="lp-mini-rec">
-              <span class="rec-dot"></span>
-            </div>
-            <NotificationIcon v-else :type="item.raw.iconType" :size="22" />
-          </template>
-        </div>
-        <span class="lp-count">{{ notifCountLabel }}</span>
+      <!-- 微缩通知胶囊（折叠态）：圆角毛玻璃药丸背景 + 铃铛图标 + “X条通知”文案 -->
+      <div
+        v-if="lockItems.length"
+        class="ls-pill-container"
+        :style="pillStyle"
+      >
+        <button
+          class="ls-glass-pill ls-interact"
+          type="button"
+          :aria-label="notifCountLabel"
+          @click="handleExpand"
+        >
+          <div class="lp-bell-wrap">
+            <LIcon name="bell" :size="16" />
+          </div>
+          <span class="lp-glass-count">{{ notifCountLabel }}</span>
+        </button>
       </div>
 
       <!-- 底部快捷按钮 -->
@@ -1107,13 +1301,13 @@ function notifStyle(i) {
   font-family: -apple-system, "SF Pro Rounded", "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
 }
 
-/* 裁剪容器 */
+/* 裁剪容器：贯通式容器对齐全屏边缘，卡片滑动至屏幕边缘直接被视口平齐裁切 */
 .ls-clip {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
+  left: 0;
+  right: 0;
+  width: 100%;
   bottom: 0;
   overflow-y: auto;
   overflow-x: clip;
@@ -1136,17 +1330,20 @@ function notifStyle(i) {
   pointer-events: none;
 }
 
-/* removed ls-player css */
+.ls-player-in-lock {
+  width: calc(100% - 28px) !important;
+  margin: 0 14px !important;
+}
 
 /* ---- 通知 / 录音卡片包装器与滑动层 ---- */
 .ls-card-wrapper {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 14px;
+  right: 14px;
   height: 90px;
   border-radius: 22px;
-  overflow: hidden;
+  overflow: visible;
   will-change: transform, opacity;
   transform-origin: top center;
 }
@@ -1274,9 +1471,12 @@ function notifStyle(i) {
 .ls-act-icon-wrap.icon-alarm {
   background: transparent;
 }
+.ls-act-icon-wrap.icon-alarm .alarm-activity-icon {
+  fill: #ff9f0a;
+}
 .ls-act-icon-wrap.icon-alarm.is-ringing svg {
   animation: alarmRingWiggle 1.4s ease-in-out infinite;
-  transform-origin: 17px 17px;
+  transform-origin: center;
 }
 @keyframes alarmRingWiggle {
   0%, 100% { transform: rotate(0deg); }
@@ -1454,49 +1654,58 @@ function notifStyle(i) {
   padding-right: 8px;
 }
 
-/* 微缩胶囊里的录音红点 */
-.lp-mini-rec {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(235, 68, 54, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.rec-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ff3b30;
-  animation: recDotBlink 1s infinite alternate;
-}
-@keyframes recDotBlink {
-  0% { opacity: 0.5; transform: scale(0.85); }
-  100% { opacity: 1; transform: scale(1.1); }
-}
-
-/* ---- 微缩通知胶囊 ---- */
-.ls-pill {
+/* 微缩通知胶囊（折叠态）：圆角毛玻璃药丸背景 */
+.ls-pill-container {
   position: absolute;
-  bottom: 46px;
+  bottom: 48px;
   left: 0;
   right: 0;
-  height: 50px;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 120;
+}
+
+.ls-glass-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 16px 0 13px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 9999px;
+  box-shadow: none;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.2s ease;
+}
+
+.ls-glass-pill:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: none;
+}
+
+.lp-bell-wrap {
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  will-change: transform, opacity;
+  color: #ffffff;
+  opacity: 0.95;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
-.lp-mini { display: flex; align-items: center; gap: 6px; }
-.lp-count {
-  color: rgba(255, 255, 255, 0.85);
-  font: 500 13px/1 var(--font-stack);
+
+.lp-glass-count {
+  color: #ffffff;
+  font: 500 13.5px/1 var(--font-stack);
   letter-spacing: 0.3px;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
 }
 
 /* ---- 底部快捷按钮 ---- */

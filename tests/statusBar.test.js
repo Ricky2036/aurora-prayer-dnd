@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { indicatorDefs, orderedIndicators } from '../src/utils/statusBarIndicators.js'
 
 test('status bar indicators priority order conforms to spec', () => {
@@ -30,4 +31,12 @@ test('show function accurately reflects control store states', () => {
   const muteItem = indicatorDefs.find(i => i.key === 'mute')
   assert.equal(muteItem.show({ soundMode: 'ring' }), false)
   assert.equal(muteItem.show({ soundMode: 'mute' }), true)
+})
+
+test('status bar time is preserved on home screen and apps, only hidden on lock screen', () => {
+  const sbPath = new URL('../src/components/phone/StatusBar.vue', import.meta.url)
+  const sbContent = fs.readFileSync(sbPath, 'utf8')
+
+  assert.match(sbContent, /const hideTime = computed\(\(\) => \{\s*return system\.baseLayer === 'lock'\s*\}\)/)
+  assert.doesNotMatch(sbContent, /recorder\.isRecording\s*&&\s*system\.activeAppId\s*!==\s*'voicememos'/)
 })

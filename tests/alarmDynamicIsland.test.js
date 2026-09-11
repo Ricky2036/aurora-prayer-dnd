@@ -187,13 +187,270 @@ test('LockScreen and NotificationCenter use CLOCK_ICONS.snooze without text hack
   assert.ok(!ncContent.includes('<text x="14.8"'), 'NotificationCenter must not use text glyphs')
 })
 
-test('DevConsole uses the vector alarm icon and concise copy without emoji', () => {
+test('LockScreen and NotificationCenter use CLOCK_ICONS.alarm with alarm-activity-icon and no obsolete inline SVG', () => {
+  const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const ncPath = path.resolve(__dirname, '../src/components/system/NotificationCenter.vue')
+  const lsContent = fs.readFileSync(lsPath, 'utf8')
+  const ncContent = fs.readFileSync(ncPath, 'utf8')
+
+  assert.ok(lsContent.includes(':d="CLOCK_ICONS.alarm"'), 'LockScreen must use CLOCK_ICONS.alarm')
+  assert.ok(lsContent.includes('class="alarm-activity-icon"'), 'LockScreen must use alarm-activity-icon class')
+  assert.ok(!lsContent.includes('<circle cx="17" cy="17" r="10" fill="#FF9F0A"'), 'LockScreen must not have obsolete circular alarm SVG')
+
+  assert.ok(ncContent.includes(':d="CLOCK_ICONS.alarm"'), 'NotificationCenter must use CLOCK_ICONS.alarm')
+  assert.ok(ncContent.includes('class="alarm-activity-icon"'), 'NotificationCenter must use alarm-activity-icon class')
+  assert.ok(!ncContent.includes('<circle cx="17" cy="17" r="10" fill="#FF9F0A"'), 'NotificationCenter must not have obsolete circular alarm SVG')
+})
+
+test('DynamicIsland.vue supports mirrored swipe-to-delete, settings jump, and IslandCloseModal', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/DynamicIsland.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.ok(content.includes('island-swipe-actions'), 'Must render island-swipe-actions layer')
+  assert.ok(content.includes('island-btn-settings'), 'Must render settings button')
+  assert.ok(content.includes('island-btn-delete'), 'Must render delete button')
+  assert.ok(content.includes('IslandCloseModal'), 'Must include IslandCloseModal component')
+  assert.ok(content.includes('onJumpSettings'), 'Must provide onJumpSettings method')
+  assert.ok(content.includes('onRequestDeleteActivity'), 'Must provide onRequestDeleteActivity method')
+  assert.ok(content.includes('onCardPointerDown'), 'Must handle pointer down for swipe gesture')
+  assert.ok(content.includes('onCardPointerMove'), 'Must handle pointer move for swipe gesture')
+  assert.ok(content.includes('onCardPointerUp'), 'Must handle pointer up for swipe gesture')
+})
+
+test('DevConsole defaults to island module and provides 5 system app island buttons', () => {
   const compPath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
   const content = fs.readFileSync(compPath, 'utf8')
 
-  assert.match(content, /CLOCK_ICONS\.alarm/, 'Must render the Clock alarm vector icon')
-  assert.match(content, /isAlarmRinging \? '关闭闹钟' : '开启闹钟'/, 'Idle control copy should be concise')
-  assert.doesNotMatch(content, /🔔/, 'Alarm control must not use emoji')
-  assert.doesNotMatch(content, /触发 20:44 闹钟/, 'Alarm control must not expose fixture time copy')
+  assert.match(content, /:\s*'island'/, 'initialModule must fallback to island')
+  assert.match(content, /<option value="island">灵动岛<\/option>/, 'Module option must be 灵动岛')
+  assert.doesNotMatch(content, /<option value="island">灵动岛与闹钟<\/option>/, 'Must not include 灵动岛与闹钟')
+  assert.match(content, /<span class="pc-card-title">系统应用<\/span>/, 'Must have 系统应用 section title')
+  assert.match(content, /CLOCK_ICONS\.alarm/, 'Must render alarm vector icon')
+  assert.match(content, /CLOCK_ICONS\.stopwatch/, 'Must render stopwatch vector icon')
+  assert.match(content, /CLOCK_ICONS\.timer/, 'Must render timer vector icon')
+  assert.match(content, /GLYPHS\.mic/, 'Must render mic vector icon for recorder')
+  assert.match(content, /GLYPHS\.music/, 'Must render music vector icon')
+  assert.match(content, /<span>闹钟<\/span>/, 'Must list 闹钟 button')
+  assert.match(content, /<span>计时器<\/span>/, 'Must list 计时器 button')
+  assert.match(content, /<span>倒计时<\/span>/, 'Must list 倒计时 button')
+  assert.match(content, /<span>录音<\/span>/, 'Must list 录音 button')
+  assert.match(content, /<span>音乐<\/span>/, 'Must list 音乐 button')
+})
+
+test('LockScreen implements screen-edge clipping with full-width container and overflow visible wrapper', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.match(content, /\.ls-clip\s*\{[^}]*width:\s*100%;/s, 'ls-clip must be 100% full width')
+  assert.match(content, /\.ls-clip\s*\{[^}]*overflow-x:\s*clip;/s, 'ls-clip must clip horizontally at screen viewport')
+  assert.match(content, /\.ls-card-wrapper\s*\{[^}]*overflow:\s*visible;/s, 'ls-card-wrapper must have overflow: visible for unhindered sliding')
+  assert.doesNotMatch(content, /round 22px 22px 0px 0px/, 'clipStyle must not restrict horizontal sliding with premature rounded corner inset')
+})
+
+test('DynamicIsland expanded card removes black container background to reveal floating swipe actions over wallpaper', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/DynamicIsland.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.match(content, /\.island-card\.is-expanded\s*\{[^}]*background:\s*transparent;/s, 'island-card.is-expanded must have transparent background')
+  assert.match(content, /\.island-card\.is-expanded\s*\{[^}]*overflow:\s*visible;/s, 'island-card.is-expanded must have overflow: visible')
+  assert.match(content, /\.island-secondary-card\s*\{[^}]*background:\s*transparent;/s, 'island-secondary-card must have transparent background')
+  assert.match(content, /\.island-secondary-card\s*\{[^}]*overflow:\s*visible;/s, 'island-secondary-card must have overflow: visible')
+  assert.match(content, /\.expanded-layer\s*\{[^}]*background:\s*#000000;/s, 'expanded-layer must own the black card surface')
+})
+
+test('LockScreen defaults to stacked notifications and sinks live activity cards when collapsed', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.match(content, /const isCollapsed = ref\(false\)/, 'LockScreen must default to stacked notifications (isCollapsed = false)')
+  assert.match(content, /const NATIVE_EXPAND_OFFSET = 0/, 'NATIVE_EXPAND_OFFSET must be 0')
+  assert.match(content, /const COLLAPSED_BOTTOM_Y = computed/, 'Must define COLLAPSED_BOTTOM_Y for sunken collapsed position')
+  assert.match(content, /COLLAPSED_BOTTOM_Y\.value/, 'getActivityCollapsedY must sink to COLLAPSED_BOTTOM_Y when media is inactive')
+})
+
+test('SettingsNotifications places recorder notification settings item at the top', () => {
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const content = fs.readFileSync(notifSettingsPath, 'utf8')
+
+  assert.match(content, /map\.set\('recorder',\s*\{/, 'Must pin recorder at the top of notificationApps')
+  assert.match(content, /id:\s*'recorder'/, 'Must specify id recorder')
+  assert.match(content, /appId:\s*'recorder'/, 'Must specify appId recorder')
+  assert.match(content, /iconType:\s*'recorder'/, 'Must specify iconType recorder')
+  assert.match(content, /notificationsStore\.islandSettings\.recorder/, 'Must link recorder toggle with notificationsStore islandSettings')
+})
+
+test('notifIcons and i18nStore provide recorder icon and title definitions', () => {
+  const iconsPath = path.resolve(__dirname, '../src/components/ui/notifIcons.js')
+  const iconsContent = fs.readFileSync(iconsPath, 'utf8')
+  assert.match(iconsContent, /recorder:\s*IC_IMG\(recorder\)/, 'notifIcons must define recorder icon')
+  assert.match(iconsContent, /voicememos:\s*IC_IMG\(recorder\)/, 'notifIcons must define voicememos icon')
+
+  const i18nPath = path.resolve(__dirname, '../src/stores/i18nStore.js')
+  const i18nContent = fs.readFileSync(i18nPath, 'utf8')
+  assert.match(i18nContent, /recorder:\s*'录音'/, 'i18nStore zh must define recorder title as 录音')
+  assert.match(i18nContent, /recorder:\s*'Voice Memos'/, 'i18nStore en must define recorder title as Voice Memos')
+})
+
+test('SettingsNotifications links notification master switch and live activity toggle to notificationsStore', () => {
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const content = fs.readFileSync(notifSettingsPath, 'utf8')
+
+  // Master switch delegates to notificationsStore
+  assert.match(content, /function getAppState\(id\) \{\s*return notificationsStore\.isAppNotificationEnabled\(id\)\s*\}/, 'getAppState must check isAppNotificationEnabled')
+
+  // Live activity switch links to notificationsStore islandSettings
+  assert.match(content, /getIslandKeysForApp/, 'Must resolve island keys for application')
+  assert.match(content, /notificationsStore\.islandSettings\[k\] !== false/, 'getAppLiveActivityState must check islandSettings')
+  assert.match(content, /notificationsStore\.setIslandEnabled\(k,\s*next\)/, 'toggleAppLiveActivityState must call setIslandEnabled')
+})
+
+test('DevConsole prayer card uses 礼拜模式 title and provides SVG icons for all 5 prayers', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const content = fs.readFileSync(devConsolePath, 'utf8')
+
+  assert.doesNotMatch(content, /礼拜灵动岛/, 'DevConsole must no longer use 礼拜灵动岛')
+  assert.match(content, /<span class="pc-card-title">礼拜模式<\/span>/, 'Must use 礼拜模式 title')
+
+  // Check dropdown module options
+  assert.doesNotMatch(content, /礼拜与时钟/, 'DevConsole dropdown must no longer contain 礼拜与时钟')
+  assert.match(content, /<option value="muslim">礼拜模式<\/option>/, 'DevConsole dropdown must contain 礼拜模式')
+
+  // Check buttons style unification to pc-sysapp-btn
+  assert.match(content, /class="pc-sysapp-grid"[\s\S]*?class="pc-sysapp-btn"[\s\S]*?p\.id === 'fajr'/, 'Prayer buttons must use pc-sysapp-grid and pc-sysapp-btn')
+
+  // Check 5 prayer SVGs
+  assert.match(content, /p\.id === 'fajr'[\s\S]*?<svg[\s\S]*?<path d="M12 2v6"/, 'Fajr must have sunrise SVG')
+  assert.match(content, /p\.id === 'dhuhr'[\s\S]*?<circle cx="12" cy="12" r="4"/, 'Dhuhr must have midday sun SVG')
+  assert.match(content, /p\.id === 'asr'[\s\S]*?<circle cx="9" cy="9"/, 'Asr must have afternoon slanting sun SVG')
+  assert.match(content, /p\.id === 'maghrib'[\s\S]*?<path d="M12 10v6"/, 'Maghrib must have sunset SVG')
+  assert.match(content, /p\.id === 'isha'|else[\s\S]*?<path d="M21 12\.79A9 9 0 1 1 11\.21 3/, 'Isha must have night moon SVG')
+})
+
+test('DevConsole dropdown puts Control Center last, useCapture defaults to without frame, and removes alarm snooze button', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const devContent = fs.readFileSync(devConsolePath, 'utf8')
+
+  // Check dropdown option ordering: island -> muslim -> control
+  assert.match(
+    devContent,
+    /<option value="island">灵动岛<\/option>\s*<option value="muslim">礼拜模式<\/option>\s*<option value="control">控制中心<\/option>/,
+    'Dropdown must put control center last'
+  )
+
+  // Verify alarm snooze button is removed from DevConsole
+  assert.doesNotMatch(devContent, /稍后提醒延时/, 'DevConsole must not have snooze button')
+  assert.doesNotMatch(devContent, /clockStore\.snoozeAlarm\(\)/, 'DevConsole must not call snoozeAlarm')
+
+  const capturePath = path.resolve(__dirname, '../src/composables/useCapture.js')
+  const captureContent = fs.readFileSync(capturePath, 'utf8')
+  assert.match(captureContent, /const recordWithFrame = ref\(false\)/, 'recordWithFrame must default to false')
+  assert.match(captureContent, /const screenshotWithFrame = ref\(false\)/, 'screenshotWithFrame must default to false')
+})
+
+test('SettingsNotifications and Island components implement deep jump with 3-flash highlight', () => {
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const notifContent = fs.readFileSync(notifSettingsPath, 'utf8')
+
+  assert.match(notifContent, /triggerIslandHighlight/, 'Must define triggerIslandHighlight')
+  assert.match(notifContent, /highlightedIslandKey/, 'Must track highlightedIslandKey')
+  assert.match(notifContent, /is-highlight-flash/, 'Must bind is-highlight-flash class')
+  assert.match(notifContent, /@keyframes island-cell-flash/, 'Must define 3-cycle island-cell-flash keyframes')
+  assert.match(notifContent, /animation:\s*island-cell-flash 0\.6s ease-in-out 3/, 'Must flash exactly 3 times')
+  assert.match(notifContent, /data-island-key="recorder"/, 'Must annotate recorder row')
+  assert.match(notifContent, /data-island-key="alarm"/, 'Must annotate alarm row')
+  assert.match(notifContent, /data-island-key="timer"/, 'Must annotate timer row')
+  assert.match(notifContent, /data-island-key="stopwatch"/, 'Must annotate stopwatch row')
+  assert.match(notifContent, /data-island-key="prayer"/, 'Must annotate prayer row')
+  assert.match(notifContent, /data-island-key="media"/, 'Must annotate media row')
+
+  const storePath = path.resolve(__dirname, '../src/stores/notificationsStore.js')
+  const storeContent = fs.readFileSync(storePath, 'utf8')
+  assert.match(storeContent, /targetIslandKey:\s*null/, 'notificationsStore must support targetIslandKey')
+  assert.match(storeContent, /setTargetView\(view,\s*subView\s*=\s*null,\s*islandKey\s*=\s*null\)/, 'setTargetView must accept islandKey')
+})
+
+test('DevConsole module big card implements smooth height transition and seamless list expansion', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const devContent = fs.readFileSync(devConsolePath, 'utf8')
+
+  assert.match(devContent, /ref="desktopCardRef"/, 'Desktop card must use desktopCardRef')
+  assert.match(devContent, /ref="mobileCardRef"/, 'Mobile card must use mobileCardRef')
+  assert.match(devContent, /animateCardTransition/, 'Must implement animateCardTransition')
+  assert.match(devContent, /name="pc-module-swap"/, 'Must use pc-module-swap transition')
+  assert.match(devContent, /\.pc-module-swap-leave-active\s*\{[^}]*position:\s*absolute/s, 'Outgoing view must be absolutely positioned during cross-fade')
+  assert.match(devContent, /@keyframes pc-section-unfold/, 'Must define pc-section-unfold keyframes')
+  assert.match(devContent, /\.pc-module-section-group\.is-control\s*\.pc-section:nth-of-type\(1\)/, 'Control center sections must stagger unfold')
+})
+
+test('SplitActionCell component encapsulates split navigation, fine vertical divider line, and blue toggle switch', () => {
+  const cellPath = path.resolve(__dirname, '../src/components/ui/SplitActionCell.vue')
+  assert.ok(fs.existsSync(cellPath), 'SplitActionCell.vue must exist')
+  const cellContent = fs.readFileSync(cellPath, 'utf8')
+
+  assert.match(cellContent, /sac-nav/, 'Must have left navigation area')
+  assert.match(cellContent, /sac-divider/, 'Must have vertical divider line')
+  assert.match(cellContent, /sac-action/, 'Must have right action area')
+  assert.match(cellContent, /width:\s*0\.5px/, 'Divider must be a delicate hairline')
+  assert.match(cellContent, /emit\('navigate'/, 'Must emit navigate event')
+  assert.match(cellContent, /emit\('update:modelValue'/, 'Must emit update:modelValue event')
+
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const notifContent = fs.readFileSync(notifSettingsPath, 'utf8')
+  assert.match(notifContent, /<SplitActionCell/, 'SettingsNotifications must use SplitActionCell for notification apps list')
+  assert.match(notifContent, /switch-color="blue"/, 'SettingsNotifications must configure blue switches matching reference')
+  assert.match(notifContent, /background-color:\s*rgba\(0,\s*122,\s*255,\s*0\.30?\)/, 'Island highlight must use 30% opacity fill')
+  assert.doesNotMatch(notifContent, /box-shadow:\s*inset\s*0\s*0\s*0\s*1\.5px/, 'Island highlight must remove outline stroke')
+})
+
+test('LockScreen reduces bottom stack leak to half, supports swipe down to collapse, and renders glass pill with bell icon and count', () => {
+  const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const lsContent = fs.readFileSync(lsPath, 'utf8')
+
+  assert.match(lsContent, /BASE_Y\s*=\s*computed\(\(\)\s*=>\s*screenHeight\.value\s*-\s*224\)/, 'LockScreen BASE_Y must shift down to reduce bottom blank space by 60%')
+  assert.match(lsContent, /LOCK_STACK_BOTTOM_INSET\s*=\s*110/, 'LockScreen bottom threshold inset must adjust to 110')
+  assert.match(lsContent, /visualOffsetScale:\s*0\.2/, 'LockScreen must pass visualOffsetScale: 0.2 to cut leak to half')
+  assert.match(lsContent, /collapseNotifications\(\)/, 'LockScreen must define collapseNotifications')
+  assert.match(lsContent, /handleClipWheel/, 'LockScreen must handle downward wheel gesture to collapse')
+  assert.match(lsContent, /onClipTouchStart/, 'LockScreen must track touch downward swipe to collapse')
+  assert.match(lsContent, /ls-pill-container/, 'LockScreen must render ls-pill-container')
+  assert.match(lsContent, /ls-glass-pill/, 'LockScreen must render ls-glass-pill')
+  assert.match(lsContent, /lp-bell-wrap/, 'LockScreen must render lp-bell-wrap')
+  assert.match(lsContent, /<LIcon name="bell"/, 'LockScreen pill must reuse Control Center bell icon')
+  assert.match(lsContent, /lp-glass-count/, 'LockScreen must display notification count text in glass pill')
+  assert.match(lsContent, /backdrop-filter:\s*blur\(28px\)/, 'Pill must use frosted glass backdrop filter')
+  assert.match(lsContent, /border-radius:\s*9999px/, 'Pill must be a rounded capsule')
+})
+
+test('LockScreen and Settings implement anti-flicker swipe collapse, remove pill shadow, hide fully covered cards, and separate notification card swipe actions', () => {
+  const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const lsContent = fs.readFileSync(lsPath, 'utf8')
+
+  // Anti-flicker and cooldown
+  assert.match(lsContent, /STATE_TRANSITION_MS\s*=\s*360/, 'Must define state transition cooldown')
+  assert.match(lsContent, /isStateTransitioning/, 'Must track state transition animating state')
+  assert.match(lsContent, /e\.deltaY\s*>\s*15/, 'Must require upward wheel to expand from collapsed state')
+
+  // No pill shadow
+  assert.match(lsContent, /\.ls-glass-pill\s*\{[^}]*box-shadow:\s*none/s, 'Pill must remove box shadow')
+
+  // Occlusion hiding
+  assert.match(lsContent, /isCompletelyCovered/, 'Must detect completely covered cards')
+  assert.match(lsContent, /visibility:\s*itemLayout\.opacity\s*===\s*0\s*\?\s*'hidden'\s*:\s*'visible'/, 'Must hide covered cards with visibility hidden')
+
+  // Swipe action separation
+  assert.match(lsContent, /onJumpAppNotificationSettings/, 'Must define onJumpAppNotificationSettings')
+  assert.match(lsContent, /v-if="item\.isActivity"/, 'Must branch swipe actions for activity vs ordinary notifications')
+  assert.match(lsContent, /onRequestDeleteActivity\(item\.activity\)/, 'Only activity cards prompt deletion modal')
+  assert.match(lsContent, /onDeleteCard\(item\)/, 'Notification cards delete directly without modal')
+
+  // Store and Settings routing
+  const storePath = path.resolve(__dirname, '../src/stores/notificationsStore.js')
+  const storeContent = fs.readFileSync(storePath, 'utf8')
+  assert.match(storeContent, /setAppTarget\(appId\)/, 'notificationsStore must support setAppTarget')
+
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const notifContent = fs.readFileSync(notifSettingsPath, 'utf8')
+  assert.match(notifContent, /targetSubView\s*===\s*'appDetail'/, 'SettingsNotifications must handle appDetail subView')
+  assert.match(notifContent, /resolveApp/, 'SettingsNotifications must resolve target app for appDetail view')
 })
 

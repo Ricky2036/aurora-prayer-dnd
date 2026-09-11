@@ -2,7 +2,8 @@
 /** iOS 开关（51×31），标准 v-model */
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  disabled: { type: Boolean, default: false }
+  disabled: { type: Boolean, default: false },
+  color: { type: String, default: 'green' } // 'green' | 'blue'
 })
 const emit = defineEmits(['update:modelValue'])
 
@@ -15,7 +16,7 @@ function toggle() {
 <template>
   <button
     class="toggle-switch"
-    :class="{ on: modelValue, disabled }"
+    :class="[{ on: modelValue, disabled }, `is-${color}`]"
     role="switch"
     :aria-checked="modelValue"
     @click="toggle"
@@ -35,6 +36,7 @@ function toggle() {
   flex: none;
 }
 .toggle-switch.on { background: var(--ios-green); }
+.toggle-switch.on.is-blue { background: var(--ios-blue, #007AFF); }
 .toggle-switch.disabled { opacity: 0.45; }
 .knob {
   position: absolute;
