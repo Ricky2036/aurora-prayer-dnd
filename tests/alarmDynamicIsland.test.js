@@ -411,7 +411,7 @@ test('LockScreen reduces bottom stack leak to half, supports swipe down to colla
   assert.match(lsContent, /visualOffsetScale:\s*0\.2/, 'LockScreen must pass visualOffsetScale: 0.2 to cut leak to half')
   assert.match(lsContent, /collapseNotifications\(\)/, 'LockScreen must define collapseNotifications')
   assert.match(lsContent, /handleClipWheel/, 'LockScreen must handle downward wheel gesture to collapse')
-  assert.match(lsContent, /onClipTouchStart/, 'LockScreen must track touch downward swipe to collapse')
+  assert.match(lsContent, /onClipPointerDown/, 'LockScreen must track downward swipe to collapse')
   assert.match(lsContent, /ls-pill-container/, 'LockScreen must render ls-pill-container')
   assert.match(lsContent, /ls-glass-pill/, 'LockScreen must render ls-glass-pill')
   assert.match(lsContent, /lp-bell-wrap/, 'LockScreen must render lp-bell-wrap')
@@ -429,6 +429,8 @@ test('LockScreen and Settings implement anti-flicker swipe collapse, remove pill
   assert.match(lsContent, /STATE_TRANSITION_MS\s*=\s*360/, 'Must define state transition cooldown')
   assert.match(lsContent, /isStateTransitioning/, 'Must track state transition animating state')
   assert.match(lsContent, /e\.deltaY\s*>\s*15/, 'Must require upward wheel to expand from collapsed state')
+  assert.match(lsContent, /onCardPointerCancel/, 'Must reset swipe gesture on pointer cancel')
+  assert.match(lsContent, /onPillPointerUp/, 'Must support tap or swipe up on glass pill to expand')
 
   // No pill shadow
   assert.match(lsContent, /\.ls-glass-pill\s*\{[^}]*box-shadow:\s*none/s, 'Pill must remove box shadow')
@@ -452,5 +454,25 @@ test('LockScreen and Settings implement anti-flicker swipe collapse, remove pill
   const notifContent = fs.readFileSync(notifSettingsPath, 'utf8')
   assert.match(notifContent, /targetSubView\s*===\s*'appDetail'/, 'SettingsNotifications must handle appDetail subView')
   assert.match(notifContent, /resolveApp/, 'SettingsNotifications must resolve target app for appDetail view')
+})
+
+test('DynamicIsland enlarged compact capsule & icons and StatusBar obstacle calculation match updated size', () => {
+  const diPath = path.resolve(__dirname, '../src/components/system/DynamicIsland.vue')
+  const diContent = fs.readFileSync(diPath, 'utf8')
+
+  // Compact capsule dimensions: 136px × 35px with 18px radius
+  assert.match(diContent, /\.island-card\.is-compact\s*\{[^}]*width:\s*136px;/s, 'Compact island capsule width must be 136px')
+  assert.match(diContent, /\.island-card\.is-compact\s*\{[^}]*height:\s*35px;/s, 'Compact island capsule height must be 35px')
+  assert.match(diContent, /\.island-card\.is-compact\s*\{[^}]*border-radius:\s*18px;/s, 'Compact island capsule border-radius must be 18px')
+
+  // Compact icons enlarged: 17px SVG icons, 20px media cover
+  assert.match(diContent, /class="compact-alarm-icon"\s+width="17"\s+height="17"/, 'Compact alarm icon must be 17x17')
+  assert.match(diContent, /\.media-mini-cover-wrap\s*\{[^}]*width:\s*20px;[^}]*height:\s*20px;/s, 'Media mini cover must be 20x20')
+
+  // StatusBar obstacle edge calculation for 136px capsule
+  const sbPath = path.resolve(__dirname, '../src/components/phone/StatusBar.vue')
+  const sbContent = fs.readFileSync(sbPath, 'utf8')
+  assert.match(sbContent, /scrRect\.width\s*\/\s*2\s*\+\s*68\s*\+\s*HIDE_MARGIN/, 'StatusBar must compute half-width 68px for 136px capsule')
+  assert.match(sbContent, /276\s*\+\s*HIDE_MARGIN/, 'StatusBar fallback obstacle edge must be 276 + HIDE_MARGIN')
 })
 

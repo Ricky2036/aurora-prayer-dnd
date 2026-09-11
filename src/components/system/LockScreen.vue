@@ -245,6 +245,7 @@ function onCardPointerMove(e, id) {
   }
 
   if (isSwipingCard) {
+    e.preventDefault?.()
     // 限制左滑在 -260 ~ 0 之间（带少许阻尼）
     let nextOffset = cardInitialOffset + dx
     if (nextOffset > 0) nextOffset = nextOffset * 0.2
@@ -258,6 +259,23 @@ function onCardPointerMove(e, id) {
 
 let justSwipedId = null
 const swipedTransitionId = ref(null)
+
+function onCardPointerCancel(e, id) {
+  if (activeCardId !== id) return
+  if (isSwipingCard) {
+    const next = { ...swipeOffsets.value }
+    delete next[id]
+    swipeOffsets.value = next
+  }
+  try {
+    cardPointerTarget?.releasePointerCapture(cardPointerId)
+  } catch (_) {}
+  activeCardId = null
+  isSwipingCard = false
+  swipeGestureDecided = false
+  cardPointerTarget = null
+  cardPointerId = null
+}
 
 function onCardPointerUp(e, id) {
   if (activeCardId !== id) return
@@ -296,10 +314,10 @@ function onCardPointerUp(e, id) {
       swipeOffsets.value = next
     }
   } else if (!isCollapsed.value) {
-    // 纵向轻微下滑收起通知手势
+    // 纵向明确下滑收起通知手势（在手指抬起释放时触发，决不在拖拽中途提前收起导致事件丢失和高频闪跳）
     const dy = e.clientY - cardPointerStartY
     const dx = e.clientX - cardPointerStartX
-    if (dy > 22 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && scrollY.value <= 0) {
       collapseNotifications()
     }
   }
@@ -353,19 +371,14 @@ function onClipPointerDown(e) {
 
 function onClipPointerMove(e) {
   if (!clipPointerActive || isCollapsed.value || isSwipingCard) return
-  const dy = e.clientY - clipPointerStartY
-  const dx = e.clientX - clipPointerStartX
-  if (dy > 28 && Math.abs(dy) > Math.abs(dx) * 1.5 && scrollY.value <= 0) {
-    collapseNotifications()
-    clipPointerActive = false
-  }
+  // 不在 drag 中途触发展开/收起，避免 pointerEvents 突变打断手势造成闪跳
 }
 
 function onClipPointerUp(e) {
   if (clipPointerActive && !isCollapsed.value && !isSwipingCard) {
     const dy = e.clientY - clipPointerStartY
     const dx = e.clientX - clipPointerStartX
-    if (dy > 22 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && scrollY.value <= 0) {
       collapseNotifications()
     }
   }
@@ -389,22 +402,14 @@ function handleClipWheel(e) {
   }
 }
 
-let clipTouchStartY = 0
-let clipTouchStartX = 0
-function onClipTouchStart(e) {
-  clipTouchStartY = e.touches[0]?.clientY || 0
-  clipTouchStartX = e.touches[0]?.clientX || 0
+let pillPointerStartY = 0
+function onPillPointerDown(e) {
+  pillPointerStartY = e.clientY
 }
-function onClipTouchEnd(e) {
-  const now = Date.now()
-  if (now - lastStateChangeTime < STATE_TRANSITION_MS) return
-  const endY = e.changedTouches[0]?.clientY || 0
-  const endX = e.changedTouches[0]?.clientX || 0
-  const dy = endY - clipTouchStartY
-  const dx = endX - clipTouchStartX
-  if (!isCollapsed.value && dy > 24 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
-    collapseNotifications()
-  } else if (isCollapsed.value && dy < -24) {
+function onPillPointerUp(e) {
+  const dy = e.clientY - pillPointerStartY
+  // 点击或向上滑动均触发展开通知
+  if (dy <= 10) {
     handleExpand()
   }
 }
@@ -574,7 +579,11 @@ function handleCardClick(item) {
 
 /* 点击播放器/通知/胶囊：折叠→展开；已展开且未滚远→滚到挤压位 */
 function handleExpand() {
+  const now = Date.now()
   if (isCollapsed.value) {
+    if (now - lastStateChangeTime < STATE_TRANSITION_MS) return
+    lastStateChangeTime = now
+    triggerStateTransition()
     isCollapsed.value = false
     scrollY.value = 0
     listRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
@@ -867,8 +876,6 @@ function notifStyle(i) {
         @pointerup="onClipPointerUp"
         @pointercancel="clipPointerActive = false"
         @wheel.passive="handleClipWheel"
-        @touchstart.passive="onClipTouchStart"
-        @touchend.passive="onClipTouchEnd"
       >
         <div class="ls-scroll-stage">
         <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
@@ -917,7 +924,7 @@ function notifStyle(i) {
               @pointerdown="onCardPointerDown($event, act.id)"
               @pointermove="onCardPointerMove($event, act.id)"
               @pointerup="onCardPointerUp($event, act.id)"
-              @pointercancel="onCardPointerUp($event, act.id)"
+              @pointercancel="onCardPointerCancel($event, act.id)"
               @click="handleActivityCardClick(act)"
             >
               <!-- 闹钟类型 -->
@@ -1137,7 +1144,7 @@ function notifStyle(i) {
             @pointerdown="onCardPointerDown($event, item.id)"
             @pointermove="onCardPointerMove($event, item.id)"
             @pointerup="onCardPointerUp($event, item.id)"
-            @pointercancel="onCardPointerUp($event, item.id)"
+            @pointercancel="onCardPointerCancel($event, item.id)"
             @click="handleCardClick(item)"
           >
             <template v-if="item.isActivity">
@@ -1191,6 +1198,8 @@ function notifStyle(i) {
           class="ls-glass-pill ls-interact"
           type="button"
           :aria-label="notifCountLabel"
+          @pointerdown="onPillPointerDown"
+          @pointerup="onPillPointerUp"
           @click="handleExpand"
         >
           <div class="lp-bell-wrap">

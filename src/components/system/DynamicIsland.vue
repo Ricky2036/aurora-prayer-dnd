@@ -452,19 +452,19 @@ function handleClosePrayer(e) {
       <div class="morph-layer compact-layer">
         <div class="cc-left">
           <!-- 闹钟收起态图标 -->
-          <svg v-if="primaryActiveItem === 'alarm'" class="compact-alarm-icon" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true">
+          <svg v-if="primaryActiveItem === 'alarm'" class="compact-alarm-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
             <path :d="CLOCK_ICONS.alarm" />
           </svg>
-          <svg v-else-if="primaryActiveItem === 'timer'" width="13" height="13" viewBox="0 0 24 24">
+          <svg v-else-if="primaryActiveItem === 'timer'" width="17" height="17" viewBox="0 0 24 24">
             <path :d="CLOCK_ICONS.timer" fill="#ff9500" />
           </svg>
-          <svg v-else-if="primaryActiveItem === 'stopwatch'" width="13" height="13" viewBox="0 0 24 24">
+          <svg v-else-if="primaryActiveItem === 'stopwatch'" width="17" height="17" viewBox="0 0 24 24">
             <path :d="CLOCK_ICONS.stopwatch" fill="#ff9500" />
           </svg>
           <span v-else-if="primaryActiveItem === 'recorder'" class="rc-mini-wave">
             <i></i><i></i><i></i><i></i><i></i>
           </span>
-          <svg v-else-if="primaryActiveItem === 'prayer'" width="13" height="13" viewBox="0 0 24 24">
+          <svg v-else-if="primaryActiveItem === 'prayer'" width="17" height="17" viewBox="0 0 24 24">
             <path :d="GLYPHS.moon" fill="#00C853" />
           </svg>
           <div v-else-if="primaryActiveItem === 'media'" class="media-mini-cover-wrap">
@@ -1083,10 +1083,10 @@ function handleClosePrayer(e) {
 
 /* 收起态尺寸（紧凑胶囊） */
 .island-card.is-compact {
-  width: 124px;
-  height: 30px;
-  border-radius: 15px;
-  padding: 0 10px;
+  width: 136px;
+  height: 35px;
+  border-radius: 18px;
+  padding: 0 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
 }
 
@@ -1120,7 +1120,7 @@ function handleClosePrayer(e) {
 
 /* ================= 收起态胶囊图层 ================= */
 .compact-layer {
-  padding: 0 10px;
+  padding: 0 12px;
   justify-content: space-between;
 }
 /* 收起态时：等待卡片缩至小尺寸（延迟 0.15s）后才淡入，避免缩小初期内容重叠 */
@@ -1145,7 +1145,7 @@ function handleClosePrayer(e) {
 }
 .cc-camera-slot {
   width: 18px;
-  height: 15px;
+  height: 18px;
   flex: none;
 }
 .cc-right {
@@ -1154,7 +1154,7 @@ function handleClosePrayer(e) {
 }
 .cc-time {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   color: #ffffff;
   font-variant-numeric: tabular-nums;
@@ -1165,21 +1165,21 @@ function handleClosePrayer(e) {
 .rc-mini-wave {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  height: 14px;
+  gap: 2.5px;
+  height: 16px;
 }
 .rc-mini-wave i {
-  width: 2px;
-  height: 6px;
-  border-radius: 1px;
+  width: 2.5px;
+  height: 8px;
+  border-radius: 1.5px;
   background: #ff453a;
   animation: rcMiniWave 1s ease-in-out infinite alternate;
 }
-.rc-mini-wave i:nth-child(1) { height: 5px; animation-delay: 0.1s; }
-.rc-mini-wave i:nth-child(2) { height: 11px; animation-delay: 0.35s; }
-.rc-mini-wave i:nth-child(3) { height: 14px; animation-delay: 0.15s; }
-.rc-mini-wave i:nth-child(4) { height: 9px; animation-delay: 0.4s; }
-.rc-mini-wave i:nth-child(5) { height: 6px; animation-delay: 0.2s; }
+.rc-mini-wave i:nth-child(1) { height: 6px; animation-delay: 0.1s; }
+.rc-mini-wave i:nth-child(2) { height: 12px; animation-delay: 0.35s; }
+.rc-mini-wave i:nth-child(3) { height: 16px; animation-delay: 0.15s; }
+.rc-mini-wave i:nth-child(4) { height: 10px; animation-delay: 0.4s; }
+.rc-mini-wave i:nth-child(5) { height: 7px; animation-delay: 0.2s; }
 
 @keyframes rcMiniWave {
   0% { transform: scaleY(0.4); opacity: 0.7; }
@@ -1603,9 +1603,9 @@ function handleClosePrayer(e) {
 
 /* 微型音乐胶囊图层 */
 .media-mini-cover-wrap {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
   overflow: hidden;
   flex: none;
   display: flex;
@@ -1621,12 +1621,12 @@ function handleClosePrayer(e) {
 .media-mini-wave {
   display: flex;
   align-items: flex-end;
-  gap: 1.5px;
-  height: 12px;
-  width: 14px;
+  gap: 2px;
+  height: 15px;
+  width: 16px;
 }
 .media-mini-wave i {
-  width: 2px;
+  width: 2.2px;
   background: #30d158;
   border-radius: 999px;
   animation: miniWave 0.8s ease-in-out infinite;
