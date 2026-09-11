@@ -280,9 +280,10 @@ useSwipeGesture(sideEdgeRef, {
       :style="heroBackdropStyle"
     ></div>
 
-    <!-- 打开中的应用窗口 -->
+    <!-- 打开中的应用窗口（切换器跟手/打开期间让位给 AppSwitcher 的跟手卡，避免双重渲染） -->
     <AppWindow
       v-if="system.activeAppId"
+      v-show="system.switcherProgress <= 0.01"
       :key="system.activeAppId"
       :app-id="system.activeAppId"
       @hero-frame="onHeroFrame"

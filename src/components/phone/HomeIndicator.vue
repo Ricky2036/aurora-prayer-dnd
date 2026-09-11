@@ -52,6 +52,14 @@ function doAction() {
   }
 }
 
+/* 悬停计时器：上滑超过 5% 且停住 0.2s → 激活切换器（Ricky 2026-09-11 三轮）。
+   拖动全程把进度写给 switcherProgress（跟手缩放连续，滑得越远缩得越小），
+   hero 预览在这条路径不启动（避免双重渲染）。 */
+let dwellArm = null
+function clearDwellArm() {
+  if (dwellArm) { clearTimeout(dwellArm); dwellArm = null }
+}
+
 const gesture = useSwipeGesture(rootRef, {
   axis: 'y',
   direction: -1,
@@ -66,38 +74,50 @@ const gesture = useSwipeGesture(rootRef, {
     (system.baseLayer === 'home' && system.recentApps.length > 0),
   onStart() {
     snapTo(system.homeGestureProgress)
+    clearDwellArm()
   },
   onProgress(p) {
-    snapTo(p)
+    const switcherCandidate =
+      system.recentApps.length > 0 && system.baseLayer !== 'lock' && !system.anyOverlayOpen()
+    if (switcherCandidate) {
+      // 跟手缩放：进度全程直写（AppSwitcher 的跟手卡据此从全屏连续缩到卡位）
+      system.setSwitcherProgress(p)
+      // 「悬停」= 手指停住不动：每次移动都重计 0.2s，
+      // 只有 0.2s 无移动才算 dwell（持续快滑绝不会误触发）
+      clearDwellArm()
+      if (p >= 0.05 && !system.switcherDwell) {
+        dwellArm = setTimeout(() => {
+          dwellArm = null
+          system.switcherDwell = true
+        }, 200)
+      }
+    } else {
+      snapTo(p) // 无最近任务：保持原 hero 预览
+    }
   },
   onRelease(p, velocity) {
-    /* 切换器入口（2026-09-11 全面重构）：
-     *   跟手缩放由 AppWindow 的 hero 预览在拖动中承担（原有行为），
-     *   松手若是「慢速 + 大进度」（滑到一半停住）→ 打开切换器：
-     *   先把 hero 预览瞬时归位（snapTo(0)，被淡入的模糊背景盖住），
-     *   再把 switcherProgress 铺到 0.5 作为交接起点，
-     *   AppSwitcher 的跟手卡从该比例继续弹簧收缩到卡位 —— 全程无跳变。
-     *   快滑/小进度：回桌面或回弹，行为不变。 */
-    const dwellOpen =
-      Math.abs(velocity) <= 0.25 &&
-      p >= 0.35 &&
+    clearDwellArm()
+    /* 激活条件（2026-09-11 三轮 Ricky 定）：
+     *   上滑 >5% 且悬停 ≥0.2s（switcherDwell 已由计时器置位）→ 打开切换器。
+     *   同时要求松手速度低 —— 否则松手前的协议/生理延迟也会让快甩误触发悬停，
+     *   快甩（|velocity| > 0.4）永远走回桌面，与 iOS 一致。 */
+    const canDwellOpen =
+      system.switcherDwell &&
+      Math.abs(velocity) <= 0.4 &&
       system.recentApps.length > 0 &&
       !system.anyOverlayOpen() &&
       system.baseLayer !== 'lock'
 
-    if (system.baseLayer === 'home') {
-      if (dwellOpen) {
-        system.openSwitcher()
-        return 0
-      }
-      animateTo(0, { initialVelocity: velocity })
+    if (canDwellOpen) {
+      system.openSwitcher()
       return 0
     }
 
-    if (dwellOpen) {
-      snapTo(0) // hero 预览瞬时归位（被随后淡入的模糊背景盖住）
-      system.setSwitcherProgress(0.5)
-      system.openSwitcher()
+    // 未激活：跟手进度归零，走原逻辑（回桌面 / 回弹）
+    system.setSwitcherProgress(0)
+
+    if (system.baseLayer === 'home') {
+      animateTo(0, { initialVelocity: velocity })
       return 0
     }
 

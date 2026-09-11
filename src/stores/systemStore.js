@@ -26,7 +26,8 @@ export const useSystemStore = defineStore('system', {
      *   AppSwitcher 用它做「前台应用从全屏连续缩放到卡位」的跟手动画。 */
     recentApps: [],
     appSwitcherOpen: false,
-    switcherProgress: 0
+    switcherProgress: 0,
+    switcherDwell: false // 手势悬停已达成（5%+ 停 0.2s），邻居可以进场
   }),
 
   getters: {
@@ -118,6 +119,7 @@ export const useSystemStore = defineStore('system', {
     closeSwitcher() {
       this.appSwitcherOpen = false
       this.switcherProgress = 0
+      this.switcherDwell = false
     },
 
     /** 手势跟手进度：0 = 未进入，1 = 完全进入 */
