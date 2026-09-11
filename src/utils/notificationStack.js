@@ -13,7 +13,8 @@ export function getNotificationStackLayout({
   maxVisualOffset = 68,
   baseBackgroundAlpha = 0.14,
   deepBackgroundAlpha = 0.22,
-  backgroundFadeStart = 0
+  backgroundFadeStart = 0,
+  visualOffsetScale = 1
 }) {
   const bottomThreshold = viewportHeight - bottomInset
   if (cardBottom <= bottomThreshold) {
@@ -40,6 +41,7 @@ export function getNotificationStackLayout({
   } else {
     visualY = Math.min(maxVisualY, 54 + (stackIndex - 3) * 16)
   }
+  visualY = Math.min(maxVisualY, visualY * visualOffsetScale)
 
   const opacity = stackIndex > 1.6
     ? clamp(1 - (stackIndex - 1.6) / 2.2, 0, 1)

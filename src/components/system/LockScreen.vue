@@ -295,6 +295,13 @@ function onCardPointerUp(e, id) {
       delete next[id]
       swipeOffsets.value = next
     }
+  } else if (!isCollapsed.value) {
+    // 纵向轻微下滑收起通知手势
+    const dy = e.clientY - cardPointerStartY
+    const dx = e.clientX - cardPointerStartX
+    if (dy > 22 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+      collapseNotifications()
+    }
   }
   try {
     cardPointerTarget?.releasePointerCapture(cardPointerId)
@@ -304,6 +311,77 @@ function onCardPointerUp(e, id) {
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
+}
+
+/* ---------- 下滑收起通知与手势处理 ---------- */
+function collapseNotifications() {
+  if (isCollapsed.value) return
+  isCollapsed.value = true
+  scrollY.value = 0
+  listRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+let clipPointerStartY = 0
+let clipPointerStartX = 0
+let clipPointerActive = false
+
+function onClipPointerDown(e) {
+  if (isCollapsed.value) return
+  clipPointerStartY = e.clientY
+  clipPointerStartX = e.clientX
+  clipPointerActive = true
+}
+
+function onClipPointerMove(e) {
+  if (!clipPointerActive || isCollapsed.value || isSwipingCard) return
+  const dy = e.clientY - clipPointerStartY
+  const dx = e.clientX - clipPointerStartX
+  if (dy > 28 && Math.abs(dy) > Math.abs(dx) * 1.5 && scrollY.value <= 0) {
+    collapseNotifications()
+    clipPointerActive = false
+  }
+}
+
+function onClipPointerUp(e) {
+  if (clipPointerActive && !isCollapsed.value && !isSwipingCard) {
+    const dy = e.clientY - clipPointerStartY
+    const dx = e.clientX - clipPointerStartX
+    if (dy > 22 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+      collapseNotifications()
+    }
+  }
+  clipPointerActive = false
+}
+
+function handleClipWheel(e) {
+  if (isCollapsed.value) {
+    if (e.deltaY < -12) {
+      handleExpand()
+    }
+    return
+  }
+  // deltaY < 0 即在列表顶部时继续向下滚轮/滑动手势
+  if (scrollY.value <= 0 && e.deltaY < -12) {
+    collapseNotifications()
+  }
+}
+
+let clipTouchStartY = 0
+let clipTouchStartX = 0
+function onClipTouchStart(e) {
+  clipTouchStartY = e.touches[0]?.clientY || 0
+  clipTouchStartX = e.touches[0]?.clientX || 0
+}
+function onClipTouchEnd(e) {
+  const endY = e.changedTouches[0]?.clientY || 0
+  const endX = e.changedTouches[0]?.clientX || 0
+  const dy = endY - clipTouchStartY
+  const dx = endX - clipTouchStartX
+  if (!isCollapsed.value && dy > 22 && Math.abs(dy) > Math.abs(dx) * 1.2 && scrollY.value <= 0) {
+    collapseNotifications()
+  } else if (isCollapsed.value && dy < -22) {
+    handleExpand()
+  }
 }
 
 /** 滑动操作按钮弹性物理与位移动画计算（不缩放图标，通过动态拉伸设置与删除按钮间距体现弹性） */
@@ -611,7 +689,8 @@ function getLockNotificationGeometry(i) {
     cardBottom: naturalY + LOCK_CARD_HEIGHT,
     viewportHeight: screenHeight.value,
     bottomInset: LOCK_STACK_BOTTOM_INSET,
-    maxVisualOffset: LOCK_STACK_MAX_VISUAL_OFFSET
+    maxVisualOffset: 18,
+    visualOffsetScale: 0.2
   })
   const visualY = naturalY + layout.translateY
   const bottomThreshold = screenHeight.value - LOCK_STACK_BOTTOM_INSET
@@ -697,6 +776,13 @@ function notifStyle(i) {
         tabindex="0"
         :style="clipStyle"
         @scroll.passive="handleListScroll"
+        @pointerdown="onClipPointerDown"
+        @pointermove="onClipPointerMove"
+        @pointerup="onClipPointerUp"
+        @pointercancel="clipPointerActive = false"
+        @wheel.passive="handleClipWheel"
+        @touchstart.passive="onClipTouchStart"
+        @touchend.passive="onClipTouchEnd"
       >
         <div class="ls-scroll-stage">
         <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
@@ -982,17 +1068,30 @@ function notifStyle(i) {
         <div class="ls-scroll-spacer" :style="scrollSpacerStyle"></div>
       </div>
 
-      <!-- 微缩通知胶囊（折叠态） -->
-      <div v-if="lockItems.length" class="ls-pill ls-interact" :style="pillStyle" @click="handleExpand">
-        <div class="lp-mini">
-          <template v-for="(item, idx) in lockItems.slice(0, 3)" :key="item.id">
-            <div v-if="item.isActivity" class="lp-mini-rec">
-              <span class="rec-dot"></span>
-            </div>
-            <NotificationIcon v-else :type="item.raw.iconType" :size="22" />
-          </template>
-        </div>
-        <span class="lp-count">{{ notifCountLabel }}</span>
+      <!-- 微缩通知胶囊（折叠态）：圆角毛玻璃药丸背景 + 通知图标 + “X条通知”文案 -->
+      <div
+        v-if="lockItems.length"
+        class="ls-pill-container"
+        :style="pillStyle"
+      >
+        <button
+          class="ls-glass-pill ls-interact"
+          type="button"
+          :aria-label="notifCountLabel"
+          @click="handleExpand"
+        >
+          <div class="lp-mini-icons">
+            <template v-for="(item, idx) in lockItems.slice(0, 3)" :key="item.id">
+              <div v-if="item.isActivity" class="lp-mini-act" :class="`is-${item.activity?.type || 'item'}`">
+                <span class="lp-dot"></span>
+              </div>
+              <div v-else class="lp-mini-item" :style="{ zIndex: 10 - idx }">
+                <NotificationIcon :type="item.raw?.iconType" :size="20" />
+              </div>
+            </template>
+          </div>
+          <span class="lp-glass-count">{{ notifCountLabel }}</span>
+        </button>
       </div>
 
       <!-- 底部快捷按钮 -->
@@ -1449,49 +1548,86 @@ function notifStyle(i) {
   padding-right: 8px;
 }
 
-/* 微缩胶囊里的录音红点 */
-.lp-mini-rec {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(235, 68, 54, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.rec-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #ff3b30;
-  animation: recDotBlink 1s infinite alternate;
-}
-@keyframes recDotBlink {
-  0% { opacity: 0.5; transform: scale(0.85); }
-  100% { opacity: 1; transform: scale(1.1); }
-}
-
-/* ---- 微缩通知胶囊 ---- */
-.ls-pill {
+/* 微缩通知胶囊（折叠态）：圆角毛玻璃药丸背景 */
+.ls-pill-container {
   position: absolute;
-  bottom: 46px;
+  bottom: 48px;
   left: 0;
   right: 0;
-  height: 50px;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 120;
+}
+
+.ls-glass-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 38px;
+  padding: 0 16px 0 10px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 0.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: 9999px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18), inset 0 0.5px 0.5px rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ls-glass-pill:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
+}
+
+.lp-mini-icons {
+  display: flex;
+  align-items: center;
+}
+
+.lp-mini-item {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  will-change: transform, opacity;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
-.lp-mini { display: flex; align-items: center; gap: 6px; }
-.lp-count {
-  color: rgba(255, 255, 255, 0.85);
-  font: 500 13px/1 var(--font-stack);
+.lp-mini-item + .lp-mini-item {
+  margin-left: -7px;
+}
+
+.lp-mini-act {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.lp-mini-act.is-recorder { background: #ef4444; }
+.lp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.lp-glass-count {
+  color: #ffffff;
+  font: 500 13.5px/1 var(--font-stack);
   letter-spacing: 0.3px;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
 }
 
 /* ---- 底部快捷按钮 ---- */

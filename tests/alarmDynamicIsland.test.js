@@ -382,6 +382,38 @@ test('DevConsole module big card implements smooth height transition and seamles
   assert.match(devContent, /\.pc-module-section-group\.is-control\s*\.pc-section:nth-of-type\(1\)/, 'Control center sections must stagger unfold')
 })
 
+test('SplitActionCell component encapsulates split navigation, fine vertical divider line, and blue toggle switch', () => {
+  const cellPath = path.resolve(__dirname, '../src/components/ui/SplitActionCell.vue')
+  assert.ok(fs.existsSync(cellPath), 'SplitActionCell.vue must exist')
+  const cellContent = fs.readFileSync(cellPath, 'utf8')
 
+  assert.match(cellContent, /sac-nav/, 'Must have left navigation area')
+  assert.match(cellContent, /sac-divider/, 'Must have vertical divider line')
+  assert.match(cellContent, /sac-action/, 'Must have right action area')
+  assert.match(cellContent, /width:\s*0\.5px/, 'Divider must be a delicate hairline')
+  assert.match(cellContent, /emit\('navigate'/, 'Must emit navigate event')
+  assert.match(cellContent, /emit\('update:modelValue'/, 'Must emit update:modelValue event')
 
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const notifContent = fs.readFileSync(notifSettingsPath, 'utf8')
+  assert.match(notifContent, /<SplitActionCell/, 'SettingsNotifications must use SplitActionCell for notification apps list')
+  assert.match(notifContent, /switch-color="blue"/, 'SettingsNotifications must configure blue switches matching reference')
+  assert.match(notifContent, /background-color:\s*rgba\(0,\s*122,\s*255,\s*0\.30?\)/, 'Island highlight must use 30% opacity fill')
+  assert.doesNotMatch(notifContent, /box-shadow:\s*inset\s*0\s*0\s*0\s*1\.5px/, 'Island highlight must remove outline stroke')
+})
 
+test('LockScreen reduces bottom stack leak to half, supports swipe down to collapse, and renders glass pill with icon and count', () => {
+  const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const lsContent = fs.readFileSync(lsPath, 'utf8')
+
+  assert.match(lsContent, /visualOffsetScale:\s*0\.2/, 'LockScreen must pass visualOffsetScale: 0.2 to cut leak to half')
+  assert.match(lsContent, /collapseNotifications\(\)/, 'LockScreen must define collapseNotifications')
+  assert.match(lsContent, /handleClipWheel/, 'LockScreen must handle downward wheel gesture to collapse')
+  assert.match(lsContent, /onClipTouchStart/, 'LockScreen must track touch downward swipe to collapse')
+  assert.match(lsContent, /ls-pill-container/, 'LockScreen must render ls-pill-container')
+  assert.match(lsContent, /ls-glass-pill/, 'LockScreen must render ls-glass-pill')
+  assert.match(lsContent, /lp-glass-count/, 'LockScreen must display notification count text in glass pill')
+  assert.match(lsContent, /lp-mini-icons/, 'LockScreen must display notification icons in glass pill')
+  assert.match(lsContent, /backdrop-filter:\s*blur\(28px\)/, 'Pill must use frosted glass backdrop filter')
+  assert.match(lsContent, /border-radius:\s*9999px/, 'Pill must be a rounded capsule')
+})

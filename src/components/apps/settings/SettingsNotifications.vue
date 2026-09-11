@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import ListCell from '../../ui/ListCell.vue'
+import SplitActionCell from '../../ui/SplitActionCell.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import NotificationIcon from '../../ui/NotificationIcon.vue'
@@ -278,28 +279,23 @@ const emit = defineEmits(['back-to-settings'])
           <span class="ns-sort"><i></i><i></i></span>
         </div>
         <div class="cell-group">
-          <ListCell
+          <SplitActionCell
             v-for="(app, index) in notificationApps"
             :key="app.id"
             :title="i18n.notifTitle(app.appId)"
             :subtitle="formatRelativeTime(app.time, i18n.t)"
+            :model-value="getAppState(app.id)"
             :last="index === notificationApps.length - 1"
-            clickable
-            @click="openAppDetail(app)"
+            switch-color="blue"
+            @navigate="openAppDetail(app)"
+            @update:modelValue="toggleAppState(app.id)"
           >
             <template #icon>
               <div class="ns-app-icon-wrap">
                 <NotificationIcon :type="app.iconType" :size="38" />
               </div>
             </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="getAppState(app.id)"
-                @click.stop
-                @update:modelValue="toggleAppState(app.id)"
-              />
-            </template>
-          </ListCell>
+          </SplitActionCell>
         </div>
       </div>
 
@@ -891,15 +887,13 @@ const emit = defineEmits(['back-to-settings'])
   background: linear-gradient(135deg, #FF2D55 0%, #E11D48 100%);
 }
 
-/* 灵动岛菜单项高亮闪动动画（闪动 3 次恢复正常） */
+/* 灵动岛菜单项高亮闪动动画（闪动 3 次恢复正常：从描边改为 30% 透明度填充） */
 @keyframes island-cell-flash {
   0%, 100% {
-    background: #ffffff !important;
-    box-shadow: inset 0 0 0 0 transparent;
+    background-color: var(--bg-cell, #ffffff);
   }
   50% {
-    background: #e6f9f0 !important;
-    box-shadow: inset 0 0 0 1.5px #10b981;
+    background-color: rgba(0, 122, 255, 0.30);
   }
 }
 
