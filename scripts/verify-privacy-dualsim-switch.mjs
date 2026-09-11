@@ -1,9 +1,12 @@
 /**
- * 控制台「控制中心」标签页：隐私指示 / 双卡显示 两张小卡 + 开关 的回归校验。
+ * 控制台：隐私指示 / 双卡显示 开关的行为回归校验。
  *
  * 背景（Ricky 2026-09-09）：这两项一度被改成「一张卡 + 两个双态按钮」，
- * 最终改回「.pc-card-duo 两张卡 + .pc-switch 开关」。这个脚本用来锁住最终形态，
- * 免得以后再被改回去。
+ * 最终改回「两张卡 + .pc-switch 开关」。
+ *
+ * 注意：校验的是**功能行为**（存在两个开关、点它能切换 store），
+ * 不绑定具体 DOM 结构 —— 控制台改版（标签式/分组式）不应让本脚本失效，
+ * 只有「开关没了/点了没反应/默认值变了」才算回归。
  *
  * 用法：node scripts/verify-privacy-dualsim-switch.mjs [port]
  */
@@ -31,43 +34,51 @@ for (const [label, viewport] of [
   const errs = []
   page.on('pageerror', (e) => errs.push(e.message))
   await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle' })
-  await page.waitForTimeout(700)
+  await page.waitForTimeout(1200)
   // 移动端控制台藏在悬浮球后面的抽屉里
   if (label === '移动') {
     await page.locator('.fab-btn').click()
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(600)
   }
-  await page.locator('.pc-tab-btn', { hasText: '控制中心' }).click()
-  await page.waitForTimeout(500)
   console.log(`\n--- ${label} ---`)
 
-  const titles = await page.evaluate(() =>
-    [...document.querySelectorAll('.pc-card-title')].map((t) => t.textContent.trim())
-  )
-  check(`${label}: 两张卡标题 = 隐私指示 / 双卡显示`, titles.includes('隐私指示') && titles.includes('双卡显示'), titles.join('/'))
+  // 找到「隐私指示」「双卡显示」各自的开关。
+  // 控制台布局变过几次：最早是 .pc-card-duo 两张卡，2026-09-11 后改成
+  // .pc-duo-row 一行两列 —— 所以优先按最小容器 .pc-duo-item 定位，
+  // 找不到再退回 .pc-card，避免 hasText 同时命中包含两项的父容器。
+  const findSwitch = async (title) => {
+    for (const sel of ['.pc-duo-item', '.pc-card']) {
+      const el = page.locator(sel, { hasText: title }).first()
+      if ((await el.count()) > 0) return { el, switches: await el.locator('.pc-switch').count() }
+    }
+    return { el: null, switches: 0 }
+  }
 
-  check(`${label}: 双底板容器 .pc-card-duo 存在`, (await page.locator('.pc-card-duo').count()) === 1)
+  const privacy = await findSwitch('隐私指示')
+  const dual = await findSwitch('双卡显示')
+  check(`${label}: 存在「隐私指示」项`, privacy.el !== null)
+  check(`${label}: 存在「双卡显示」项`, dual.el !== null)
+  if (privacy.el) check(`${label}: 隐私指示有开关`, privacy.switches >= 1)
+  if (dual.el) check(`${label}: 双卡显示有开关`, dual.switches >= 1)
+  // 双态按钮（已被否决的方案）不应回归
   check(`${label}: 没有残留的双态按钮`, (await page.locator('.pc-toggle-btn').count()) === 0)
-
-  const privacyCard = page.locator('.pc-card', { hasText: '隐私指示' }).first()
-  const dualCard = page.locator('.pc-card', { hasText: '双卡显示' }).first()
-  check(`${label}: 隐私指示卡有开关`, (await privacyCard.locator('.pc-switch').count()) === 1)
-  check(`${label}: 双卡显示卡有开关`, (await dualCard.locator('.pc-switch').count()) === 1)
 
   const init = await page.evaluate(() => [window.__control.showPrivacyIndicators, window.__control.showDualSim])
   check(`${label}: 默认都关闭`, init[0] === false && init[1] === false, JSON.stringify(init))
 
-  await privacyCard.locator('.pc-switch').click()
-  await page.waitForTimeout(400)
-  check(`${label}: 点隐私指示开关 → 开`, (await page.evaluate(() => window.__control.showPrivacyIndicators)) === true)
-
-  await privacyCard.locator('.pc-switch').click()
-  await page.waitForTimeout(400)
-  check(`${label}: 再点 → 关`, (await page.evaluate(() => window.__control.showPrivacyIndicators)) === false)
-
-  await dualCard.locator('.pc-switch').click()
-  await page.waitForTimeout(400)
-  check(`${label}: 点双卡显示开关 → 开`, (await page.evaluate(() => window.__control.showDualSim)) === true)
+  if (privacy.el && privacy.switches >= 1) {
+    await privacy.el.locator('.pc-switch').first().click()
+    await page.waitForTimeout(400)
+    check(`${label}: 点隐私指示开关 → 开`, (await page.evaluate(() => window.__control.showPrivacyIndicators)) === true)
+    await privacy.el.locator('.pc-switch').first().click()
+    await page.waitForTimeout(400)
+    check(`${label}: 再点 → 关`, (await page.evaluate(() => window.__control.showPrivacyIndicators)) === false)
+  }
+  if (dual.el && dual.switches >= 1) {
+    await dual.el.locator('.pc-switch').first().click()
+    await page.waitForTimeout(400)
+    check(`${label}: 点双卡显示开关 → 开`, (await page.evaluate(() => window.__control.showDualSim)) === true)
+  }
 
   check(`${label}: 无控制台报错`, errs.length === 0, errs.slice(0, 2).join(' | '))
   await ctx.close()

@@ -1,4 +1,4 @@
-import { onUnmounted } from 'vue'
+import { inject, onUnmounted } from 'vue'
 
 /**
  * 应用内「返回」处理器栈：全局侧滑手势先问栈顶处理器，
@@ -16,8 +16,13 @@ const stack = []
 /**
  * 注册一个返回处理器，组件卸载时自动移除。
  * @param fn () => boolean  返回 true = 已处理（不回桌面）
+ *
+ * 守卫：AppSwitcher 的预览卡片用 provide('appPreview') 标记，
+ * 预览实例不注册 —— 否则卡片里的二级页处理器会污染全局返回栈，
+ * 导致真正前台应用的侧滑返回被预览实例抢走。
  */
 export function useBackHandler(fn) {
+  if (inject('appPreview', false)) return () => {}
   stack.push(fn)
   const remove = () => {
     const i = stack.indexOf(fn)

@@ -12,9 +12,12 @@ page.on('pageerror', (e) => errs.push('PAGEERROR: ' + e.message))
 await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle' })
 await page.waitForTimeout(500)
 
-// 切到「控制中心」页签
-await page.locator('.pc-tab-bar .pc-tab-btn', { hasText: '控制中心' }).click()
-await page.waitForTimeout(300)
+// 控制台 2026-09-11 改版：模块切换从标签页改为卡片分区，默认即展示控制中心分区，
+// 不再有 .pc-tab-btn。若将来再改回标签式，下面这行点击会自动跳过（找不到就继续）。
+if ((await page.locator('.pc-tab-bar .pc-tab-btn', { hasText: '控制中心' }).count()) > 0) {
+  await page.locator('.pc-tab-bar .pc-tab-btn', { hasText: '控制中心' }).click()
+  await page.waitForTimeout(300)
+}
 
 // 两行按钮都显示 CAMON / NOTE / GT，靠行首文案区分版本 —— 所以按「行 + 标签」定位
 const PRESETS = [
@@ -105,7 +108,9 @@ for (const p of PRESETS) {
       tL: +tr.left.toFixed(1), tR: +tr.right.toFixed(1), tT: +tr.top.toFixed(1), tB: +tr.bottom.toFixed(1),
       bL: +br.left.toFixed(1), bR: +br.right.toFixed(1), bT: +br.top.toFixed(1), bB: +br.bottom.toFixed(1),
       opacity: getComputedStyle(th).opacity,
-      onCount: card.querySelectorAll('.pc-seg-btn.on').length,
+      // 控制台 2026-09-11 改版后整卡是一张大卡片含多个分区（编辑算法等），
+      // 统计高亮必须限定在预设行容器内，否则会数到别家的 .pc-seg-btn.on
+      onCount: card.querySelectorAll('.pc-preset-rows .pc-seg-btn.on, .pc-preset-row .pc-seg-btn.on').length,
       idx: [...seg.querySelectorAll('.pc-seg-btn')].indexOf(btn),
       n: seg.querySelectorAll('.pc-seg-btn').length,
       on: btn.classList.contains('on')
