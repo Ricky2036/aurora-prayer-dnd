@@ -63,5 +63,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix mobile LockScreen notification swipe flickering and refine Dynamic Island compact capsule & icon size | `antigravity/lane` | None (locks released) | `2bb765b` | `e83ccb6` |
 | Merged | Antigravity | Eliminate lockscreen notification scroll lag and add desktop mouse drag scrolling | `antigravity/lane` | None (locks released) | `f2d052f` | `e94b54d` |
 | Merged | Antigravity | Voice Memos launch notification authorization modal & permission linkage | `antigravity/lane` | None (locks released) | `aef175f` | `675f68e` |
+| Active | Antigravity | Refine notification authorization modal to record click trigger & Control Center bell icon | `antigravity/lane` | `src/components/ui/NotificationPermissionModal.vue`; `src/components/apps/voicememos/VoiceMemosApp.vue`; `tests/notificationsLinkage.test.js` | d91f06d | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
