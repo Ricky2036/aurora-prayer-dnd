@@ -84,26 +84,30 @@ await dwellSwipe()
 s = await S()
 check('停驻手势打开切换器', s.switcher === true, `switcher=${s.switcher}`)
 check('切换器 DOM 渲染', (await page.locator('.app-switcher').count()) === 1)
-const cardCount = await page.locator('.switcher-card').count()
-check('渲染 3 张卡片', cardCount === 3, `actual=${cardCount}`)
+// 跟手卡在进场进度 <1 时存在（is-follow），堆叠卡不含它
+const followCount = await page.locator('.switcher-card.is-follow').count()
+check('进场跟手卡存在（或已完成让位）', followCount <= 1, `follow=${followCount}`)
+await page.waitForTimeout(500) // 等进场弹簧把进度推到 1，跟手卡让位给堆叠卡
+const cardCount = await page.locator('.switcher-card:not(.is-follow)').count()
+check('渲染 3 张堆叠卡', cardCount === 3, `actual=${cardCount}`)
 
-// 卡片内容存在（settings 预览里能看到设置界面文字）
-const firstCardText = await page.locator('.switcher-card').first().innerText()
+// 卡片内容存在（拨号键盘是 phone 应用首页）
+const firstCardText = await page.locator('.switcher-card:not(.is-follow)').first().innerText()
 check('卡片预览有内容（非空白）', firstCardText.trim().length > 0, firstCardText.slice(0, 30))
 
 // ---- 横滑浏览（快滑切到下一张）----
 // 小幅度拖拽会按 iOS 行为吸附回原位，所以要用快速甩动（大速度 → 跨卡）
-const beforeX = (await page.locator('.switcher-card').nth(1).boundingBox()).x
+const beforeX = (await page.locator('.switcher-card:not(.is-follow)').nth(1).boundingBox()).x
 await page.mouse.move(215, 500)
 await page.mouse.down()
 await page.mouse.move(60, 500, { steps: 3 })
 await page.mouse.up()
 await page.waitForTimeout(800)
-const afterX = (await page.locator('.switcher-card').nth(1).boundingBox()).x
+const afterX = (await page.locator('.switcher-card:not(.is-follow)').nth(1).boundingBox()).x
 check('快滑后卡片位移', Math.abs(afterX - beforeX) > 30, `Δx=${Math.abs(afterX - beforeX).toFixed(1)}`)
 
 // ---- 点卡片恢复（快滑后居中的是第 2 张卡 = clock）----
-await page.locator('.switcher-card').nth(1).click()
+await page.locator('.switcher-card:not(.is-follow)').nth(1).click()
 await page.waitForTimeout(500)
 s = await S()
 check('点卡片恢复应用 + 切换器关闭', s.switcher === false && s.base === 'app' && s.app === 'clock', JSON.stringify(s))

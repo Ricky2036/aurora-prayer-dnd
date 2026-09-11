@@ -71,10 +71,13 @@ const gesture = useSwipeGesture(rootRef, {
     snapTo(p)
   },
   onRelease(p, velocity) {
-    /* 切换器入口（Ricky 2026-09-11，iOS 卡片堆叠 Recent）：
-     *   慢速松手 + 进度过三分之一 = 「滑到一半停住」→ 打开切换器；
-     *   快速甩（原逻辑 velocity > 0.4）或进度很小 → 回桌面/回弹，行为不变。
-     *   桌面上没有回桌面语义，慢滑进切换器、快滑/小进度都回弹。 */
+    /* 切换器入口（2026-09-11 全面重构）：
+     *   跟手缩放由 AppWindow 的 hero 预览在拖动中承担（原有行为），
+     *   松手若是「慢速 + 大进度」（滑到一半停住）→ 打开切换器：
+     *   先把 hero 预览瞬时归位（snapTo(0)，被淡入的模糊背景盖住），
+     *   再把 switcherProgress 铺到 0.5 作为交接起点，
+     *   AppSwitcher 的跟手卡从该比例继续弹簧收缩到卡位 —— 全程无跳变。
+     *   快滑/小进度：回桌面或回弹，行为不变。 */
     const dwellOpen =
       Math.abs(velocity) <= 0.25 &&
       p >= 0.35 &&
@@ -92,8 +95,9 @@ const gesture = useSwipeGesture(rootRef, {
     }
 
     if (dwellOpen) {
+      snapTo(0) // hero 预览瞬时归位（被随后淡入的模糊背景盖住）
+      system.setSwitcherProgress(0.5)
       system.openSwitcher()
-      animateTo(0)
       return 0
     }
 

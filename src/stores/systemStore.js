@@ -21,9 +21,12 @@ export const useSystemStore = defineStore('system', {
      * recentApps：最近使用的 appId 列表，LIFO 去重，最多 5 个。
      *   注意它**包含**当前 activeAppId（列表第 0 项），渲染切换器时按此排列。
      *   openApp 时自动 touchRecent，无需应用自己维护。
-     * appSwitcherOpen：切换器是否展开（手势驱动时由 HomeIndicator 直写）。 */
+     * appSwitcherOpen：切换器是否展开（手势驱动时由 HomeIndicator 直写）。
+     * switcherProgress：进入切换器的跟手进度 0..1（HomeIndicator 上滑时实时写），
+     *   AppSwitcher 用它做「前台应用从全屏连续缩放到卡位」的跟手动画。 */
     recentApps: [],
-    appSwitcherOpen: false
+    appSwitcherOpen: false,
+    switcherProgress: 0
   }),
 
   getters: {
@@ -102,7 +105,10 @@ export const useSystemStore = defineStore('system', {
       this.recentApps = [appId, ...this.recentApps.filter((id) => id !== appId)].slice(0, 5)
     },
 
-    /** 打开切换器（无最近任务时不打开） */
+    /** 打开切换器（无最近任务时不打开）。
+     *  手势路径：进度由 HomeIndicator 在松手时铺到 ~0.5，
+     *  AppSwitcher 接手弹簧推到 1（前台应用连续缩进卡位，无跳变）；
+     *  直开路径（桌面/调试）：AppSwitcher 检测到无 activeAppId 会把进度直接置 1。 */
     openSwitcher() {
       if (this.recentApps.length === 0) return
       this.appSwitcherOpen = true
@@ -111,6 +117,12 @@ export const useSystemStore = defineStore('system', {
     /** 关闭切换器，回到 baseLayer（home 或 app） */
     closeSwitcher() {
       this.appSwitcherOpen = false
+      this.switcherProgress = 0
+    },
+
+    /** 手势跟手进度：0 = 未进入，1 = 完全进入 */
+    setSwitcherProgress(p) {
+      this.switcherProgress = Math.max(0, Math.min(1, p))
     },
 
     /** 切换器里上滑移除某个应用卡片 */
@@ -121,7 +133,15 @@ export const useSystemStore = defineStore('system', {
         this.activeAppId = null
         this.baseLayer = 'home'
       }
-      if (this.recentApps.length === 0) this.appSwitcherOpen = false
+      if (this.recentApps.length === 0) this.closeSwitcher()
+    },
+
+    /** 底部垃圾桶：清空全部最近任务，回桌面 */
+    dismissAll() {
+      this.recentApps = []
+      this.activeAppId = null
+      this.baseLayer = 'home'
+      this.closeSwitcher()
     },
 
     /** 切换器里点卡片恢复某个应用 */
