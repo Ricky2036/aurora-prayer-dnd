@@ -49,7 +49,7 @@ function activate(event, id, item) {
 <template>
   <div class="app-grid" :data-page="pageIndex">
     <div v-for="(id, index) in itemIds" :key="id" :ref="el => setItemRef(id,el)" class="home-item"
-      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-folder-target': folderTargetId === id, 'is-removing': removing.has(id) }"
+      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-target': folderTargetId === id, 'is-removing': removing.has(id) }"
       :data-home-item="id" :data-page-index="pageIndex" :data-item-index="index" :style="itemStyle(id)"
       @pointerdown="emit('item-pointerdown', $event, id, pageIndex, index)"
       @click.capture="activate($event, id, items[id])">
@@ -64,9 +64,11 @@ function activate(event, id, item) {
 </template>
 
 <style scoped>
-.app-grid { width:100%; height:100%; padding:calc(var(--safe-top,54px) + 12px) 24px 0; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:repeat(6,76px); column-gap:var(--grid-gap-x,24px); row-gap:8px; align-content:start; }
-.home-item { position:relative; min-width:0; min-height:0; display:flex; align-items:flex-start; justify-content:center; transition:transform 220ms cubic-bezier(.22,.8,.26,1),opacity 160ms ease; touch-action:none; }
-.home-item.is-large { align-items:stretch; }
+.app-grid { width:100%; height:100%; padding:calc(var(--safe-top,54px) + 12px) 24px 0; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:69.5px 69.5px repeat(4,79px); column-gap:var(--grid-gap-x,24px); row-gap:20px; align-content:start; }
+.home-item { position:relative; min-width:0; min-height:79px; display:flex; align-items:flex-start; justify-content:center; transition:transform 220ms cubic-bezier(.22,.8,.26,1),opacity 160ms ease; touch-action:none; }
+.home-item.is-widget { min-height:0; aspect-ratio:1/1; align-self:start; }
+.home-item.is-widget :deep(.widget),
+.home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
 .home-item.is-dragging-source { opacity:.16; }
 .home-item.is-folder-target { transform:scale(1.1); filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
 .home-item.is-removing{transform:scale(.2);opacity:0;transition:transform 180ms ease,opacity 180ms ease}

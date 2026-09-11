@@ -26,6 +26,14 @@ test('motion polish includes FLIP, removal animation and reduced-motion support'
   assert.match(dock, /is-removing/)
 })
 
+test('desktop grid preserves square widgets and the original icon spacing', async () => {
+  const grid = await read('../src/components/system/AppGrid.vue')
+  assert.match(grid, /grid-template-rows:69\.5px 69\.5px repeat\(4,79px\)/)
+  assert.match(grid, /row-gap:20px/)
+  assert.match(grid, /\.home-item\.is-widget \{[^}]*aspect-ratio:1\/1/)
+  assert.doesNotMatch(grid, /\.home-item\.is-large \{ align-items:stretch; \}/)
+})
+
 test('folders expose all four sizes, renaming and app drag-out', async () => {
   const [home, overlay] = await Promise.all([
     read('../src/components/system/HomeScreen.vue'),
