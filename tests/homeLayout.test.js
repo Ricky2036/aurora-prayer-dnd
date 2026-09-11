@@ -6,7 +6,8 @@ import {
   HOME_ROWS,
   moveHomeItem,
   packHomePage,
-  reflowHomePages
+  reflowHomePages,
+  resolveDesktopPage
 } from '../src/utils/homeLayout.js'
 import {
   HOME_STORAGE_KEY,
@@ -55,6 +56,13 @@ test('flows overflow to following pages and removes empty tail pages', () => {
 
 test('moves an item between pages at a stable insertion index', () => {
   assert.deepEqual(moveHomeItem([['a', 'b'], ['c']], 'b', 1, 1), [['a'], ['c', 'b']])
+})
+
+test('settles page swipes and opens the library beyond the final page', () => {
+  assert.deepEqual(resolveDesktopPage({ currentPage: 0, pageCount: 3, delta: -90 }), { page: 1, openLibrary: false })
+  assert.deepEqual(resolveDesktopPage({ currentPage: 2, pageCount: 3, delta: -90 }), { page: 2, openLibrary: true })
+  assert.deepEqual(resolveDesktopPage({ currentPage: 0, pageCount: 3, delta: 90 }), { page: 0, openLibrary: false })
+  assert.deepEqual(resolveDesktopPage({ currentPage: 1, pageCount: 3, delta: 10 }), { page: 1, openLibrary: false })
 })
 
 test('creates, resizes and dissolves a folder without losing its apps', () => {
