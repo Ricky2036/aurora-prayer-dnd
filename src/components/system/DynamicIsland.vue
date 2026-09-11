@@ -10,6 +10,7 @@ import { useControlStore } from '../../stores/controlStore'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import LIcon from '../ui/LIcon.vue'
+import IslandCloseModal from '../ui/IslandCloseModal.vue'
 import MusicPlayerCard from './MusicPlayerCard.vue'
 import albumCover from '../../assets/icons/album_cover.png'
 
@@ -146,8 +147,218 @@ const compactCapsuleTime = computed(() => {
   return ''
 })
 
+/* ================== 横滑操作（设置与删除） ================== */
+const swipeOffsets = ref({})
+let activeCardId = null
+let cardPointerStartX = 0
+let cardPointerStartY = 0
+let cardInitialOffset = 0
+let isSwipingCard = false
+let swipeGestureDecided = false
+let cardPointerTarget = null
+let cardPointerId = null
+let justSwipedId = null
+const swipedTransitionId = ref(null)
+
+const isIslandModalVisible = ref(false)
+const pendingIslandAct = ref(null)
+
+watch(isExpanded, (expanded) => {
+  if (!expanded) {
+    swipeOffsets.value = {}
+    isIslandModalVisible.value = false
+    pendingIslandAct.value = null
+  }
+})
+
+function stopActivityInstance(type) {
+  if (!type) return
+  if (type === 'alarm') {
+    clockStore.dismissAlarm()
+  } else if (type === 'recorder') {
+    recorderStore.stopRecording()
+  } else if (type === 'timer') {
+    clockStore.cancelTimer()
+  } else if (type === 'stopwatch') {
+    clockStore.resetStopwatch()
+  } else if (type === 'prayer') {
+    prayerStore.closeIsland()
+  } else if (type === 'media') {
+    control.mediaPlaying = false
+  }
+}
+
+function onRequestDeleteActivity(item) {
+  const type = typeof item === 'string' ? item : (item?.type || item?.id)
+  pendingIslandAct.value = { id: type, type }
+  isIslandModalVisible.value = true
+}
+
+function handleCloseOnce() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act.type)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleClosePermanent() {
+  if (!pendingIslandAct.value) return
+  const act = pendingIslandAct.value
+  stopActivityInstance(act.type)
+  notificationsStore.setIslandEnabled(act.type, false)
+  const next = { ...swipeOffsets.value }
+  delete next[act.id]
+  swipeOffsets.value = next
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function handleCancelIslandModal() {
+  isIslandModalVisible.value = false
+  pendingIslandAct.value = null
+}
+
+function onJumpSettings(item) {
+  isExpanded.value = false
+  notificationsStore.setTargetView('notifications', 'dynamicBar')
+  system.openApp('settings')
+  swipeOffsets.value = {}
+}
+
+function resetOtherCards(currentId) {
+  const next = {}
+  Object.keys(swipeOffsets.value).forEach((id) => {
+    if (id === currentId) next[id] = swipeOffsets.value[id]
+  })
+  swipeOffsets.value = next
+}
+
+function onCardPointerDown(e, id) {
+  if (!isExpanded.value) return
+  if (e.target.closest('button') || e.target.closest('.ilc-btn') || e.target.closest('.media-ctrl-btn')) return
+  activeCardId = id
+  cardPointerStartX = e.clientX
+  cardPointerStartY = e.clientY
+  cardInitialOffset = swipeOffsets.value[id] || 0
+  swipeGestureDecided = false
+  isSwipingCard = false
+  cardPointerId = e.pointerId
+  cardPointerTarget = e.currentTarget
+}
+
+function onCardPointerMove(e, id) {
+  if (activeCardId !== id || !isExpanded.value) return
+  const dx = e.clientX - cardPointerStartX
+  const dy = e.clientY - cardPointerStartY
+
+  if (!swipeGestureDecided) {
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+      swipeGestureDecided = true
+      if (Math.abs(dx) > Math.abs(dy)) {
+        isSwipingCard = true
+        try {
+          cardPointerTarget?.setPointerCapture(cardPointerId)
+        } catch (_) {}
+      } else {
+        isSwipingCard = false
+      }
+    }
+  }
+
+  if (isSwipingCard) {
+    let nextOffset = cardInitialOffset + dx
+    if (nextOffset > 0) nextOffset = nextOffset * 0.2
+    if (nextOffset < -260) nextOffset = -260 + (nextOffset + 260) * 0.2
+    swipeOffsets.value = {
+      ...swipeOffsets.value,
+      [id]: nextOffset
+    }
+  }
+}
+
+function onCardPointerUp(e, id) {
+  if (activeCardId !== id) return
+  if (isSwipingCard) {
+    justSwipedId = id
+    swipedTransitionId.value = id
+    setTimeout(() => {
+      if (justSwipedId === id) justSwipedId = null
+    }, 250)
+    setTimeout(() => {
+      if (swipedTransitionId.value === id) swipedTransitionId.value = null
+    }, 280)
+
+    const currentOffset = swipeOffsets.value[id] || 0
+    if (currentOffset <= -170) {
+      swipedTransitionId.value = id
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -420
+      }
+      setTimeout(() => {
+        onRequestDeleteActivity(id)
+      }, 200)
+    } else if (currentOffset < -45) {
+      resetOtherCards(id)
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -118
+      }
+    } else {
+      const next = { ...swipeOffsets.value }
+      delete next[id]
+      swipeOffsets.value = next
+    }
+  }
+  try {
+    cardPointerTarget?.releasePointerCapture(cardPointerId)
+  } catch (_) {}
+  activeCardId = null
+  isSwipingCard = false
+  swipeGestureDecided = false
+  cardPointerTarget = null
+  cardPointerId = null
+}
+
+function getActionBtnStyle(id, type) {
+  const offset = swipeOffsets.value[id] || 0
+  if (offset >= 0) {
+    return {
+      opacity: 0,
+      transform: 'translateX(0)',
+      pointerEvents: 'none'
+    }
+  }
+  const dist = Math.abs(offset)
+  const isSettings = type === 'settings'
+  const opacity = Math.min(1, dist / 35).toFixed(2)
+  const extraDist = Math.max(0, dist - 118)
+  const extraGap = extraDist * 0.45
+  const shiftX = isSettings ? extraGap : (extraGap * 0.12)
+  const isCurrentlySwiping = isSwipingCard && activeCardId === id
+  return {
+    opacity,
+    transform: `translateX(${-shiftX}px)`,
+    transition: isCurrentlySwiping ? 'none' : 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease'
+  }
+}
+
 /* 点击卡片主体跳转至对应 App */
 function handleCardClick(item) {
+  if (justSwipedId === item) {
+    justSwipedId = null
+    return
+  }
+  if ((swipeOffsets.value[item] || 0) < -5) {
+    const next = { ...swipeOffsets.value }
+    delete next[item]
+    swipeOffsets.value = next
+    return
+  }
   if (item === 'alarm') {
     openClockTab('alarm')
   } else if (item === 'timer') {
@@ -186,6 +397,7 @@ function onSubcardBeforeLeave(el) {
 /* 点击背景遮罩收起 */
 function handleCloseBackdrop() {
   isExpanded.value = false
+  swipeOffsets.value = {}
 }
 
 /* 点击时钟卡片跳转进入对应 Tab 并收起 */
@@ -193,12 +405,14 @@ function openClockTab(tab) {
   clockStore.setActiveTab(tab)
   system.openApp('clock')
   isExpanded.value = false
+  swipeOffsets.value = {}
 }
 
 /* 打开录音机并收起 */
 function openRecorderApp() {
   system.openApp('voicememos')
   isExpanded.value = false
+  swipeOffsets.value = {}
 }
 
 /* 停止录音 */
@@ -268,10 +482,51 @@ function handleClosePrayer(e) {
         </div>
       </div>
 
+      <!-- 底层滑动操作按钮（仅在展开态且有滑动时活跃） -->
+      <div
+        v-if="isExpanded"
+        class="island-swipe-actions"
+        :class="{ 'is-active': (swipeOffsets[primaryActiveItem] || 0) < -2 }"
+      >
+        <button
+          class="island-action-btn island-btn-settings"
+          :style="getActionBtnStyle(primaryActiveItem, 'settings')"
+          @click.stop="onJumpSettings(primaryActiveItem)"
+          :title="i18n.t('islandSettings')"
+        >
+          <LIcon name="headerSettings" :size="20" />
+        </button>
+        <button
+          class="island-action-btn island-btn-delete"
+          :style="getActionBtnStyle(primaryActiveItem, 'delete')"
+          @click.stop="onRequestDeleteActivity(primaryActiveItem)"
+          :title="i18n.t('delete')"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 6h18"/>
+            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+            <line x1="10" y1="11" x2="10" y2="17"/>
+            <line x1="14" y1="11" x2="14" y2="17"/>
+          </svg>
+        </button>
+      </div>
+
       <!-- ================= 1.2 展开态图层（大圆角矩形） ================= -->
       <div
         class="morph-layer expanded-layer"
-        :class="{ 'is-media-layer': primaryActiveItem === 'media' }"
+        :class="[
+          { 'is-media-layer': primaryActiveItem === 'media' },
+          {
+            'is-swiping': isSwipingCard && activeCardId === primaryActiveItem,
+            'has-swipe-transition': !isSwipingCard && swipedTransitionId === primaryActiveItem
+          }
+        ]"
+        :style="{ transform: isExpanded ? `translateX(${swipeOffsets[primaryActiveItem] || 0}px)` : undefined }"
+        @pointerdown="onCardPointerDown($event, primaryActiveItem)"
+        @pointermove="onCardPointerMove($event, primaryActiveItem)"
+        @pointerup="onCardPointerUp($event, primaryActiveItem)"
+        @pointercancel="onCardPointerUp($event, primaryActiveItem)"
       >
         <!-- 主项：闹钟（对齐 Screenshot_20260909-204420.jpg） -->
         <template v-if="primaryActiveItem === 'alarm'">
@@ -507,8 +762,53 @@ function handleClosePrayer(e) {
         :class="{ 'is-media-card': item === 'media' }"
         @click="handleCardClick(item)"
       >
-        <!-- 副项：闹钟 -->
-        <template v-if="item === 'alarm'">
+        <!-- 底层滑动操作按钮 -->
+        <div
+          class="island-swipe-actions"
+          :class="{ 'is-active': (swipeOffsets[item] || 0) < -2 }"
+        >
+          <button
+            class="island-action-btn island-btn-settings"
+            :style="getActionBtnStyle(item, 'settings')"
+            @click.stop="onJumpSettings(item)"
+            :title="i18n.t('islandSettings')"
+          >
+            <LIcon name="headerSettings" :size="20" />
+          </button>
+          <button
+            class="island-action-btn island-btn-delete"
+            :style="getActionBtnStyle(item, 'delete')"
+            @click.stop="onRequestDeleteActivity(item)"
+            :title="i18n.t('delete')"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 表层副卡主体（横滑） -->
+        <div
+          class="island-subcard-front"
+          :class="[
+            { 'is-media-front': item === 'media' },
+            {
+              'is-swiping': isSwipingCard && activeCardId === item,
+              'has-swipe-transition': !isSwipingCard && swipedTransitionId === item
+            }
+          ]"
+          :style="{ transform: `translateX(${swipeOffsets[item] || 0}px)` }"
+          @pointerdown="onCardPointerDown($event, item)"
+          @pointermove="onCardPointerMove($event, item)"
+          @pointerup="onCardPointerUp($event, item)"
+          @pointercancel="onCardPointerUp($event, item)"
+        >
+          <!-- 副项：闹钟 -->
+          <template v-if="item === 'alarm'">
           <div class="ilc-left">
             <div class="ilc-icon-wrap icon-alarm" :class="{ 'is-ringing': clockStore.isAlarmRinging }">
               <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
@@ -722,9 +1022,20 @@ function handleClosePrayer(e) {
         <template v-else-if="item === 'media'">
           <MusicPlayerCard :is-island="true" />
         </template>
+        </div>
       </div>
     </TransitionGroup>
   </div>
+
+  <!-- 灵动岛永久/单次关闭确认弹窗 -->
+  <IslandCloseModal
+    :visible="isIslandModalVisible"
+    :act="pendingIslandAct"
+    @close-once="handleCloseOnce"
+    @close-permanent="handleClosePermanent"
+    @cancel="handleCancelIslandModal"
+    @update:visible="isIslandModalVisible = $event"
+  />
 </template>
 
 <style scoped>
@@ -878,13 +1189,17 @@ function handleClosePrayer(e) {
   justify-content: space-between;
   white-space: nowrap;
   overflow: hidden;
+  z-index: 2;
+  background: #000000;
+  border-radius: 28px;
+  touch-action: pan-y;
+  user-select: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1) 0.12s;
 }
 /* 展开时：延迟 0.12s 待卡片骨架展开到一定宽度后再平滑淡入，避免过窄挤爆换行 */
 .is-expanded .expanded-layer {
   opacity: 1;
-  transform: scale(1);
   pointer-events: auto;
-  transition: opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1) 0.12s, transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
 }
 /* 收起时：立即极速淡出（0.10s），完全杜绝文字挤压与与胶囊重叠的闪烁 */
 .is-compact .expanded-layer {
@@ -894,8 +1209,93 @@ function handleClosePrayer(e) {
   transition: opacity 0.10s ease-out, transform 0.22s ease-out;
 }
 
+.expanded-layer.is-swiping,
+.island-subcard-front.is-swiping {
+  transition: none !important;
+}
+
+.expanded-layer.has-swipe-transition,
+.island-subcard-front.has-swipe-transition {
+  transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+/* 底层滑动操作按钮（默认隐藏，滑动展开时显现） */
+.island-swipe-actions {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 1;
+  padding-right: 12px;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.island-swipe-actions.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.island-action-btn {
+  border: 0.5px solid rgba(255, 255, 255, 0.45);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  border-radius: 50%;
+  flex: none;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+  will-change: transform, opacity;
+}
+
+.island-action-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.island-action-btn svg,
+.island-action-btn :deep(svg) {
+  display: block;
+  flex: none;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+}
+
+.island-btn-settings {
+  color: #ffffff;
+}
+
+.island-btn-delete {
+  color: #ffffff;
+}
+
+.island-btn-delete:active {
+  color: #ff3b30;
+}
+
 /* ================= 展开态副卡片（多活动时独立呈现，尺寸同为主卡片） ================= */
 .island-secondary-card {
+  position: relative;
   margin-top: 10px;
   width: 100%;
   height: 80px;
@@ -903,16 +1303,39 @@ function handleClosePrayer(e) {
   background: #000000;
   color: #ffffff;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px 0 18px;
+  padding: 0;
   box-sizing: border-box;
   cursor: pointer;
   pointer-events: auto;
   white-space: nowrap;
   overflow: hidden;
   will-change: transform, opacity, border-radius;
+}
+
+.island-subcard-front {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 0 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+  z-index: 2;
+  background: #000000;
+  border-radius: 28px;
+  touch-action: pan-y;
+  user-select: none;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.island-subcard-front.is-media-front {
+  display: block;
+  padding: 16px;
+  white-space: normal;
 }
 
 .island-secondary-card:active {
@@ -1233,8 +1656,7 @@ function handleClosePrayer(e) {
 .island-secondary-card.is-media-card {
   height: 164px;
   border-radius: 32px;
-  padding: 16px;
+  padding: 0;
   display: block;
-  white-space: normal;
 }
 </style>

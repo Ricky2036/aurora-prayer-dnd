@@ -187,6 +187,36 @@ test('LockScreen and NotificationCenter use CLOCK_ICONS.snooze without text hack
   assert.ok(!ncContent.includes('<text x="14.8"'), 'NotificationCenter must not use text glyphs')
 })
 
+test('LockScreen and NotificationCenter use CLOCK_ICONS.alarm with alarm-activity-icon and no obsolete inline SVG', () => {
+  const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const ncPath = path.resolve(__dirname, '../src/components/system/NotificationCenter.vue')
+  const lsContent = fs.readFileSync(lsPath, 'utf8')
+  const ncContent = fs.readFileSync(ncPath, 'utf8')
+
+  assert.ok(lsContent.includes(':d="CLOCK_ICONS.alarm"'), 'LockScreen must use CLOCK_ICONS.alarm')
+  assert.ok(lsContent.includes('class="alarm-activity-icon"'), 'LockScreen must use alarm-activity-icon class')
+  assert.ok(!lsContent.includes('<circle cx="17" cy="17" r="10" fill="#FF9F0A"'), 'LockScreen must not have obsolete circular alarm SVG')
+
+  assert.ok(ncContent.includes(':d="CLOCK_ICONS.alarm"'), 'NotificationCenter must use CLOCK_ICONS.alarm')
+  assert.ok(ncContent.includes('class="alarm-activity-icon"'), 'NotificationCenter must use alarm-activity-icon class')
+  assert.ok(!ncContent.includes('<circle cx="17" cy="17" r="10" fill="#FF9F0A"'), 'NotificationCenter must not have obsolete circular alarm SVG')
+})
+
+test('DynamicIsland.vue supports mirrored swipe-to-delete, settings jump, and IslandCloseModal', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/DynamicIsland.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.ok(content.includes('island-swipe-actions'), 'Must render island-swipe-actions layer')
+  assert.ok(content.includes('island-btn-settings'), 'Must render settings button')
+  assert.ok(content.includes('island-btn-delete'), 'Must render delete button')
+  assert.ok(content.includes('IslandCloseModal'), 'Must include IslandCloseModal component')
+  assert.ok(content.includes('onJumpSettings'), 'Must provide onJumpSettings method')
+  assert.ok(content.includes('onRequestDeleteActivity'), 'Must provide onRequestDeleteActivity method')
+  assert.ok(content.includes('onCardPointerDown'), 'Must handle pointer down for swipe gesture')
+  assert.ok(content.includes('onCardPointerMove'), 'Must handle pointer move for swipe gesture')
+  assert.ok(content.includes('onCardPointerUp'), 'Must handle pointer up for swipe gesture')
+})
+
 test('DevConsole uses the vector alarm icon and concise copy without emoji', () => {
   const compPath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
   const content = fs.readFileSync(compPath, 'utf8')
@@ -196,4 +226,5 @@ test('DevConsole uses the vector alarm icon and concise copy without emoji', () 
   assert.doesNotMatch(content, /🔔/, 'Alarm control must not use emoji')
   assert.doesNotMatch(content, /触发 20:44 闹钟/, 'Alarm control must not expose fixture time copy')
 })
+
 

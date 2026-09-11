@@ -755,12 +755,8 @@ function notifStyle(i) {
               <!-- 闹钟类型 -->
               <template v-if="act.type === 'alarm'">
                 <div class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
-                  <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
-                    <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                    <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                    <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
-                    <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                    <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                  <svg class="alarm-activity-icon" width="34" height="34" viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.alarm" />
                   </svg>
                 </div>
                 <div class="ls-rc-info">
@@ -950,12 +946,8 @@ function notifStyle(i) {
           >
             <template v-if="item.isActivity">
               <div v-if="item.activity.type === 'alarm'" class="ls-act-icon-wrap icon-alarm" :class="{ 'is-ringing': clock.isAlarmRinging }">
-                <svg width="26" height="26" viewBox="0 0 34 34" fill="none">
-                  <path d="M5.5 11C4 13.5 4 17.5 5.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                  <path d="M28.5 11C30 13.5 30 17.5 28.5 20" stroke="#FF9F0A" stroke-width="2.2" stroke-linecap="round" />
-                  <circle cx="17" cy="17" r="10" fill="#FF9F0A" />
-                  <path d="M17 11.5V17H12.5" stroke="#000000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                  <circle cx="17" cy="17" r="1.3" fill="#000000" />
+                <svg class="alarm-activity-icon" width="26" height="26" viewBox="0 0 24 24" aria-hidden="true">
+                  <path :d="CLOCK_ICONS.alarm" />
                 </svg>
               </div>
               <div v-else-if="item.activity.type === 'recorder'" class="ls-rc-icon-wrap">
@@ -1274,9 +1266,12 @@ function notifStyle(i) {
 .ls-act-icon-wrap.icon-alarm {
   background: transparent;
 }
+.ls-act-icon-wrap.icon-alarm .alarm-activity-icon {
+  fill: #ff9f0a;
+}
 .ls-act-icon-wrap.icon-alarm.is-ringing svg {
   animation: alarmRingWiggle 1.4s ease-in-out infinite;
-  transform-origin: 17px 17px;
+  transform-origin: center;
 }
 @keyframes alarmRingWiggle {
   0%, 100% { transform: rotate(0deg); }
