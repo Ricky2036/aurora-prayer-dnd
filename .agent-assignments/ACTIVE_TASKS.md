@@ -59,6 +59,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Synchronize dynamic island switch off when notification master switch is turned off | `antigravity/lane` | `src/stores/notificationsStore.js`; `src/components/apps/settings/SettingsNotifications.vue`; `tests/notificationsLinkage.test.js` | `069bdb6` | `01604af` |
 | Merged | Antigravity | Adjust status bar horizontal inset to pull icons inward from screen edge | `antigravity/lane` | `src/components/phone/StatusBar.vue`; `tests/statusBar.test.js` | `fe10deb` | `3a315c8` |
 | Merged | Antigravity | Fix Spotify notification settings jump and direct MP4 unframed screen recording | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/App.vue`; `src/composables/useCapture.js`; `tests/notificationsLinkage.test.js` | `5474bfe` | `e4ff671` |
-| Active | Codex | Desktop foundation capabilities | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/stores/homeStore.js`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/system/AppLibrary.vue`; `src/components/ui/AppIcon.vue`; new desktop components, layout utilities, and tests | `00c594f` | — |
+| Merged | Codex | Desktop foundation capabilities | `codex/lane` | None (desktop file locks released) | `00c594f` | `d6a6d43..21d46ab` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
