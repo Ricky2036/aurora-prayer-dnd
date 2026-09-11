@@ -144,8 +144,11 @@ function targetIndexAt(x, y) {
 }
 function updatePreview(x, y) {
   if (!dragging.value || !previewPages.value) return
-  trackFolderTarget(x, y)
   trackDockTarget(x, y)
+  if (dockTargetIndex.value != null) return
+  trackFolderTarget(x, y)
+  // 命中文件夹候选时保持原网格不动，让 420ms 停留计时不会因实时让位而丢失目标。
+  if (pointer.folderCandidate) return
   const index = targetIndexAt(x, y)
   const next = moveHomeItem(previewPages.value, dragging.value.id, home.currentPage, index)
   previewPages.value = reflowHomePages(next, home.items, home.folders).pages
