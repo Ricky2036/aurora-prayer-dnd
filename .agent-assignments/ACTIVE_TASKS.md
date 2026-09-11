@@ -49,6 +49,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Restore LockScreen default stacked notifications and sink Live Activity cards when collapsed | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/alarmDynamicIsland.test.js` | `48014f5` | `cf30c87` |
 | Merged | Antigravity | Add recorder notification settings item to top of notification settings list | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/ui/notifIcons.js`; `src/stores/i18nStore.js`; `tests/alarmDynamicIsland.test.js` | `a7f5798` | `cd7bdc7` |
 | Merged | Antigravity | Update settings avatar, set DevConsole default module to island, rename to 灵动岛, and implement 5-button system apps island control | `antigravity/lane` | `src/assets/img/account-avatar.jpg`; `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `cbe9c26` | `92e7788` |
+| Merged | Antigravity | Decouple notification master switch from island settings, link Live Activity switch to dynamic island settings, rename DevConsole prayer card to 礼拜模式 and design SVG icons for 5 prayer buttons | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `f0e6ee3` | `774e5be` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
