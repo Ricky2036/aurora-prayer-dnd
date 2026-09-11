@@ -47,7 +47,7 @@ function activate(event, id, item) {
 </script>
 
 <template>
-  <div class="app-grid" :data-page="pageIndex">
+  <div class="app-grid" :class="{ 'is-editing': editing }" :data-page="pageIndex">
     <div v-for="(id, index) in itemIds" :key="id" :ref="el => setItemRef(id,el)" class="home-item"
       :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-target': folderTargetId === id, 'is-removing': removing.has(id) }"
       :data-home-item="id" :data-page-index="pageIndex" :data-item-index="index" :style="itemStyle(id)"
@@ -58,13 +58,13 @@ function activate(event, id, item) {
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :enter-delay="120 + index * 28" home-anchor />
       <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" @open="emit('open-folder',items[id].folderId,$event)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
-      <button v-if="editing" class="remove-badge" type="button" aria-label="移除桌面项目" @click.stop="emit('request-remove',id)">−</button>
     </div>
   </div>
 </template>
 
 <style scoped>
 .app-grid { width:100%; height:100%; padding:calc(var(--safe-top,54px) + 12px) 24px 0; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:69.5px 69.5px repeat(4,79px); column-gap:var(--grid-gap-x,24px); row-gap:20px; align-content:start; }
+.app-grid.is-editing { transform:translate3d(0,32px,0) scale(.76); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
 .home-item { position:relative; min-width:0; min-height:79px; display:flex; align-items:flex-start; justify-content:center; transition:transform 220ms cubic-bezier(.22,.8,.26,1),opacity 160ms ease; touch-action:none; }
 .home-item.is-widget { min-height:0; aspect-ratio:1/1; align-self:start; }
 .home-item.is-widget :deep(.widget),
@@ -74,9 +74,8 @@ function activate(event, id, item) {
 .home-item.is-removing{transform:scale(.2);opacity:0;transition:transform 180ms ease,opacity 180ms ease}
 .home-item.is-editing:not(.is-dragging-source) { animation:home-wiggle 170ms ease-in-out infinite alternate; }
 .home-item:nth-child(even).is-editing { animation-delay:-85ms; }
-.selection-mark { position:absolute; top:-5px; left:1px; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; color:#fff; background:rgba(50,50,55,.72); border:1.5px solid rgba(255,255,255,.9); font:700 13px/1 var(--font-stack); z-index:4; }
-.is-selected .selection-mark { background:#0a84ff; }
-.remove-badge{position:absolute;right:-5px;top:-6px;width:21px;height:21px;border-radius:50%;background:rgba(45,45,50,.85);color:#fff;font:700 19px/18px var(--font-stack);z-index:5}
+.selection-mark { position:absolute; top:-8px; right:-6px; width:25px; height:25px; display:grid; place-items:center; box-sizing:border-box; border-radius:50%; color:transparent; background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(240,245,255,.8)); border:1px solid rgba(255,255,255,.98); box-shadow:inset 0 1px 2px rgba(255,255,255,1),0 2px 7px rgba(15,26,62,.22); backdrop-filter:blur(12px) saturate(180%); font:700 14px/1 var(--font-stack); z-index:4; }
+.is-selected .selection-mark { color:#fff; background:linear-gradient(145deg,#47a7ff,#0878f9); border-color:rgba(255,255,255,.88); box-shadow:inset 0 1px 1px rgba(255,255,255,.7),0 3px 9px rgba(0,91,230,.42); }
 @keyframes home-wiggle { from{transform:rotate(-1deg)} to{transform:rotate(1deg)} }
-@media (prefers-reduced-motion:reduce) { .home-item,.home-item.is-editing{animation:none;transition-duration:1ms} }
+@media (prefers-reduced-motion:reduce) { .app-grid.is-editing,.home-item,.home-item.is-editing{animation:none;transition-duration:1ms} }
 </style>

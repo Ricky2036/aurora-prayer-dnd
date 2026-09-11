@@ -99,7 +99,7 @@ function setGhostPosition(id, clientX, clientY) {
 }
 function onEmptyPointerDown(event) {
   if (event.button != null && event.button !== 0) return
-  if (event.target.closest('[data-home-item],.dock-bar,.home-editor,.done-button')) return
+  if (event.target.closest('[data-home-item],.dock-bar,.home-editor')) return
   pointer = { id:event.pointerId, mode:'page', startX:event.clientX, startY:event.clientY, startedAt:performance.now(), startPage:home.currentPage, captureEl:capture(event) }
   pressTimer = setTimeout(() => { if (pointer?.mode === 'page') { home.setEditing(true); pointer = null; unbindWindow() } }, 450)
   bindWindow()
@@ -162,10 +162,32 @@ function trackDockTarget(x, y) {
   folderTargetId.value = null
 }
 function targetIndexAt(x, y) {
-  const rect = rootRef.value.getBoundingClientRect()
-  const col = Math.max(0, Math.min(3, Math.floor((x - rect.left) / (rect.width / 4))))
-  const logicalY = (y - rect.top) * (844 / rect.height)
-  const row = Math.max(0, Math.min(5, Math.floor((logicalY - 66) / 84)))
+  const grid = rootRef.value.querySelector(`[data-page="${home.currentPage}"]`)
+  const rect = grid?.getBoundingClientRect()
+  if (!grid || !rect?.width || !rect?.height) return previewPages.value[home.currentPage].length
+  const style = getComputedStyle(grid)
+  const scaleX = rect.width / grid.offsetWidth
+  const scaleY = rect.height / grid.offsetHeight
+  const paddingLeft = parseFloat(style.paddingLeft) || 0
+  const paddingTop = parseFloat(style.paddingTop) || 0
+  const columnGap = parseFloat(style.columnGap) || 0
+  const rowGap = parseFloat(style.rowGap) || 0
+  const innerWidth = grid.offsetWidth - paddingLeft - (parseFloat(style.paddingRight) || 0)
+  const columnWidth = (innerWidth - columnGap * 3) / 4
+  const localX = (x - rect.left) / scaleX - paddingLeft
+  const localY = (y - rect.top) / scaleY
+  const col = Math.max(0, Math.min(3, Math.floor((localX + columnGap / 2) / (columnWidth + columnGap))))
+  const rowHeights = style.gridTemplateRows.split(' ').map(parseFloat).filter(Number.isFinite)
+  const rowCenters = []
+  let rowTop = paddingTop
+  for (const height of rowHeights) {
+    rowCenters.push(rowTop + height / 2)
+    rowTop += height + rowGap
+  }
+  let row = 0
+  for (let index = 1; index < rowCenters.length; index += 1) {
+    if (Math.abs(localY - rowCenters[index]) < Math.abs(localY - rowCenters[row])) row = index
+  }
   return Math.max(0, Math.min(row * 4 + col, previewPages.value[home.currentPage].length))
 }
 function updatePreview(x, y) {
@@ -303,11 +325,26 @@ function requestRemove(itemId) {
   pendingRemoval.value = [itemId]
 }
 function requestSelectedRemoval() {
-  const ids = [...home.selectedItemIds]
+  const ids = home.selectedItemIds.filter((id) => home.items[id]?.type === 'app')
+  if (!ids.length) return
   if (ids.some((id) => home.items[id]?.type === 'app' && !home.canUninstall(home.items[id].appId))) {
     showToast('核心应用不可卸载'); return
   }
   pendingRemoval.value = ids
+}
+function removeSelectedFromDesktop() {
+  const ids = [...home.selectedItemIds]
+  if (!ids.length) return
+  removingIds.value = ids
+  setTimeout(() => {
+    for (const id of ids) {
+      const item = home.items[id]
+      if (item?.type === 'app') home.removeFromDesktop(id)
+      else if (item?.type === 'widget') home.removeWidget(item.widgetId)
+      else if (item?.type === 'folder') home.removeFolder(item.folderId)
+    }
+    removingIds.value = []
+  },180)
 }
 function confirmRemoval() {
   const ids = [...pendingRemoval.value]
@@ -331,6 +368,26 @@ const selectedFolder = computed(() => {
   const item = home.items[home.selectedItemIds[0]]
   return item?.type === 'folder' ? home.folders[item.folderId] : null
 })
+const hasSelection = computed(() => home.selectedItemIds.length > 0)
+const canGroupSelection = computed(() => home.selectedItemIds.filter((id) => home.items[id]?.type === 'app').length >= 2)
+const canUninstallSelection = computed(() => hasSelection.value && home.selectedItemIds.every((id) => {
+  const item = home.items[id]
+  return item?.type === 'app' && home.canUninstall(item.appId)
+}))
+const layoutPresets = ['free','dense','balanced','focus','blank']
+const folderSizes = [[1,1],[2,1],[1,2],[2,2]]
+function chooseLayoutPreset(index) {
+  if (selectedFolder.value && folderSizes[index]) {
+    home.resizeFolder(selectedFolder.value.id,...folderSizes[index])
+    return
+  }
+  showToast('布局：开发中')
+}
+function layoutPresetActive(index) {
+  if (!selectedFolder.value) return index === 0
+  const size = folderSizes[index]
+  return Boolean(size && selectedFolder.value.width === size[0] && selectedFolder.value.height === size[1])
+}
 onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimers(); unbindWindow() })
 </script>
 
@@ -343,27 +400,44 @@ onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimeout(pageIndicatorTim
           @item-pointerdown="onItemPointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove" />
       </section>
     </div>
-    <button v-if="home.editing" class="done-button" type="button" @click="home.setEditing(false)">完成</button>
-    <div class="indicator-wrap"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="showPageDots" @search="emit('open-library')" /></div>
-    <DockBar :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
-      @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
-    <div v-if="home.editing && (home.selectedItemIds.length >= 2 || selectedFolder)" class="folder-tools home-editor">
-      <button v-if="home.selectedItemIds.length >= 2" type="button" @click="createSelectedFolder">新建文件夹</button>
-      <template v-if="selectedFolder">
-        <button v-for="size in [[1,1],[2,1],[1,2],[2,2]]" :key="size.join('x')" type="button"
-          :class="{ active:selectedFolder.width === size[0] && selectedFolder.height === size[1] }"
-          @click="home.resizeFolder(selectedFolder.id,size[0],size[1])">{{ size[0] }}×{{ size[1] }}</button>
-      </template>
+    <div v-if="home.editing" class="edit-actions home-editor">
+      <button type="button" :disabled="!canGroupSelection" @click="createSelectedFolder">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3.5 9.5h10l2.2 2.5h12.8v14.5a2 2 0 0 1-2 2h-23a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2Z"/><path d="M16 15v9M11.5 19.5h9"/></svg>
+        <span>成组</span>
+      </button>
+      <button type="button" :disabled="!hasSelection" @click="removeSelectedFromDesktop">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="M10 16h12"/></svg>
+        <span>移除</span>
+      </button>
+      <button type="button" :disabled="!canUninstallSelection" @click="requestSelectedRemoval">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 10h14l-1.1 17H10.1L9 10Z"/><path d="M12 10V6.5h8V10M6.5 10h19M13.5 14v9M18.5 14v9"/></svg>
+        <span>卸载</span>
+      </button>
     </div>
+    <div class="indicator-wrap"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
+    <DockBar v-if="!home.editing" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
+      @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
     <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin"
       @close="openFolderId=null" @rename="home.renameFolder(openFolderId,$event)" @app-pointerdown="onFolderAppPointerDown" />
-    <div v-if="home.editing" class="edit-toolbar home-editor">
-      <button type="button" @click="showToast('小组件：开发中')">小组件</button>
-      <button type="button" @click="showToast('壁纸与个性化：开发中')">壁纸与个性化</button>
-      <button type="button" @click="showToast('布局：开发中')">布局</button>
-      <button type="button" @click="showToast('桌面设置：开发中')">桌面设置</button>
-      <button :disabled="!home.selectedItemIds.length" type="button" @click="requestSelectedRemoval">删除</button>
-    </div>
+    <Transition name="editor-panel" mode="out-in">
+      <div v-if="home.editing && !hasSelection" key="tools" class="edit-dashboard home-editor">
+        <button class="depth-card" type="button" @click="showToast('景深桌面：开发中')">
+          <span class="depth-preview"><i></i><i></i><i></i></span>
+          <span class="depth-label"><svg viewBox="0 0 24 24"><path d="m4 15 8 4 8-4-8-4-8 4Zm3-5 5 2.5L17 10l-5-2.5L7 10Z"/></svg>景深桌面</span>
+        </button>
+        <div class="edit-tool-grid">
+          <button type="button" @click="showToast('壁纸与个性化：开发中')"><svg viewBox="0 0 24 24"><path d="M5 4h14v12H5zM8 20h8M12 16v4"/></svg><span>壁纸</span></button>
+          <button type="button" @click="showToast('小组件：开发中')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="4" rx="1"/><rect x="13" y="10" width="7" height="10" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/></svg><span>小部件</span></button>
+          <button type="button" @click="showToast('图标：开发中')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="3"/><rect x="13" y="4" width="7" height="7" rx="3"/><rect x="4" y="13" width="7" height="7" rx="3"/><rect x="13" y="13" width="7" height="7" rx="3"/></svg><span>图标</span></button>
+          <button type="button" @click="showToast('桌面设置：开发中')"><svg viewBox="0 0 24 24"><path d="M9.6 3.8 10.4 2h3.2l.8 1.8 2 .8 1.8-.7 2.2 2.2-.7 1.8.8 2 1.8.8v3.2l-1.8.8-.8 2 .7 1.8-2.2 2.2-1.8-.7-2 .8-.8 1.8h-3.2l-.8-1.8-2-.8-1.8.7-2.2-2.2.7-1.8-.8-2L2 13.9v-3.2l1.8-.8.8-2-.7-1.8 2.2-2.2 1.8.7 2-.8Z"/><circle cx="12" cy="12" r="3"/></svg><span>设置</span></button>
+        </div>
+      </div>
+      <div v-else-if="home.editing" key="layouts" class="layout-picker home-editor">
+        <button v-for="(preset,index) in layoutPresets" :key="preset" type="button" :class="['layout-option',`preset-${preset}`,{active:layoutPresetActive(index)}]" @click="chooseLayoutPreset(index)">
+          <span v-for="cell in 20" :key="cell"></span>
+        </button>
+      </div>
+    </Transition>
     <div v-if="toast" class="home-toast">{{ toast }}</div>
     <ActionModal :visible="pendingRemoval.length > 0" title="卸载应用？" desc="应用将从桌面、文件夹、Dock 和应用资源库中移除。"
       cancel-text="取消" confirm-text="卸载" @cancel="pendingRemoval=[]" @backdrop="pendingRemoval=[]" @confirm="confirmRemoval" />
@@ -374,6 +448,44 @@ onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimeout(pageIndicatorTim
 </template>
 
 <style scoped>
-.home-screen{position:absolute;inset:0;z-index:var(--z-home);overflow:hidden;touch-action:none}.home-page-strip{position:absolute;inset:0;display:flex;will-change:transform}.home-page{flex:0 0 100%;width:100%;height:100%}.indicator-wrap{position:absolute;bottom:136px;left:0;right:0;display:flex;justify-content:center}.done-button{position:absolute;right:18px;top:calc(var(--safe-top,54px) + 2px);z-index:12;padding:7px 14px;border-radius:18px;color:#fff;background:rgba(35,35,40,.55);backdrop-filter:blur(18px);font:600 14px/1 var(--font-stack)}.drag-ghost{position:absolute;left:-34px;top:-44px;z-index:999;width:68px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:var(--text-caption);pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));will-change:transform}.drag-ghost img{width:60px;height:60px;border-radius:17px;object-fit:cover;transform:scale(1.08)}.folder-tools{position:absolute;left:50%;bottom:205px;z-index:20;transform:translateX(-50%);display:flex;gap:6px;padding:7px;border-radius:20px;background:rgba(25,25,30,.62);backdrop-filter:blur(20px)}.folder-tools button{padding:7px 9px;border-radius:13px;color:#fff;font:600 12px/1 var(--font-stack)}.folder-tools button.active{background:#0a84ff}.edit-toolbar{position:absolute;left:10px;right:10px;bottom:132px;z-index:18;min-height:54px;padding:5px;display:flex;align-items:center;justify-content:space-around;border-radius:22px;background:rgba(28,28,34,.72);backdrop-filter:blur(24px)}.edit-toolbar button{width:20%;padding:5px 2px;color:#fff;font:500 10px/1.25 var(--font-stack)}.edit-toolbar button:last-child{color:#ff6b64}.edit-toolbar button:disabled{opacity:.35}.home-toast{position:absolute;left:50%;bottom:198px;z-index:80;transform:translateX(-50%);padding:9px 15px;border-radius:17px;background:rgba(20,20,24,.82);color:#fff;white-space:nowrap;font:600 13px/1 var(--font-stack);animation:toast-in 180ms ease}@keyframes toast-in{from{opacity:0;transform:translate(-50%,8px)}}
-@media (prefers-reduced-motion:reduce){.home-page-strip{transition-duration:1ms!important}}
+.home-screen{position:absolute;inset:0;z-index:var(--z-home);overflow:hidden;touch-action:none}
+.home-page-strip{position:absolute;inset:0;display:flex;will-change:transform}
+.home-page{flex:0 0 100%;width:100%;height:100%}
+.indicator-wrap{position:absolute;bottom:136px;left:0;right:0;display:flex;justify-content:center;transition:bottom 320ms cubic-bezier(.22,.8,.26,1)}
+.is-editing .indicator-wrap{bottom:194px}
+.drag-ghost{position:absolute;left:-34px;top:-44px;z-index:999;width:68px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:var(--text-caption);pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));will-change:transform}
+.drag-ghost img{width:60px;height:60px;border-radius:17px;object-fit:cover;transform:scale(1.08)}
+.edit-actions{position:absolute;left:38px;right:38px;top:calc(var(--safe-top,54px) + 8px);z-index:22;display:flex;align-items:flex-start;justify-content:space-between}
+.edit-actions button{width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;color:#fff;font:600 13px/1.2 var(--font-stack);text-shadow:0 1px 4px rgba(0,0,0,.3);transition:opacity 160ms ease,transform 160ms ease}
+.edit-actions button:active:not(:disabled){transform:scale(.92)}
+.edit-actions button:disabled{opacity:.28}
+.edit-actions svg{width:27px;height:27px;fill:rgba(255,255,255,.96);stroke:rgba(255,255,255,.96);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.edit-actions button:first-child svg{fill:rgba(255,255,255,.9);stroke:#536079;stroke-width:1.7}
+.edit-dashboard{position:absolute;left:26px;right:26px;bottom:26px;height:154px;z-index:22;display:grid;grid-template-columns:1.35fr 1fr;gap:9px}
+.depth-card,.edit-tool-grid button,.layout-option{border:.5px solid rgba(255,255,255,.18);background:linear-gradient(145deg,rgba(91,98,116,.94),rgba(48,54,70,.94));box-shadow:inset 0 1px 1px rgba(255,255,255,.2),0 8px 20px rgba(5,10,28,.2);backdrop-filter:blur(24px) saturate(120%);color:#fff}
+.depth-card{border-radius:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+.depth-preview{position:relative;width:104px;height:78px;display:block}
+.depth-preview::before,.depth-preview::after,.depth-preview i{content:"";position:absolute;border-radius:9px;background:linear-gradient(145deg,rgba(213,232,255,.95),rgba(105,139,205,.9));box-shadow:0 4px 8px rgba(8,18,45,.22)}
+.depth-preview::before{width:42px;height:70px;left:15px;top:4px}.depth-preview::after{width:48px;height:72px;right:8px;top:1px;background:linear-gradient(145deg,#efe2d4,#8bb578)}
+.depth-preview i:nth-child(1){width:42px;height:30px;left:15px;bottom:4px;background:linear-gradient(145deg,#80b3ef,#475c8e);z-index:2}
+.depth-preview i:nth-child(2){width:21px;height:21px;right:20px;bottom:5px;border-radius:50%;background:#d66b42;z-index:3}
+.depth-preview i:nth-child(3){width:12px;height:12px;left:31px;top:12px;border-radius:50%;background:#1c2230;z-index:3}
+.depth-label{display:flex;align-items:center;gap:6px;font:600 14px/1 var(--font-stack)}
+.depth-label svg{width:22px;height:22px;fill:#fff}
+.edit-tool-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
+.edit-tool-grid button{border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:500 13px/1 var(--font-stack)}
+.edit-tool-grid svg{width:27px;height:27px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.layout-picker{position:absolute;left:25px;right:25px;bottom:34px;height:116px;z-index:22;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.layout-option{position:relative;border-radius:15px;padding:12px 8px;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(5,1fr);gap:4px;opacity:.84}
+.layout-option span{border-radius:3px;background:rgba(224,228,237,.82)}
+.layout-option.active{opacity:1;border-color:rgba(255,255,255,.48)}
+.layout-option.active span:nth-child(8){background:#1689ff}
+.layout-option.active span:nth-child(17){grid-column:span 2;background:#f5f8fb}
+.layout-option.preset-focus span:nth-child(1){grid-column:span 2;grid-row:span 2}
+.layout-option.preset-blank span{opacity:0}
+.editor-panel-enter-active,.editor-panel-leave-active{transition:opacity 180ms ease,transform 220ms cubic-bezier(.22,.8,.26,1)}
+.editor-panel-enter-from,.editor-panel-leave-to{opacity:0;transform:translateY(16px) scale(.96)}
+.home-toast{position:absolute;left:50%;bottom:198px;z-index:80;transform:translateX(-50%);padding:9px 15px;border-radius:17px;background:rgba(20,20,24,.82);color:#fff;white-space:nowrap;font:600 13px/1 var(--font-stack);animation:toast-in 180ms ease}
+@keyframes toast-in{from{opacity:0;transform:translate(-50%,8px)}}
+@media (prefers-reduced-motion:reduce){.home-page-strip,.indicator-wrap,.editor-panel-enter-active,.editor-panel-leave-active{transition-duration:1ms!important}}
 </style>
