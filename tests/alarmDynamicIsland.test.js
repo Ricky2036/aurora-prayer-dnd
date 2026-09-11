@@ -258,4 +258,27 @@ test('LockScreen defaults to stacked notifications and sinks live activity cards
   assert.match(content, /COLLAPSED_BOTTOM_Y\.value/, 'getActivityCollapsedY must sink to COLLAPSED_BOTTOM_Y when media is inactive')
 })
 
+test('SettingsNotifications places recorder notification settings item at the top', () => {
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const content = fs.readFileSync(notifSettingsPath, 'utf8')
+
+  assert.match(content, /map\.set\('recorder',\s*\{/, 'Must pin recorder at the top of notificationApps')
+  assert.match(content, /id:\s*'recorder'/, 'Must specify id recorder')
+  assert.match(content, /appId:\s*'recorder'/, 'Must specify appId recorder')
+  assert.match(content, /iconType:\s*'recorder'/, 'Must specify iconType recorder')
+  assert.match(content, /notificationsStore\.islandSettings\.recorder/, 'Must link recorder toggle with notificationsStore islandSettings')
+})
+
+test('notifIcons and i18nStore provide recorder icon and title definitions', () => {
+  const iconsPath = path.resolve(__dirname, '../src/components/ui/notifIcons.js')
+  const iconsContent = fs.readFileSync(iconsPath, 'utf8')
+  assert.match(iconsContent, /recorder:\s*IC_IMG\(recorder\)/, 'notifIcons must define recorder icon')
+  assert.match(iconsContent, /voicememos:\s*IC_IMG\(recorder\)/, 'notifIcons must define voicememos icon')
+
+  const i18nPath = path.resolve(__dirname, '../src/stores/i18nStore.js')
+  const i18nContent = fs.readFileSync(i18nPath, 'utf8')
+  assert.match(i18nContent, /recorder:\s*'录音'/, 'i18nStore zh must define recorder title as 录音')
+  assert.match(i18nContent, /recorder:\s*'Voice Memos'/, 'i18nStore en must define recorder title as Voice Memos')
+})
+
 

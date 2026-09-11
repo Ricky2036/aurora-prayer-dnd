@@ -70,11 +70,21 @@ const onlyNewOnLock = ref(false)
 const conciseFloating = ref(true)
 const antiPeepFloating = ref(true)
 
-/* 通知应用列表（从 notificationsStore.list 读取，确保与通知中心通知完全一致） */
+/* 通知应用列表（顶部置顶录音通知设置项，其余从 notificationsStore.list 读取，确保与通知中心通知完全一致） */
 const notificationApps = computed(() => {
   const map = new Map()
+
+  // 顶部置顶录音通知设置项
+  const recorderItem = notificationsStore.list.find((item) => item.appId === 'recorder' || item.appId === 'voicememos')
+  map.set('recorder', {
+    id: 'recorder',
+    appId: 'recorder',
+    iconType: 'recorder',
+    time: recorderItem ? recorderItem.time : Date.now()
+  })
+
   for (const item of notificationsStore.list) {
-    if (!map.has(item.appId)) {
+    if (item.appId !== 'recorder' && item.appId !== 'voicememos' && !map.has(item.appId)) {
       map.set(item.appId, {
         id: item.appId,
         appId: item.appId,
@@ -83,9 +93,9 @@ const notificationApps = computed(() => {
       })
     }
   }
-  if (map.size === 0) {
+  if (map.size <= 1) {
     for (const item of seedNotifications()) {
-      if (!map.has(item.appId)) {
+      if (item.appId !== 'recorder' && item.appId !== 'voicememos' && !map.has(item.appId)) {
         map.set(item.appId, {
           id: item.appId,
           appId: item.appId,
@@ -100,23 +110,39 @@ const notificationApps = computed(() => {
 
 const appStates = ref({})
 function getAppState(id) {
+  if (id === 'recorder' || id === 'voicememos') {
+    return appStates.value[id] !== false && notificationsStore.islandSettings.recorder !== false
+  }
   return appStates.value[id] !== false
 }
 function toggleAppState(id) {
-  appStates.value[id] = !getAppState(id)
+  const next = !getAppState(id)
+  appStates.value[id] = next
+  if (id === 'recorder' || id === 'voicememos') {
+    notificationsStore.setIslandEnabled('recorder', next)
+  }
 }
 
 const appLiveActivityStates = ref({})
 function getAppLiveActivityState(id) {
+  if (id === 'recorder' || id === 'voicememos') {
+    return notificationsStore.isIslandEnabled('recorder')
+  }
   return appLiveActivityStates.value[id] !== false
 }
 function toggleAppLiveActivityState(id) {
+  if (id === 'recorder' || id === 'voicememos') {
+    const next = !notificationsStore.isIslandEnabled('recorder')
+    notificationsStore.setIslandEnabled('recorder', next)
+    appLiveActivityStates.value[id] = next
+    return
+  }
   appLiveActivityStates.value[id] = !getAppLiveActivityState(id)
 }
 
 const selectedApp = ref(null)
 const currentDetailApp = computed(() => {
-  return selectedApp.value || notificationApps.value[0] || { id: 'whatsapp', appId: 'whatsapp', iconType: 'whatsapp', time: Date.now() }
+  return selectedApp.value || notificationApps.value[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
 })
 
 function openAppDetail(app) {
