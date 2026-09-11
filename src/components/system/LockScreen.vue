@@ -210,6 +210,9 @@ function resetOtherCards(exceptId = null) {
   swipeOffsets.value = newOffsets
 }
 
+let isCardVerticalDragging = false
+let cardDragStartScrollTop = 0
+
 function onCardPointerDown(e, id) {
   // 普通通知在折叠态禁止横滑，但活跃灵动岛卡片始终默认展开展示，允许随时左滑操作
   const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
@@ -217,9 +220,11 @@ function onCardPointerDown(e, id) {
   activeCardId = id
   cardPointerStartX = e.clientX
   cardPointerStartY = e.clientY
+  cardDragStartScrollTop = listRef.value ? listRef.value.scrollTop : 0
   cardInitialOffset = swipeOffsets.value[id] || 0
   swipeGestureDecided = false
   isSwipingCard = false
+  isCardVerticalDragging = false
   cardPointerId = e.pointerId
   cardPointerTarget = e.currentTarget
 }
@@ -235,11 +240,19 @@ function onCardPointerMove(e, id) {
       swipeGestureDecided = true
       if (Math.abs(dx) > Math.abs(dy)) {
         isSwipingCard = true
+        isCardVerticalDragging = false
         try {
           cardPointerTarget?.setPointerCapture(cardPointerId)
         } catch (_) {}
       } else {
         isSwipingCard = false
+        // 关键：在鼠标设备上，纵向拖拽卡片直接驱动列表滚动，与真机触摸体验完全一致
+        if (e.pointerType === 'mouse') {
+          isCardVerticalDragging = true
+          try {
+            cardPointerTarget?.setPointerCapture(cardPointerId)
+          } catch (_) {}
+        }
       }
     }
   }
@@ -253,6 +266,11 @@ function onCardPointerMove(e, id) {
     swipeOffsets.value = {
       ...swipeOffsets.value,
       [id]: nextOffset
+    }
+  } else if (isCardVerticalDragging) {
+    e.preventDefault?.()
+    if (listRef.value) {
+      listRef.value.scrollTop = cardDragStartScrollTop - dy
     }
   }
 }
@@ -272,6 +290,7 @@ function onCardPointerCancel(e, id) {
   } catch (_) {}
   activeCardId = null
   isSwipingCard = false
+  isCardVerticalDragging = false
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
@@ -313,6 +332,17 @@ function onCardPointerUp(e, id) {
       delete next[id]
       swipeOffsets.value = next
     }
+  } else if (isCardVerticalDragging) {
+    // 鼠标纵向拖拽释放：抑制随后的 click 误触展开/打开应用
+    justSwipedId = id
+    setTimeout(() => {
+      if (justSwipedId === id) justSwipedId = null
+    }, 150)
+    const dy = e.clientY - cardPointerStartY
+    const dx = e.clientX - cardPointerStartX
+    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && cardDragStartScrollTop <= 0) {
+      collapseNotifications()
+    }
   } else if (!isCollapsed.value) {
     // 纵向明确下滑收起通知手势（在手指抬起释放时触发，决不在拖拽中途提前收起导致事件丢失和高频闪跳）
     const dy = e.clientY - cardPointerStartY
@@ -326,6 +356,7 @@ function onCardPointerUp(e, id) {
   } catch (_) {}
   activeCardId = null
   isSwipingCard = false
+  isCardVerticalDragging = false
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
@@ -360,29 +391,61 @@ function collapseNotifications() {
 
 let clipPointerStartY = 0
 let clipPointerStartX = 0
+let clipStartScrollTop = 0
 let clipPointerActive = false
+let clipIsDragging = false
+let clipPointerId = null
 
 function onClipPointerDown(e) {
   if (isCollapsed.value) return
   clipPointerStartY = e.clientY
   clipPointerStartX = e.clientX
+  clipStartScrollTop = listRef.value ? listRef.value.scrollTop : 0
   clipPointerActive = true
+  clipIsDragging = false
+  clipPointerId = e.pointerId
 }
 
 function onClipPointerMove(e) {
   if (!clipPointerActive || isCollapsed.value || isSwipingCard) return
-  // 不在 drag 中途触发展开/收起，避免 pointerEvents 突变打断手势造成闪跳
+  const dy = e.clientY - clipPointerStartY
+  const dx = e.clientX - clipPointerStartX
+
+  if (!clipIsDragging) {
+    if (Math.abs(dy) > 5 && Math.abs(dy) > Math.abs(dx)) {
+      if (e.pointerType === 'mouse') {
+        clipIsDragging = true
+        try {
+          e.currentTarget?.setPointerCapture(e.pointerId)
+        } catch (_) {}
+      }
+    }
+  }
+
+  if (clipIsDragging) {
+    e.preventDefault?.()
+    if (listRef.value) {
+      listRef.value.scrollTop = clipStartScrollTop - dy
+    }
+  }
 }
 
 function onClipPointerUp(e) {
   if (clipPointerActive && !isCollapsed.value && !isSwipingCard) {
     const dy = e.clientY - clipPointerStartY
     const dx = e.clientX - clipPointerStartX
-    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && scrollY.value <= 0) {
+    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && clipStartScrollTop <= 0) {
       collapseNotifications()
     }
   }
+  try {
+    if (clipPointerId != null) {
+      e.currentTarget?.releasePointerCapture(clipPointerId)
+    }
+  } catch (_) {}
   clipPointerActive = false
+  clipIsDragging = false
+  clipPointerId = null
 }
 
 function handleClipWheel(e) {
@@ -491,6 +554,7 @@ function handleCancelIslandModal() {
 }
 
 function onDeleteCard(item) {
+  triggerStateTransition()
   if (item.type === 'alarm' || item.id === 'alarm') {
     clock.dismissAlarm()
   } else if (item.isRecorder || item.id === '__recorder__' || item.id === 'recorder') {
@@ -698,10 +762,10 @@ function activityCardStyle(index) {
     zIndex: 190 - index
   }
 }
-const animating = computed(() => isStateTransitioning.value || (!isScrolling.value && !isSwipingCard) || isCollapsed.value)
+const animating = computed(() => isStateTransitioning.value)
 const transitionStyle = computed(() =>
   animating.value
-    ? 'transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease-out, clip-path 0.25s cubic-bezier(0.1, 0.9, 0.2, 1)'
+    ? 'transform 0.28s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.28s ease-out, clip-path 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)'
     : 'none'
 )
 const clipStyle = computed(() => {
@@ -709,13 +773,13 @@ const clipStyle = computed(() => {
   return {
     clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
     WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
-    transition: transitionStyle.value,
+    transition: isStateTransitioning.value ? 'clip-path 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none',
     pointerEvents: isCollapsed.value ? 'none' : 'auto'
   }
 })
 const clockStyle = computed(() => ({
   height: `${clockHeight.value}px`,
-  transition: transitionStyle.value
+  transition: isStateTransitioning.value ? 'height 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none'
 }))
 const pillStyle = computed(() => ({
   transform: `translateY(${isCollapsed.value ? 0 : 30}px) scale(${isCollapsed.value ? 1 : 0.85})`,
