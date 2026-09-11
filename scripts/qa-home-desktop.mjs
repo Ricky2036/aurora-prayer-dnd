@@ -30,11 +30,35 @@ try {
   const weather = page.locator('[data-home-item="app:weather"]')
   const dragTarget = page.locator('[data-home-item="app:games"]')
   await weather.waitFor({state:'visible'})
+  const appTap = await center(weather)
+  await page.mouse.click(appTap.x,appTap.y)
+  await page.locator('.app-window[data-app-id="weather"]').waitFor({state:'visible'})
+  await page.reload({waitUntil:'networkidle'})
+  const unlockedScreen = await page.locator('.screen-view').boundingBox()
+  await drag({x:unlockedScreen.x+unlockedScreen.width/2,y:unlockedScreen.y+unlockedScreen.height-18},{x:unlockedScreen.x+unlockedScreen.width/2,y:unlockedScreen.y+180})
+  await weather.waitFor({state:'visible'})
   const press = await center(weather)
   await page.mouse.move(press.x,press.y); await page.mouse.down(); await page.waitForTimeout(500); await page.mouse.up()
   await page.locator('.edit-actions').waitFor({state:'visible'})
   if (await page.locator('.dock-bar').isVisible()) throw new Error('Dock remains visible in desktop edit mode')
   if (await page.locator('.remove-badge').count()) throw new Error('Per-icon remove badges remain in desktop edit mode')
+  if (await weather.locator('.selection-mark').textContent()) await weather.evaluate((element) => element.click())
+  await page.locator('.edit-dashboard').waitFor({state:'visible'})
+  const emptyEditPoint = await page.locator('.home-screen').evaluate((root) => {
+    const rect = root.getBoundingClientRect()
+    for (let y = rect.top + 110; y < rect.bottom - 170; y += 12) {
+      for (let x = rect.left + 8; x < rect.right - 8; x += 12) {
+        const target = document.elementFromPoint(x,y)
+        if (target && root.contains(target) && !target.closest('[data-home-item],.dock-bar,.home-editor')) return {x,y}
+      }
+    }
+    throw new Error('No tappable desktop background was found')
+  })
+  await page.mouse.click(emptyEditPoint.x,emptyEditPoint.y)
+  await page.locator('.edit-actions').waitFor({state:'hidden'})
+  const reenter = await center(weather)
+  await page.mouse.move(reenter.x,reenter.y); await page.mouse.down(); await page.waitForTimeout(500); await page.mouse.up()
+  await page.locator('.edit-actions').waitFor({state:'visible'})
   if (await weather.locator('.selection-mark').textContent()) await weather.evaluate((element) => element.click())
   await page.locator('.edit-dashboard').waitFor({state:'visible'})
   await page.screenshot({path:new URL('edit-unselected.png',output).pathname})

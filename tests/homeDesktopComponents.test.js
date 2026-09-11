@@ -29,9 +29,9 @@ test('motion polish includes FLIP, removal animation and reduced-motion support'
   assert.match(dock, /is-removing/)
 })
 
-test('desktop grid preserves square widgets and the original icon spacing', async () => {
+test('desktop grid preserves square widgets and keeps the following app row close', async () => {
   const grid = await read('../src/components/system/AppGrid.vue')
-  assert.match(grid, /grid-template-rows:69\.5px 69\.5px repeat\(4,79px\)/)
+  assert.match(grid, /grid-template-rows:65\.5px 65\.5px repeat\(4,79px\)/)
   assert.match(grid, /row-gap:20px/)
   assert.match(grid, /\.home-item\.is-widget \{[^}]*aspect-ratio:1\/1/)
   assert.doesNotMatch(grid, /\.home-item\.is-large \{ align-items:stretch; \}/)
@@ -76,6 +76,14 @@ test('desktop edit mode matches the reference action and selection surfaces', as
   assert.match(grid, /backdrop-filter:blur\(12px\) saturate\(180%\)/)
   assert.match(folder, /background:transparent/)
   assert.doesNotMatch(folder, /class="folder-close"/)
+})
+
+test('short app presses remain native clicks and empty taps exit editing', async () => {
+  const home = await read('../src/components/system/HomeScreen.vue')
+  assert.match(home, /captureTarget:event\.currentTarget, captureEl:null/)
+  assert.match(home, /pointer\.captureTarget\.setPointerCapture/)
+  assert.match(home, /exitEditingOnTap:home\.editing/)
+  assert.match(home, /home\.setEditing\(false\)/)
 })
 
 test('dock editing, protected uninstall and library filtering are wired to home state', async () => {
