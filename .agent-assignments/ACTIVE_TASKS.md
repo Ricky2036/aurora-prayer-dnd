@@ -62,5 +62,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Active | Codex | Desktop foundation capabilities (continued) | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/stores/homeStore.js`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/system/AppLibrary.vue`; `src/components/ui/AppIcon.vue`; new desktop components, layout utilities, and tests | `00c594f` | `d6a6d43..6d2dbfc` |
 | Merged | Antigravity | Fix mobile LockScreen notification swipe flickering and refine Dynamic Island compact capsule & icon size | `antigravity/lane` | None (locks released) | `2bb765b` | `e83ccb6` |
 | Merged | Antigravity | Eliminate lockscreen notification scroll lag and add desktop mouse drag scrolling | `antigravity/lane` | None (locks released) | `f2d052f` | `e94b54d` |
+| Active | Antigravity | Voice Memos launch notification authorization modal & permission linkage | `antigravity/lane` | `src/components/ui/NotificationPermissionModal.vue`; `src/components/apps/voicememos/VoiceMemosApp.vue`; `src/stores/notificationsStore.js`; `src/stores/i18nStore.js`; `src/components/dev/DevConsole.vue`; `tests/notificationsLinkage.test.js` | `aef175f` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
