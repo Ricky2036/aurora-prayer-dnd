@@ -248,4 +248,14 @@ test('DynamicIsland expanded card removes black container background to reveal f
   assert.match(content, /\.expanded-layer\s*\{[^}]*background:\s*#000000;/s, 'expanded-layer must own the black card surface')
 })
 
+test('LockScreen defaults to stacked notifications and sinks live activity cards when collapsed', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.match(content, /const isCollapsed = ref\(false\)/, 'LockScreen must default to stacked notifications (isCollapsed = false)')
+  assert.match(content, /const NATIVE_EXPAND_OFFSET = 0/, 'NATIVE_EXPAND_OFFSET must be 0')
+  assert.match(content, /const COLLAPSED_BOTTOM_Y = computed/, 'Must define COLLAPSED_BOTTOM_Y for sunken collapsed position')
+  assert.match(content, /COLLAPSED_BOTTOM_Y\.value/, 'getActivityCollapsedY must sink to COLLAPSED_BOTTOM_Y when media is inactive')
+})
+
 

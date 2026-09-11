@@ -103,7 +103,7 @@ const LOCK_STACK_FRONT_ALPHA = 0.98
 const LOCK_STACK_BACK_ALPHA = 0.54
 const LOCK_STACK_DEPTH_ALPHA = 0.4
 const LOCK_STACK_ALPHA_OVERLAP = 48
-const NATIVE_EXPAND_OFFSET = 20
+const NATIVE_EXPAND_OFFSET = 0
 const activityBottomY = computed(() => control.mediaActive ? PLAYER_START_Y.value : BASE_Y.value)
 const standaloneActivityCapacity = computed(() => {
   const available = activityBottomY.value - (CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP + 4)
@@ -116,15 +116,22 @@ const totalActivitiesHeight = computed(() => {
   return count > 0 ? count * (ACTIVITY_CARD_HEIGHT + ACTIVITY_GAP) : 0
 })
 
-// 播放器在折叠态的 Y 坐标
-const PLAYER_COLLAPSED_Y = computed(() => {
-  return screenHeight.value - PLAYER_HEIGHT - 105
+// 折叠态最底端可用基准线：若有通知胶囊则贴紧通知胶囊上方（留12px间距），若无通知则贴紧底部快捷按钮上方
+const COLLAPSED_BOTTOM_Y = computed(() => {
+  return screenHeight.value - (lockItems.value.length > 0 ? 134 : 114)
 })
 
-// 活动卡片队列在折叠态的起始 Y 坐标：位于播放器卡片正上方；若活动较多则自 clipTop 下方自然排布
+// 播放器在折叠态的 Y 坐标：紧贴在折叠底线正上方
+const PLAYER_COLLAPSED_Y = computed(() => {
+  return COLLAPSED_BOTTOM_Y.value - PLAYER_HEIGHT
+})
+
+// 活动卡片队列在折叠态的起始 Y 坐标：下沉至最底端；若播放器开启则位于播放器正上方，否则直接沉至折叠底线正上方
 function getActivityCollapsedY(index) {
   const totalH = totalActivitiesHeight.value
-  const bottomY = control.mediaActive ? PLAYER_COLLAPSED_Y.value : BASE_Y.value
+  const bottomY = control.mediaActive
+    ? PLAYER_COLLAPSED_Y.value - PLAYER_NOTIF_GAP
+    : COLLAPSED_BOTTOM_Y.value
   const idealStart = bottomY - totalH
   const minStart = clipTop.value + 4
   const startY = Math.max(minStart, idealStart)
@@ -167,20 +174,13 @@ const scrollSpacerStyle = computed(() => ({ height: `${NATIVE_EXPAND_OFFSET + MA
 
 /* ---------- 原生滚动状态：与通知中心一样由浏览器处理触摸惯性 ---------- */
 const scrollY = ref(0)
-const isCollapsed = ref(true)
+const isCollapsed = ref(false)
 const isScrolling = ref(false)
 let scrollIdleTimer = null
-let lastNativeScrollY = 0
 
 function handleListScroll(e) {
   const nativeY = e.currentTarget.scrollTop
-  scrollY.value = Math.max(0, nativeY - NATIVE_EXPAND_OFFSET)
-  if (nativeY >= 1) {
-    isCollapsed.value = false
-  } else if (lastNativeScrollY >= 1) {
-    isCollapsed.value = true
-  }
-  lastNativeScrollY = nativeY
+  scrollY.value = Math.max(0, nativeY)
   isScrolling.value = true
   if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
   scrollIdleTimer = setTimeout(() => {
@@ -467,10 +467,10 @@ function handleExpand() {
   if (isCollapsed.value) {
     isCollapsed.value = false
     scrollY.value = 0
-    listRef.value?.scrollTo({ top: NATIVE_EXPAND_OFFSET, behavior: 'smooth' })
+    listRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
   } else if (scrollY.value < EXPAND_SCROLL_Y.value) {
     listRef.value?.scrollTo({
-      top: NATIVE_EXPAND_OFFSET + EXPAND_SCROLL_Y.value,
+      top: EXPAND_SCROLL_Y.value,
       behavior: 'smooth'
     })
   }
@@ -567,10 +567,6 @@ const expandedNotificationBaseY = computed(() => {
 })
 const currentPlayerY = computed(() => {
   if (isCollapsed.value) {
-    if (standaloneActivities.value.length > 0) {
-      const activitiesBottom = getActivityCollapsedY(0) + totalActivitiesHeight.value
-      return Math.max(PLAYER_COLLAPSED_Y.value, activitiesBottom)
-    }
     return PLAYER_COLLAPSED_Y.value
   }
   return expandedPlayerBaseY.value - scrollOffset.value
