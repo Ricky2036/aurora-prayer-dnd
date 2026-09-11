@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRecorderStore } from '../../../stores/recorderStore'
 import { useSystemStore } from '../../../stores/systemStore'
 import { useNotificationsStore } from '../../../stores/notificationsStore'
@@ -10,22 +10,13 @@ const system = useSystemStore()
 const notifications = useNotificationsStore()
 
 const showPermissionModal = ref(false)
-const pendingStartRecord = ref(false)
-
-onMounted(() => {
-  // 首次启动录音应用时，若尚未进行过通知授权，则主动弹出系统通知授权弹窗
-  if (!notifications.hasPromptedPermission('voicememos')) {
-    showPermissionModal.value = true
-  }
-})
 
 function toggleRecord() {
   if (recorder.isRecording) {
     recorder.stopRecording()
   } else {
-    // 若尚未进行过通知授权，先弹出授权弹窗，待用户选择后再开始录音
+    // 弹窗时机：在用户点击录音按钮时判断
     if (!notifications.hasPromptedPermission('voicememos')) {
-      pendingStartRecord.value = true
       showPermissionModal.value = true
       return
     }
@@ -37,20 +28,14 @@ function handleAllowPermission() {
   showPermissionModal.value = false
   notifications.setAppNotificationEnabled('voicememos', true)
   notifications.markPermissionPrompted('voicememos')
-  if (pendingStartRecord.value) {
-    pendingStartRecord.value = false
-    recorder.startRecording()
-  }
+  recorder.startRecording()
 }
 
 function handleDenyPermission() {
   showPermissionModal.value = false
   notifications.setAppNotificationEnabled('voicememos', false)
   notifications.markPermissionPrompted('voicememos')
-  if (pendingStartRecord.value) {
-    pendingStartRecord.value = false
-    recorder.startRecording()
-  }
+  recorder.startRecording()
 }
 
 function togglePause() {

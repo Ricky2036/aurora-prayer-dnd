@@ -47,47 +47,15 @@ function handleDeny() {
 </script>
 
 <template>
-  <Transition name="npm-fade">
+  <Transition name="npm-slide">
     <div v-if="visible" class="npm-overlay" @click.self="handleDeny">
       <div class="npm-card">
-        <!-- 顶部铃铛图标（参考设计稿带振铃波纹） -->
+        <!-- 顶部铃铛图标（控制中心响铃图标） -->
         <div class="npm-icon-box">
-          <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
-            <!-- 铃铛主体 -->
+          <svg width="36" height="36" viewBox="-2 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
-              d="M24 7.5C18.2 7.5 13.5 12.2 13.5 18V26.5L10.8 29.2C10.1 29.9 10.6 31.2 11.6 31.2H36.4C37.4 31.2 37.9 29.9 37.2 29.2L34.5 26.5V18C34.5 12.2 29.8 7.5 24 7.5Z"
-              fill="#262628"
-            />
-            <!-- 铃铛下摆撞针 -->
-            <path
-              d="M20.2 33.2C20.8 35.6 22.2 37 24 37C25.8 37 27.2 35.6 27.8 33.2H20.2Z"
-              fill="#262628"
-            />
-            <!-- 左侧振铃波纹 -->
-            <path
-              d="M8 17.5C6.7 19.5 6 21.9 6 24.5C6 27.1 6.7 29.5 8 31.5"
-              stroke="#262628"
-              stroke-width="2.6"
-              stroke-linecap="round"
-            />
-            <path
-              d="M4.5 20.8C4 22 3.7 23.2 3.7 24.5C3.7 25.8 4 27 4.5 28.2"
-              stroke="#262628"
-              stroke-width="2.6"
-              stroke-linecap="round"
-            />
-            <!-- 右侧振铃波纹 -->
-            <path
-              d="M40 17.5C41.3 19.5 42 21.9 42 24.5C42 27.1 41.3 29.5 40 31.5"
-              stroke="#262628"
-              stroke-width="2.6"
-              stroke-linecap="round"
-            />
-            <path
-              d="M43.5 20.8C44 22 44.3 23.2 44.3 24.5C44.3 25.8 44 27 43.5 28.2"
-              stroke="#262628"
-              stroke-width="2.6"
-              stroke-linecap="round"
+              d="M15.2037 22.4572C14.5574 24.1557 12.8497 25.3333 10.9079 25.3333C8.9661 25.3333 7.2581 24.1557 6.61179 22.4572H15.2037ZM10.9079 0C11.539 0.000166901 12.0508 0.511778 12.0508 1.14286V1.7939C15.9602 2.33919 19.0002 5.64069 19.111 9.69606L19.2372 14.3062C19.2672 15.4046 19.6759 16.4592 20.3945 17.2906L21.4894 18.5565C22.1844 19.3609 21.6996 20.5791 20.7078 20.7429H1.10844C0.116346 20.5792 -0.368188 19.361 0.327189 18.5565L1.42168 17.2906C2.1402 16.4593 2.5494 15.4045 2.57942 14.3062L2.70554 9.69606C2.81638 5.64075 5.85574 2.33925 9.76506 1.7939V1.14286C9.76506 0.511699 10.2768 3.96322e-05 10.9079 0Z"
+              fill="#1C1C1E"
             />
           </svg>
         </div>
@@ -120,6 +88,7 @@ function handleDeny() {
   justify-content: flex-end;
   padding: 16px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .npm-card {
@@ -133,6 +102,7 @@ function handleDeny() {
   align-items: center;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
   transform-origin: bottom center;
+  will-change: transform;
 }
 
 .npm-icon-box {
@@ -183,25 +153,27 @@ function handleDeny() {
   transform: scale(0.985);
 }
 
-/* 动效 */
-.npm-fade-enter-active,
-.npm-fade-leave-active {
-  transition: opacity 0.24s ease;
+/* 下方往上推出衔接动效 */
+.npm-slide-enter-active,
+.npm-slide-leave-active {
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.npm-fade-enter-active .npm-card,
-.npm-fade-leave-active .npm-card {
-  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.24s ease;
+.npm-slide-enter-active .npm-card {
+  transition: transform 0.42s cubic-bezier(0.16, 1, 0.28, 1);
 }
 
-.npm-fade-enter-from,
-.npm-fade-leave-to {
+.npm-slide-leave-active .npm-card {
+  transition: transform 0.28s cubic-bezier(0.35, 0, 0.65, 0.1);
+}
+
+.npm-slide-enter-from,
+.npm-slide-leave-to {
   opacity: 0;
 }
 
-.npm-fade-enter-from .npm-card,
-.npm-fade-leave-to .npm-card {
-  transform: translateY(40px) scale(0.96);
-  opacity: 0;
+.npm-slide-enter-from .npm-card,
+.npm-slide-leave-to .npm-card {
+  transform: translate3d(0, calc(100% + 36px), 0);
 }
 </style>
