@@ -59,10 +59,10 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Synchronize dynamic island switch off when notification master switch is turned off | `antigravity/lane` | `src/stores/notificationsStore.js`; `src/components/apps/settings/SettingsNotifications.vue`; `tests/notificationsLinkage.test.js` | `069bdb6` | `01604af` |
 | Merged | Antigravity | Adjust status bar horizontal inset to pull icons inward from screen edge | `antigravity/lane` | `src/components/phone/StatusBar.vue`; `tests/statusBar.test.js` | `fe10deb` | `3a315c8` |
 | Merged | Antigravity | Fix Spotify notification settings jump and direct MP4 unframed screen recording | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/App.vue`; `src/composables/useCapture.js`; `tests/notificationsLinkage.test.js` | `5474bfe` | `e4ff671` |
-| Active | Codex | Desktop foundation capabilities (continued) | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/stores/homeStore.js`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/system/AppLibrary.vue`; `src/components/ui/AppIcon.vue`; new desktop components, layout utilities, and tests | `00c594f` | `d6a6d43..6d2dbfc` |
+| Merged | Codex | Desktop foundation capabilities | `codex/lane` | None (desktop file locks released) | `00c594f` | `d6a6d43..20174e4` |
 | Merged | Antigravity | Fix mobile LockScreen notification swipe flickering and refine Dynamic Island compact capsule & icon size | `antigravity/lane` | None (locks released) | `2bb765b` | `e83ccb6` |
 | Merged | Antigravity | Eliminate lockscreen notification scroll lag and add desktop mouse drag scrolling | `antigravity/lane` | None (locks released) | `f2d052f` | `e94b54d` |
 | Merged | Antigravity | Voice Memos launch notification authorization modal & permission linkage | `antigravity/lane` | None (locks released) | `aef175f` | `675f68e` |
-| Active | Antigravity | Refine notification authorization modal to record click trigger & Control Center bell icon | `antigravity/lane` | `src/components/ui/NotificationPermissionModal.vue`; `src/components/apps/voicememos/VoiceMemosApp.vue`; `tests/notificationsLinkage.test.js` | d91f06d | — |
+| Merged | Antigravity | Refine notification authorization modal to record click trigger & Control Center bell icon | `antigravity/lane` | None (locks released) | d91f06d | `4e8a6e9` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
