@@ -1095,12 +1095,15 @@ function handleClosePrayer(e) {
 }
 
 /* 展开态尺寸：经典礼拜模式大圆角矩形 (高度80px，圆角28px) */
+/* 展开态容器透明无黑底且溢出可见，允许表层卡片自由滑出，底层操作按钮直接浮于壁纸之上 */
 .island-card.is-expanded {
   width: 100%;
   height: 80px;
   border-radius: 28px;
-  padding: 0 16px 0 18px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 
 /* 图层绝对定位叠放并无缝渐变 */
@@ -1192,6 +1195,7 @@ function handleClosePrayer(e) {
   z-index: 2;
   background: #000000;
   border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   touch-action: pan-y;
   user-select: none;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s cubic-bezier(0.32, 0.72, 0, 1) 0.12s;
@@ -1257,10 +1261,10 @@ function handleClosePrayer(e) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.32);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   padding: 0;
   box-sizing: border-box;
@@ -1300,15 +1304,15 @@ function handleClosePrayer(e) {
   width: 100%;
   height: 80px;
   border-radius: 28px;
-  background: #000000;
+  background: transparent;
   color: #ffffff;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
+  box-shadow: none;
   padding: 0;
   box-sizing: border-box;
   cursor: pointer;
   pointer-events: auto;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   will-change: transform, opacity, border-radius;
 }
 
@@ -1327,6 +1331,7 @@ function handleClosePrayer(e) {
   z-index: 2;
   background: #000000;
   border-radius: 28px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.48), 0 0 0 0.5px rgba(255, 255, 255, 0.12);
   touch-action: pan-y;
   user-select: none;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);

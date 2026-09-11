@@ -592,8 +592,8 @@ const transitionStyle = computed(() =>
 const clipStyle = computed(() => {
   const sideInset = isCollapsed.value ? -50 : 0
   return {
-    clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px round 22px 22px 0px 0px)`,
-    WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px round 22px 22px 0px 0px)`,
+    clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
+    WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
     transition: transitionStyle.value,
     pointerEvents: isCollapsed.value ? 'none' : 'auto'
   }
@@ -890,6 +890,7 @@ function notifStyle(i) {
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard
           v-if="control.mediaActive"
+          class="ls-player-in-lock"
           :style="{ transform: `translateY(${currentPlayerY}px)`, transition: transitionStyle, zIndex: 200 }"
           @click="handleExpand"
         />
@@ -1099,13 +1100,13 @@ function notifStyle(i) {
   font-family: -apple-system, "SF Pro Rounded", "Arial Rounded MT Bold", "Helvetica Neue", sans-serif;
 }
 
-/* 裁剪容器 */
+/* 裁剪容器：贯通式容器对齐全屏边缘，卡片滑动至屏幕边缘直接被视口平齐裁切 */
 .ls-clip {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
+  left: 0;
+  right: 0;
+  width: 100%;
   bottom: 0;
   overflow-y: auto;
   overflow-x: clip;
@@ -1128,17 +1129,20 @@ function notifStyle(i) {
   pointer-events: none;
 }
 
-/* removed ls-player css */
+.ls-player-in-lock {
+  width: calc(100% - 28px) !important;
+  margin: 0 14px !important;
+}
 
 /* ---- 通知 / 录音卡片包装器与滑动层 ---- */
 .ls-card-wrapper {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 14px;
+  right: 14px;
   height: 90px;
   border-radius: 22px;
-  overflow: hidden;
+  overflow: visible;
   will-change: transform, opacity;
   transform-origin: top center;
 }

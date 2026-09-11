@@ -227,4 +227,25 @@ test('DevConsole uses the vector alarm icon and concise copy without emoji', () 
   assert.doesNotMatch(content, /触发 20:44 闹钟/, 'Alarm control must not expose fixture time copy')
 })
 
+test('LockScreen implements screen-edge clipping with full-width container and overflow visible wrapper', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.match(content, /\.ls-clip\s*\{[^}]*width:\s*100%;/s, 'ls-clip must be 100% full width')
+  assert.match(content, /\.ls-clip\s*\{[^}]*overflow-x:\s*clip;/s, 'ls-clip must clip horizontally at screen viewport')
+  assert.match(content, /\.ls-card-wrapper\s*\{[^}]*overflow:\s*visible;/s, 'ls-card-wrapper must have overflow: visible for unhindered sliding')
+  assert.doesNotMatch(content, /round 22px 22px 0px 0px/, 'clipStyle must not restrict horizontal sliding with premature rounded corner inset')
+})
+
+test('DynamicIsland expanded card removes black container background to reveal floating swipe actions over wallpaper', () => {
+  const compPath = path.resolve(__dirname, '../src/components/system/DynamicIsland.vue')
+  const content = fs.readFileSync(compPath, 'utf8')
+
+  assert.match(content, /\.island-card\.is-expanded\s*\{[^}]*background:\s*transparent;/s, 'island-card.is-expanded must have transparent background')
+  assert.match(content, /\.island-card\.is-expanded\s*\{[^}]*overflow:\s*visible;/s, 'island-card.is-expanded must have overflow: visible')
+  assert.match(content, /\.island-secondary-card\s*\{[^}]*background:\s*transparent;/s, 'island-secondary-card must have transparent background')
+  assert.match(content, /\.island-secondary-card\s*\{[^}]*overflow:\s*visible;/s, 'island-secondary-card must have overflow: visible')
+  assert.match(content, /\.expanded-layer\s*\{[^}]*background:\s*#000000;/s, 'expanded-layer must own the black card surface')
+})
+
 
