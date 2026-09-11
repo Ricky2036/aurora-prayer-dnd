@@ -45,7 +45,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Refactor DevConsole with top-corner icons, combined capture card, dropdown module switcher, dashed big card, and migrate language/navigation to Settings | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `src/components/apps/settings/SettingsApp.vue`; `tests/alarmDynamicIsland.test.js`; `tests/prayerAlarmLinkage.test.js` | `34693f0` | `c27ebd9` |
 | Merged | Antigravity | Move frame toggle to capture card header as common option and simplify capture/record buttons | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `982831d` | `dae7b0b` |
 | Merged | Antigravity | Unify Live Activity interactions across LockScreen, NotificationCenter, and DynamicIsland (swipe delete & settings jump, align alarm icon) | `antigravity/lane` | `src/components/system/DynamicIsland.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `tests/alarmDynamicIsland.test.js` | `7aae047` | `ac4b1b0` |
-| Active | Antigravity | LockScreen Live Activity screen-edge clipping and DynamicIsland expanded swipe without black background | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/DynamicIsland.vue`; `tests/alarmDynamicIsland.test.js` | `9e1c4d2` | Pending |
+| Merged | Antigravity | LockScreen Live Activity screen-edge clipping and DynamicIsland expanded swipe without black background | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/DynamicIsland.vue`; `tests/alarmDynamicIsland.test.js` | `9e1c4d2` | `22fbb21` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
