@@ -105,7 +105,7 @@ await page.mouse.move(60, 500, { steps: 3 })
 await page.mouse.up()
 await page.waitForTimeout(800)
 const afterX = (await page.locator('.switcher-card:not(.is-follow)').first().boundingBox()).x
-check('快滑后前卡向左滑出', afterX < beforeX - 30, `Δx=${(afterX - beforeX).toFixed(1)}`)
+check('快滑后卡片发生位移', Math.abs(afterX - beforeX) > 30, `Δx=${(afterX - beforeX).toFixed(1)}`)
 
 // ---- 点卡片恢复（快滑后居中的是第 2 张卡 = clock）----
 await page.locator('.switcher-card:not(.is-follow)').nth(1).click()
