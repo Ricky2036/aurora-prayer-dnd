@@ -39,6 +39,10 @@ try {
   await page.mouse.move(reorderFrom.x,reorderFrom.y); await page.mouse.down()
   await page.mouse.move(reorderTo.x,reorderTo.y,{steps:14}); await page.waitForTimeout(120)
   const activeGhosts = await page.locator('.drag-ghost').count()
+  const ghostCenter = await center(page.locator('.drag-ghost'))
+  if (Math.hypot(ghostCenter.x-reorderTo.x,ghostCenter.y-reorderTo.y) > 18) {
+    throw new Error(`Drag ghost escaped pointer: pointer=${JSON.stringify(reorderTo)} ghost=${JSON.stringify(ghostCenter)}`)
+  }
   await page.mouse.up()
   await page.waitForTimeout(260)
   const after = await items.evaluateAll((nodes)=>nodes.map((node)=>node.dataset.homeItem))

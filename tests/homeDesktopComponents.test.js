@@ -12,6 +12,9 @@ test('desktop uses pointer events, dwell paging and gesture cancellation cleanup
   assert.match(source, /setTimeout\(\(\) =>[\s\S]*400/)
   assert.match(source, /resolveDesktopPage/)
   assert.match(source, /previewPages/)
+  assert.match(source, /clientPointToHome/)
+  assert.match(source, /root\.offsetWidth \/ rect\.width/)
+  assert.match(source, /\.drag-ghost\{position:absolute/)
 })
 
 test('motion polish includes FLIP, removal animation and reduced-motion support', async () => {

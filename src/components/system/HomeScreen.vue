@@ -71,6 +71,18 @@ function unbindWindow() {
 function capture(event) {
   try { event.currentTarget?.setPointerCapture?.(event.pointerId); return event.currentTarget } catch { return null }
 }
+function clientPointToHome(x, y) {
+  const root = rootRef.value
+  const rect = root?.getBoundingClientRect()
+  if (!root || !rect?.width || !rect?.height) return { x, y }
+  return {
+    x: (x - rect.left) * (root.offsetWidth / rect.width),
+    y: (y - rect.top) * (root.offsetHeight / rect.height)
+  }
+}
+function setGhostPosition(id, clientX, clientY) {
+  ghost.value = { id, ...clientPointToHome(clientX, clientY) }
+}
 function onEmptyPointerDown(event) {
   if (event.button != null && event.button !== 0) return
   if (event.target.closest('[data-home-item],.dock-bar,.home-editor,.done-button')) return
@@ -109,7 +121,7 @@ function startItemDrag(x, y) {
   previewPages.value = home.pages.map((page) => [...page])
   dragging.value = { id:pointer.itemId, page:pointer.page, index:pointer.index }
   pointer.didMove = false
-  ghost.value = { id:pointer.itemId, x, y }
+  setGhostPosition(pointer.itemId, x, y)
 }
 function trackFolderTarget(x, y) {
   const element = document.elementFromPoint(x, y)?.closest?.('[data-home-item]')
@@ -177,18 +189,18 @@ function onPointerMove(event) {
   if (pointer.mode === 'item-ready' && Math.hypot(dx,dy) > 5) startItemDrag(event.clientX,event.clientY)
   if (pointer.mode === 'folder-app-ready' && Math.hypot(dx,dy) > 5) {
     pointer.mode = 'folder-app-drag'
-    ghost.value = { id:`app:${pointer.appId}`, x:event.clientX, y:event.clientY }
+    setGhostPosition(`app:${pointer.appId}`, event.clientX, event.clientY)
     openFolderId.value = null
   }
   if (pointer.mode === 'folder-app-drag') {
     event.preventDefault()
-    ghost.value = { ...ghost.value, x:event.clientX, y:event.clientY }
+    setGhostPosition(ghost.value.id, event.clientX, event.clientY)
     return
   }
   if (pointer.mode === 'item-drag') {
     if (Math.hypot(dx,dy) <= 5) return
     pointer.didMove = true
-    event.preventDefault(); ghost.value = { ...ghost.value, x:event.clientX, y:event.clientY }; updatePreview(event.clientX,event.clientY); return
+    event.preventDefault(); setGhostPosition(ghost.value.id, event.clientX, event.clientY); updatePreview(event.clientX,event.clientY); return
   }
   if (pointer.mode === 'page') {
     if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return
@@ -344,6 +356,6 @@ onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimers(); unbindWindow()
 </template>
 
 <style scoped>
-.home-screen{position:absolute;inset:0;z-index:var(--z-home);overflow:hidden;touch-action:none}.home-page-strip{position:absolute;inset:0;display:flex;will-change:transform}.home-page{flex:0 0 100%;width:100%;height:100%}.indicator-wrap{position:absolute;bottom:136px;left:0;right:0;display:flex;justify-content:center}.done-button{position:absolute;right:18px;top:calc(var(--safe-top,54px) + 2px);z-index:12;padding:7px 14px;border-radius:18px;color:#fff;background:rgba(35,35,40,.55);backdrop-filter:blur(18px);font:600 14px/1 var(--font-stack)}.drag-ghost{position:fixed;left:-34px;top:-44px;z-index:999;width:68px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:var(--text-caption);pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));will-change:transform}.drag-ghost img{width:60px;height:60px;border-radius:17px;object-fit:cover;transform:scale(1.08)}.folder-tools{position:absolute;left:50%;bottom:205px;z-index:20;transform:translateX(-50%);display:flex;gap:6px;padding:7px;border-radius:20px;background:rgba(25,25,30,.62);backdrop-filter:blur(20px)}.folder-tools button{padding:7px 9px;border-radius:13px;color:#fff;font:600 12px/1 var(--font-stack)}.folder-tools button.active{background:#0a84ff}.edit-toolbar{position:absolute;left:10px;right:10px;bottom:132px;z-index:18;min-height:54px;padding:5px;display:flex;align-items:center;justify-content:space-around;border-radius:22px;background:rgba(28,28,34,.72);backdrop-filter:blur(24px)}.edit-toolbar button{width:20%;padding:5px 2px;color:#fff;font:500 10px/1.25 var(--font-stack)}.edit-toolbar button:last-child{color:#ff6b64}.edit-toolbar button:disabled{opacity:.35}.home-toast{position:absolute;left:50%;bottom:198px;z-index:80;transform:translateX(-50%);padding:9px 15px;border-radius:17px;background:rgba(20,20,24,.82);color:#fff;white-space:nowrap;font:600 13px/1 var(--font-stack);animation:toast-in 180ms ease}@keyframes toast-in{from{opacity:0;transform:translate(-50%,8px)}}
+.home-screen{position:absolute;inset:0;z-index:var(--z-home);overflow:hidden;touch-action:none}.home-page-strip{position:absolute;inset:0;display:flex;will-change:transform}.home-page{flex:0 0 100%;width:100%;height:100%}.indicator-wrap{position:absolute;bottom:136px;left:0;right:0;display:flex;justify-content:center}.done-button{position:absolute;right:18px;top:calc(var(--safe-top,54px) + 2px);z-index:12;padding:7px 14px;border-radius:18px;color:#fff;background:rgba(35,35,40,.55);backdrop-filter:blur(18px);font:600 14px/1 var(--font-stack)}.drag-ghost{position:absolute;left:-34px;top:-44px;z-index:999;width:68px;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font:var(--text-caption);pointer-events:none;filter:drop-shadow(0 12px 18px rgba(0,0,0,.35));will-change:transform}.drag-ghost img{width:60px;height:60px;border-radius:17px;object-fit:cover;transform:scale(1.08)}.folder-tools{position:absolute;left:50%;bottom:205px;z-index:20;transform:translateX(-50%);display:flex;gap:6px;padding:7px;border-radius:20px;background:rgba(25,25,30,.62);backdrop-filter:blur(20px)}.folder-tools button{padding:7px 9px;border-radius:13px;color:#fff;font:600 12px/1 var(--font-stack)}.folder-tools button.active{background:#0a84ff}.edit-toolbar{position:absolute;left:10px;right:10px;bottom:132px;z-index:18;min-height:54px;padding:5px;display:flex;align-items:center;justify-content:space-around;border-radius:22px;background:rgba(28,28,34,.72);backdrop-filter:blur(24px)}.edit-toolbar button{width:20%;padding:5px 2px;color:#fff;font:500 10px/1.25 var(--font-stack)}.edit-toolbar button:last-child{color:#ff6b64}.edit-toolbar button:disabled{opacity:.35}.home-toast{position:absolute;left:50%;bottom:198px;z-index:80;transform:translateX(-50%);padding:9px 15px;border-radius:17px;background:rgba(20,20,24,.82);color:#fff;white-space:nowrap;font:600 13px/1 var(--font-stack);animation:toast-in 180ms ease}@keyframes toast-in{from{opacity:0;transform:translate(-50%,8px)}}
 @media (prefers-reduced-motion:reduce){.home-page-strip{transition-duration:1ms!important}}
 </style>
