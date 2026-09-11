@@ -34,9 +34,12 @@ let highlightTimer = null
 function triggerIslandHighlight(key) {
   if (!key) return
   let normalized = key
-  if (key === 'voicememos') normalized = 'recorder'
-  if (key === 'music' || key === 'spotify') normalized = 'media'
-  if (key === 'clock') normalized = 'alarm'
+  if (typeof normalized === 'object' && normalized !== null) {
+    normalized = normalized.key || normalized.type || normalized.id || ''
+  }
+  if (normalized === 'voicememos') normalized = 'recorder'
+  if (normalized === 'music' || normalized === 'spotify') normalized = 'media'
+  if (normalized === 'clock') normalized = 'alarm'
 
   if (highlightTimer) clearTimeout(highlightTimer)
   highlightedIslandKey.value = normalized
@@ -53,92 +56,6 @@ function triggerIslandHighlight(key) {
     notificationsStore.targetIslandKey = null
   }, 1800)
 }
-
-function resolveApp(appId) {
-  if (!appId) return notificationApps.value[0]
-  const found = notificationApps.value.find(a => a.appId === appId || a.id === appId)
-  if (found) return found
-  return {
-    id: appId,
-    appId,
-    iconType: appId,
-    time: Date.now()
-  }
-}
-
-const initialSubView = notificationsStore.targetSubView === 'dynamicBar'
-  ? 'dynamicBar'
-  : (notificationsStore.targetSubView === 'appDetail' ? 'appDetail' : 'main')
-const pendingHighlightKey = ref(notificationsStore.targetIslandKey)
-
-const subStack = ref(
-  initialSubView === 'dynamicBar'
-    ? ['main', 'dynamicBar']
-    : (initialSubView === 'appDetail' ? ['main', 'appDetail'] : ['main'])
-)
-
-if (initialSubView === 'dynamicBar') {
-  notificationsStore.setTargetView('notifications', null, null, null)
-}
-
-const subView = computed(() => subStack.value[subStack.value.length - 1] || 'main')
-const isBack = ref(false)
-
-if (pendingHighlightKey.value && initialSubView === 'dynamicBar') {
-  nextTick(() => {
-    triggerIslandHighlight(pendingHighlightKey.value)
-  })
-}
-
-watch(
-  () => [notificationsStore.targetSubView, notificationsStore.targetIslandKey, notificationsStore.targetAppId],
-  ([newSub, newKey, newAppId]) => {
-    if (newSub === 'dynamicBar') {
-      isBack.value = false
-      subStack.value = ['main', 'dynamicBar']
-      const keyToHighlight = newKey || notificationsStore.targetIslandKey
-      notificationsStore.setTargetView('notifications', null, null, null)
-      if (keyToHighlight) {
-        nextTick(() => {
-          triggerIslandHighlight(keyToHighlight)
-        })
-      }
-    } else if (newSub === 'appDetail') {
-      isBack.value = false
-      selectedApp.value = resolveApp(newAppId || notificationsStore.targetAppId)
-      subStack.value = ['main', 'appDetail']
-      notificationsStore.setTargetView('notifications', null, null, null)
-    } else if (newKey && subView.value === 'dynamicBar') {
-      nextTick(() => {
-        triggerIslandHighlight(newKey)
-      })
-    }
-  }
-)
-
-function go(v) {
-  isBack.value = false
-  subStack.value.push(v)
-}
-function back() {
-  if (subStack.value.length > 1) {
-    isBack.value = true
-    subStack.value.pop()
-    return true
-  }
-  return false
-}
-defineExpose({ back })
-
-/* ---------- 状态 ---------- */
-const globalHideLockContent = ref(false)
-const localHideLockContent = ref(false)
-const smartReminder = ref(true)
-const adaptiveNotif = ref(true)
-const lockScreenStyle = ref('stacked')
-const onlyNewOnLock = ref(false)
-const conciseFloating = ref(true)
-const antiPeepFloating = ref(true)
 
 /* 通知应用列表（顶部置顶录音通知设置项，其余从 notificationsStore.list 读取，确保与通知中心通知完全一致） */
 const notificationApps = computed(() => {
@@ -178,6 +95,99 @@ const notificationApps = computed(() => {
   return Array.from(map.values())
 })
 
+function resolveApp(appId) {
+  if (!appId) return notificationApps.value?.[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
+  const found = notificationApps.value?.find(a => a.appId === appId || a.id === appId)
+  if (found) return found
+  return {
+    id: appId,
+    appId,
+    iconType: appId,
+    time: Date.now()
+  }
+}
+
+const initialSubView = notificationsStore.targetSubView === 'dynamicBar'
+  ? 'dynamicBar'
+  : (notificationsStore.targetSubView === 'appDetail' ? 'appDetail' : 'main')
+const pendingHighlightKey = ref(notificationsStore.targetIslandKey)
+
+const selectedApp = ref(
+  initialSubView === 'appDetail' && notificationsStore.targetAppId
+    ? resolveApp(notificationsStore.targetAppId)
+    : null
+)
+
+const subStack = ref(
+  initialSubView === 'dynamicBar'
+    ? ['main', 'dynamicBar']
+    : (initialSubView === 'appDetail' ? ['main', 'appDetail'] : ['main'])
+)
+
+if (initialSubView === 'dynamicBar' || initialSubView === 'appDetail') {
+  notificationsStore.setTargetView('notifications', null, null, null)
+}
+
+const subView = computed(() => subStack.value[subStack.value.length - 1] || 'main')
+const isBack = ref(false)
+
+if (pendingHighlightKey.value && initialSubView === 'dynamicBar') {
+  nextTick(() => {
+    triggerIslandHighlight(pendingHighlightKey.value)
+  })
+}
+
+watch(
+  () => [notificationsStore.targetSubView, notificationsStore.targetIslandKey, notificationsStore.targetAppId],
+  ([newSub, newKey, newAppId]) => {
+    if (newSub === 'dynamicBar') {
+      isBack.value = false
+      subStack.value = ['main', 'dynamicBar']
+      const keyToHighlight = newKey || notificationsStore.targetIslandKey
+      notificationsStore.setTargetView('notifications', null, null, null)
+      if (keyToHighlight) {
+        nextTick(() => {
+          triggerIslandHighlight(keyToHighlight)
+        })
+      }
+    } else if (newSub === 'appDetail') {
+      isBack.value = false
+      const targetApp = newAppId || notificationsStore.targetAppId
+      selectedApp.value = resolveApp(targetApp)
+      subStack.value = ['main', 'appDetail']
+      notificationsStore.setTargetView('notifications', null, null, null)
+    } else if (newKey && subView.value === 'dynamicBar') {
+      nextTick(() => {
+        triggerIslandHighlight(newKey)
+      })
+    }
+  }
+)
+
+function go(v) {
+  isBack.value = false
+  subStack.value.push(v)
+}
+function back() {
+  if (subStack.value.length > 1) {
+    isBack.value = true
+    subStack.value.pop()
+    return true
+  }
+  return false
+}
+defineExpose({ back })
+
+/* ---------- 状态 ---------- */
+const globalHideLockContent = ref(false)
+const localHideLockContent = ref(false)
+const smartReminder = ref(true)
+const adaptiveNotif = ref(true)
+const lockScreenStyle = ref('stacked')
+const onlyNewOnLock = ref(false)
+const conciseFloating = ref(true)
+const antiPeepFloating = ref(true)
+
 function getAppState(id) {
   return notificationsStore.isAppNotificationEnabled(id)
 }
@@ -206,9 +216,8 @@ function toggleAppLiveActivityState(id) {
   appLiveActivityStates.value[id] = !getAppLiveActivityState(id)
 }
 
-const selectedApp = ref(null)
 const currentDetailApp = computed(() => {
-  return selectedApp.value || notificationApps.value[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
+  return selectedApp.value || notificationApps.value?.[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
 })
 
 function openAppDetail(app) {
