@@ -24,6 +24,7 @@ const folderTargetId = ref(null)
 const dockTargetIndex = ref(null)
 const pendingRemoval = ref([])
 const toast = ref('')
+const removingIds = ref([])
 const displayPages = computed(() => previewPages.value || home.pages)
 const displayPositions = computed(() => previewPages.value
   ? reflowHomePages(previewPages.value, home.items, home.folders).positions
@@ -59,16 +60,21 @@ function bindWindow() {
   window.addEventListener('pointermove', onPointerMove, { passive: false })
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('pointercancel', onPointerCancel)
+  window.addEventListener('blur', onWindowBlur)
 }
 function unbindWindow() {
   window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('pointerup', onPointerUp)
   window.removeEventListener('pointercancel', onPointerCancel)
+  window.removeEventListener('blur', onWindowBlur)
+}
+function capture(event) {
+  try { event.currentTarget?.setPointerCapture?.(event.pointerId); return event.currentTarget } catch { return null }
 }
 function onEmptyPointerDown(event) {
   if (event.button != null && event.button !== 0) return
   if (event.target.closest('[data-home-item],.dock-bar,.home-editor,.done-button')) return
-  pointer = { id:event.pointerId, mode:'page', startX:event.clientX, startY:event.clientY, startedAt:performance.now() }
+  pointer = { id:event.pointerId, mode:'page', startX:event.clientX, startY:event.clientY, startedAt:performance.now(), startPage:home.currentPage, captureEl:capture(event) }
   pressTimer = setTimeout(() => { if (pointer?.mode === 'page') { home.setEditing(true); pointer = null; unbindWindow() } }, 450)
   bindWindow()
 }
@@ -76,11 +82,12 @@ function onItemPointerDown(event, id, page, index) {
   if (event.button != null && event.button !== 0) return
   event.stopPropagation()
   pointer = { id:event.pointerId, mode:home.editing ? 'item-ready' : 'item-press', itemId:id, page, index,
-    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now(), edgeDirection:0 }
+    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now(), startPage:home.currentPage, edgeDirection:0, captureEl:capture(event) }
   if (!home.editing) pressTimer = setTimeout(() => {
     if (!pointer || pointer.itemId !== id) return
-    home.setEditing(true); startItemDrag(pointer.lastX, pointer.lastY)
+    home.setEditing(true); pointer.mode = 'item-ready'
   }, 450)
+  else startItemDrag(event.clientX,event.clientY)
   bindWindow()
 }
 function onDockPointerDown(event, id, index) {
@@ -88,11 +95,12 @@ function onDockPointerDown(event, id, index) {
   event.stopPropagation()
   pointer = { id:event.pointerId, mode:home.editing ? 'item-ready' : 'item-press', itemId:id, page:home.currentPage, index,
     sourceDock:true, startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY,
-    startedAt:performance.now(), edgeDirection:0 }
+    startedAt:performance.now(), startPage:home.currentPage, edgeDirection:0, captureEl:capture(event) }
   if (!home.editing) pressTimer = setTimeout(() => {
     if (!pointer || pointer.itemId !== id) return
-    home.setEditing(true); startItemDrag(pointer.lastX,pointer.lastY)
+    home.setEditing(true); pointer.mode = 'item-ready'
   },450)
+  else startItemDrag(event.clientX,event.clientY)
   bindWindow()
 }
 function startItemDrag(x, y) {
@@ -100,6 +108,7 @@ function startItemDrag(x, y) {
   pointer.mode = 'item-drag'
   previewPages.value = home.pages.map((page) => [...page])
   dragging.value = { id:pointer.itemId, page:pointer.page, index:pointer.index }
+  pointer.didMove = false
   ghost.value = { id:pointer.itemId, x, y }
 }
 function trackFolderTarget(x, y) {
@@ -129,7 +138,8 @@ function trackDockTarget(x, y) {
 function targetIndexAt(x, y) {
   const rect = rootRef.value.getBoundingClientRect()
   const col = Math.max(0, Math.min(3, Math.floor((x - rect.left) / (rect.width / 4))))
-  const row = Math.max(0, Math.min(5, Math.floor((y - rect.top - 66) / 84)))
+  const logicalY = (y - rect.top) * (844 / rect.height)
+  const row = Math.max(0, Math.min(5, Math.floor((logicalY - 66) / 84)))
   return Math.max(0, Math.min(row * 4 + col, previewPages.value[home.currentPage].length))
 }
 function updatePreview(x, y) {
@@ -173,6 +183,8 @@ function onPointerMove(event) {
     return
   }
   if (pointer.mode === 'item-drag') {
+    if (Math.hypot(dx,dy) <= 5) return
+    pointer.didMove = true
     event.preventDefault(); ghost.value = { ...ghost.value, x:event.clientX, y:event.clientY }; updatePreview(event.clientX,event.clientY); return
   }
   if (pointer.mode === 'page') {
@@ -184,6 +196,10 @@ function onPointerMove(event) {
   }
 }
 function finishItem(cancelled) {
+  if (!pointer.didMove) {
+    previewPages.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null
+    return
+  }
   if (!cancelled && dragging.value && dockTargetIndex.value != null) {
     home.moveToDock(dragging.value.id,dockTargetIndex.value)
   } else if (!cancelled && dragging.value && folderTargetId.value) {
@@ -199,11 +215,13 @@ function finishItem(cancelled) {
   previewPages.value = null; dragging.value = null; ghost.value = null
   folderTargetId.value = null
   dockTargetIndex.value = null
+  if (cancelled) home.currentPage = Math.min(pointer.startPage,home.pages.length - 1)
 }
 function finishPage(cancelled) {
   const elapsed = Math.max(1, performance.now() - pointer.startedAt)
   const outcome = cancelled ? { page:home.currentPage, openLibrary:false } : resolveDesktopPage({
-    currentPage:home.currentPage, pageCount:home.pageCount, delta:pageDragX.value, velocity:pageDragX.value / elapsed
+    currentPage:home.currentPage, pageCount:home.pageCount, delta:pageDragX.value, velocity:pageDragX.value / elapsed,
+    threshold:rootRef.value.getBoundingClientRect().width * .18
   })
   home.setPage(outcome.page)
   if (outcome.openLibrary) emit('open-library')
@@ -215,13 +233,16 @@ function cleanup(cancelled) {
   if (pointer.mode === 'item-drag') finishItem(cancelled)
   if (pointer.mode === 'folder-app-drag') {
     if (!cancelled) home.removeAppFromFolder(pointer.appId, pointer.folderId, home.currentPage, home.currentItems.length)
+    else openFolderId.value = pointer.folderId
     ghost.value = null
   }
   if (pointer.mode === 'page') finishPage(cancelled)
+  try { pointer.captureEl?.releasePointerCapture?.(pointer.id) } catch {}
   pointer = null; unbindWindow()
 }
 function onPointerUp(event) { if (pointer && event.pointerId === pointer.id) cleanup(false) }
 function onPointerCancel(event) { if (pointer && event.pointerId === pointer.id) cleanup(true) }
+function onWindowBlur() { if (pointer) cleanup(true) }
 function showFolder(folderId, element) {
   openFolderId.value = folderId
   folderOrigin.value = element?.getBoundingClientRect?.() || null
@@ -230,7 +251,7 @@ function onFolderAppPointerDown(event, appId) {
   if (event.button != null && event.button !== 0) return
   event.stopPropagation()
   pointer = { id:event.pointerId, mode:'folder-app-ready', appId, folderId:openFolderId.value,
-    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now() }
+    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now(), captureEl:capture(event) }
   bindWindow()
 }
 function createSelectedFolder() {
@@ -244,8 +265,7 @@ function showToast(message) {
 function requestRemove(itemId) {
   const item = home.items[itemId]
   if (!item) return
-  if (item.type === 'widget') { home.removeWidget(item.widgetId); return }
-  if (item.type === 'folder') { home.removeFolder(item.folderId); return }
+  if (item.type === 'widget' || item.type === 'folder') { animateRemoval([itemId]); return }
   if (!home.canUninstall(item.appId)) { showToast('核心应用不可卸载'); return }
   pendingRemoval.value = [itemId]
 }
@@ -257,13 +277,21 @@ function requestSelectedRemoval() {
   pendingRemoval.value = ids
 }
 function confirmRemoval() {
-  for (const id of pendingRemoval.value) {
-    const item = home.items[id]
-    if (item?.type === 'app') home.uninstallApp(item.appId)
-    else if (item?.type === 'widget') home.removeWidget(item.widgetId)
-    else if (item?.type === 'folder') home.removeFolder(item.folderId)
-  }
+  const ids = [...pendingRemoval.value]
   pendingRemoval.value = []
+  animateRemoval(ids)
+}
+function animateRemoval(ids) {
+  removingIds.value = ids
+  setTimeout(() => {
+    for (const id of ids) {
+      const item = home.items[id]
+      if (item?.type === 'app') home.uninstallApp(item.appId)
+      else if (item?.type === 'widget') home.removeWidget(item.widgetId)
+      else if (item?.type === 'folder') home.removeFolder(item.folderId)
+    }
+    removingIds.value = []
+  },180)
 }
 const selectedFolder = computed(() => {
   if (home.selectedItemIds.length !== 1) return null
@@ -274,17 +302,17 @@ onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimers(); unbindWindow()
 </script>
 
 <template>
-  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown="onEmptyPointerDown">
+  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown="onEmptyPointerDown" @dragstart.prevent>
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
         <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]"
-          :folders="home.folders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId"
+          :folders="home.folders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :removing-ids="removingIds"
           @item-pointerdown="onItemPointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove" />
       </section>
     </div>
     <button v-if="home.editing" class="done-button" type="button" @click="home.setEditing(false)">完成</button>
     <div class="indicator-wrap"><PageIndicator :count="displayPages.length" :current="home.currentPage" @search="emit('open-library')" /></div>
-    <DockBar :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" @item-pointerdown="onDockPointerDown"
+    <DockBar :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
     <div v-if="home.editing && (home.selectedItemIds.length >= 2 || selectedFolder)" class="folder-tools home-editor">
       <button v-if="home.selectedItemIds.length >= 2" type="button" @click="createSelectedFolder">新建文件夹</button>

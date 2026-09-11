@@ -7,9 +7,23 @@ const read = (path) => readFile(new URL(path, import.meta.url), 'utf8')
 test('desktop uses pointer events, dwell paging and gesture cancellation cleanup', async () => {
   const source = await read('../src/components/system/HomeScreen.vue')
   assert.match(source, /pointercancel/)
+  assert.match(source, /releasePointerCapture/)
+  assert.match(source, /onWindowBlur/)
   assert.match(source, /setTimeout\(\(\) =>[\s\S]*400/)
   assert.match(source, /resolveDesktopPage/)
   assert.match(source, /previewPages/)
+})
+
+test('motion polish includes FLIP, removal animation and reduced-motion support', async () => {
+  const [grid, dock] = await Promise.all([
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/components/system/DockBar.vue')
+  ])
+  assert.match(grid, /getBoundingClientRect/)
+  assert.match(grid, /duration:220/)
+  assert.match(grid, /is-removing/)
+  assert.match(grid, /prefers-reduced-motion/)
+  assert.match(dock, /is-removing/)
 })
 
 test('folders expose all four sizes, renaming and app drag-out', async () => {

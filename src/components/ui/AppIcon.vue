@@ -84,7 +84,7 @@ onBeforeUnmount(() => {
     <span ref="anchorRef" class="app-icon-anchor" :style="{ width: size + 'px', height: size + 'px' }">
       <span class="icon-tile squircle-mask" :class="app.special ? 'tile-' + app.special : ''" :style="{ ...(app.special ? {} : { background: app.gradient || '#fff' }), width: size + 'px', height: size + 'px' }">
         <!-- 图片图标：略微放大以切除原图可能自带的不完美圆角和毛刺 -->
-        <img v-if="app.image" :src="resolvedImage" alt="" :style="{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }" />
+        <img v-if="app.image" :src="resolvedImage" alt="" draggable="false" :style="{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }" />
 
         <!-- 标准：glyph -->
         <svg v-else-if="app.glyph" width="32" height="32" viewBox="0 0 24 24" :style="{ transform: `scale(${size / 60})` }">

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUpdate, onUpdated } from 'vue'
 import { getApp } from '../../config/apps'
 import AppIcon from '../ui/AppIcon.vue'
 import ClockWidget from '../widgets/ClockWidget.vue'
@@ -11,10 +11,26 @@ const props = defineProps({
   items: { type: Object, required: true }, positions: { type: Object, default: () => ({}) },
   folders: { type: Object, default: () => ({}) }, editing: { type: Boolean, default: false },
   selectedIds: { type: Array, default: () => [] }, draggingId: { type: String, default: null },
-  folderTargetId: { type: String, default: null }
+  folderTargetId: { type: String, default: null }, removingIds: { type: Array, default: () => [] }
 })
 const emit = defineEmits(['item-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
 const selected = computed(() => new Set(props.selectedIds))
+const removing = computed(() => new Set(props.removingIds))
+const itemElements = new Map()
+let previousRects = new Map()
+function setItemRef(id, element) { if (element) itemElements.set(id, element); else itemElements.delete(id) }
+onBeforeUpdate(() => { previousRects = new Map([...itemElements].map(([id,el]) => [id,el.getBoundingClientRect()])) })
+onUpdated(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  requestAnimationFrame(() => {
+    for (const [id,el] of itemElements) {
+      const before = previousRects.get(id), after = el.getBoundingClientRect()
+      if (!before) continue
+      const x = before.left - after.left, y = before.top - after.top
+      if (Math.abs(x) > .5 || Math.abs(y) > .5) el.animate([{transform:`translate3d(${x}px,${y}px,0)`},{transform:'translate3d(0,0,0)'}],{duration:220,easing:'cubic-bezier(.22,.8,.26,1)'})
+    }
+  })
+})
 const appFor = (item) => item?.type === 'app' ? getApp(item.appId) : null
 const folderFor = (item) => item?.type === 'folder' ? props.folders[item.folderId] : null
 function itemStyle(id) {
@@ -32,8 +48,8 @@ function activate(event, id, item) {
 
 <template>
   <div class="app-grid" :data-page="pageIndex">
-    <div v-for="(id, index) in itemIds" :key="id" class="home-item"
-      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-folder-target': folderTargetId === id }"
+    <div v-for="(id, index) in itemIds" :key="id" :ref="el => setItemRef(id,el)" class="home-item"
+      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-folder-target': folderTargetId === id, 'is-removing': removing.has(id) }"
       :data-home-item="id" :data-page-index="pageIndex" :data-item-index="index" :style="itemStyle(id)"
       @pointerdown="emit('item-pointerdown', $event, id, pageIndex, index)"
       @click.capture="activate($event, id, items[id])">
@@ -53,6 +69,7 @@ function activate(event, id, item) {
 .home-item.is-large { align-items:stretch; }
 .home-item.is-dragging-source { opacity:.16; }
 .home-item.is-folder-target { transform:scale(1.1); filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
+.home-item.is-removing{transform:scale(.2);opacity:0;transition:transform 180ms ease,opacity 180ms ease}
 .home-item.is-editing:not(.is-dragging-source) { animation:home-wiggle 170ms ease-in-out infinite alternate; }
 .home-item:nth-child(even).is-editing { animation-delay:-85ms; }
 .selection-mark { position:absolute; top:-5px; left:1px; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; color:#fff; background:rgba(50,50,55,.72); border:1.5px solid rgba(255,255,255,.9); font:700 13px/1 var(--font-stack); z-index:4; }
