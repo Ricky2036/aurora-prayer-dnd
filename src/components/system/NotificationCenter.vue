@@ -294,6 +294,13 @@ function getActionBtnStyle(id, type) {
   }
 }
 
+function onJumpAppNotificationSettings(appId) {
+  notifications.setAppTarget(appId)
+  system.requestCloseOverlay('notificationCenter')
+  system.openApp('settings')
+  swipeOffsets.value = {}
+}
+
 function onJumpSettings(itemKey = null) {
   notifications.setTargetView('notifications', 'dynamicBar', itemKey)
   system.requestCloseOverlay('notificationCenter')
@@ -741,8 +748,8 @@ watch(expandedId, async () => {
               <button
                 class="nc-action-btn nc-btn-settings"
                 :style="getActionBtnStyle(n.id, 'settings')"
-                @click.stop="onJumpSettings(n.appId || n.id)"
-                :title="i18n.t('islandSettings')"
+                @click.stop="onJumpAppNotificationSettings(n.appId || n.id)"
+                :title="i18n.t('notifications')"
               >
                 <LIcon name="headerSettings" :size="20" />
               </button>

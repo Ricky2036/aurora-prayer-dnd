@@ -8,8 +8,9 @@ export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
     list: seedNotifications(),
     targetView: null, // 'notifications' | null
-    targetSubView: null, // 'dynamicBar' | 'main' | null
+    targetSubView: null, // 'dynamicBar' | 'appDetail' | 'main' | null
     targetIslandKey: null, // 'recorder' | 'alarm' | 'timer' | 'stopwatch' | 'prayer' | 'media' | null
+    targetAppId: null, // 'whatsapp' | 'gmail' | 'spotify' ... | null
     islandSettings: {
       master: true,
       alarm: true,
@@ -59,6 +60,14 @@ export const useNotificationsStore = defineStore('notifications', {
       this.targetView = view
       this.targetSubView = subView
       this.targetIslandKey = islandKey
+      this.targetAppId = null
+    },
+
+    setAppTarget(appId) {
+      this.targetView = 'notifications'
+      this.targetSubView = 'appDetail'
+      this.targetAppId = appId
+      this.targetIslandKey = null
     },
 
     setIslandEnabled(key, enabled) {

@@ -420,3 +420,37 @@ test('LockScreen reduces bottom stack leak to half, supports swipe down to colla
   assert.match(lsContent, /backdrop-filter:\s*blur\(28px\)/, 'Pill must use frosted glass backdrop filter')
   assert.match(lsContent, /border-radius:\s*9999px/, 'Pill must be a rounded capsule')
 })
+
+test('LockScreen and Settings implement anti-flicker swipe collapse, remove pill shadow, hide fully covered cards, and separate notification card swipe actions', () => {
+  const lsPath = path.resolve(__dirname, '../src/components/system/LockScreen.vue')
+  const lsContent = fs.readFileSync(lsPath, 'utf8')
+
+  // Anti-flicker and cooldown
+  assert.match(lsContent, /STATE_TRANSITION_MS\s*=\s*360/, 'Must define state transition cooldown')
+  assert.match(lsContent, /isStateTransitioning/, 'Must track state transition animating state')
+  assert.match(lsContent, /e\.deltaY\s*>\s*15/, 'Must require upward wheel to expand from collapsed state')
+
+  // No pill shadow
+  assert.match(lsContent, /\.ls-glass-pill\s*\{[^}]*box-shadow:\s*none/s, 'Pill must remove box shadow')
+
+  // Occlusion hiding
+  assert.match(lsContent, /isCompletelyCovered/, 'Must detect completely covered cards')
+  assert.match(lsContent, /visibility:\s*itemLayout\.opacity\s*===\s*0\s*\?\s*'hidden'\s*:\s*'visible'/, 'Must hide covered cards with visibility hidden')
+
+  // Swipe action separation
+  assert.match(lsContent, /onJumpAppNotificationSettings/, 'Must define onJumpAppNotificationSettings')
+  assert.match(lsContent, /v-if="item\.isActivity"/, 'Must branch swipe actions for activity vs ordinary notifications')
+  assert.match(lsContent, /onRequestDeleteActivity\(item\.activity\)/, 'Only activity cards prompt deletion modal')
+  assert.match(lsContent, /onDeleteCard\(item\)/, 'Notification cards delete directly without modal')
+
+  // Store and Settings routing
+  const storePath = path.resolve(__dirname, '../src/stores/notificationsStore.js')
+  const storeContent = fs.readFileSync(storePath, 'utf8')
+  assert.match(storeContent, /setAppTarget\(appId\)/, 'notificationsStore must support setAppTarget')
+
+  const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
+  const notifContent = fs.readFileSync(notifSettingsPath, 'utf8')
+  assert.match(notifContent, /targetSubView\s*===\s*'appDetail'/, 'SettingsNotifications must handle appDetail subView')
+  assert.match(notifContent, /resolveApp/, 'SettingsNotifications must resolve target app for appDetail view')
+})
+

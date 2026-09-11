@@ -54,13 +54,33 @@ function triggerIslandHighlight(key) {
   }, 1800)
 }
 
-const initialSubView = notificationsStore.targetSubView === 'dynamicBar' ? 'dynamicBar' : 'main'
+function resolveApp(appId) {
+  if (!appId) return notificationApps.value[0]
+  const found = notificationApps.value.find(a => a.appId === appId || a.id === appId)
+  if (found) return found
+  return {
+    id: appId,
+    appId,
+    iconType: appId,
+    time: Date.now()
+  }
+}
+
+const initialSubView = notificationsStore.targetSubView === 'dynamicBar'
+  ? 'dynamicBar'
+  : (notificationsStore.targetSubView === 'appDetail' ? 'appDetail' : 'main')
 const pendingHighlightKey = ref(notificationsStore.targetIslandKey)
 
-if (notificationsStore.targetSubView === 'dynamicBar') {
-  notificationsStore.setTargetView('notifications', null, null)
+const subStack = ref(
+  initialSubView === 'dynamicBar'
+    ? ['main', 'dynamicBar']
+    : (initialSubView === 'appDetail' ? ['main', 'appDetail'] : ['main'])
+)
+
+if (initialSubView === 'dynamicBar') {
+  notificationsStore.setTargetView('notifications', null, null, null)
 }
-const subStack = ref(initialSubView === 'dynamicBar' ? ['main', 'dynamicBar'] : ['main'])
+
 const subView = computed(() => subStack.value[subStack.value.length - 1] || 'main')
 const isBack = ref(false)
 
@@ -71,18 +91,23 @@ if (pendingHighlightKey.value && initialSubView === 'dynamicBar') {
 }
 
 watch(
-  () => [notificationsStore.targetSubView, notificationsStore.targetIslandKey],
-  ([newSub, newKey]) => {
+  () => [notificationsStore.targetSubView, notificationsStore.targetIslandKey, notificationsStore.targetAppId],
+  ([newSub, newKey, newAppId]) => {
     if (newSub === 'dynamicBar') {
       isBack.value = false
       subStack.value = ['main', 'dynamicBar']
       const keyToHighlight = newKey || notificationsStore.targetIslandKey
-      notificationsStore.setTargetView('notifications', null, null)
+      notificationsStore.setTargetView('notifications', null, null, null)
       if (keyToHighlight) {
         nextTick(() => {
           triggerIslandHighlight(keyToHighlight)
         })
       }
+    } else if (newSub === 'appDetail') {
+      isBack.value = false
+      selectedApp.value = resolveApp(newAppId || notificationsStore.targetAppId)
+      subStack.value = ['main', 'appDetail']
+      notificationsStore.setTargetView('notifications', null, null, null)
     } else if (newKey && subView.value === 'dynamicBar') {
       nextTick(() => {
         triggerIslandHighlight(newKey)
