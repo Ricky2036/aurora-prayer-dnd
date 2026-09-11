@@ -81,7 +81,7 @@ onBeforeUnmount(() => {
   if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
 })
 
-const BASE_Y = computed(() => screenHeight.value - 254)
+const BASE_Y = computed(() => screenHeight.value - 224)
 const PLAYER_HEIGHT = 164
 const NOTIF_SPACING = 98
 const PLAYER_NOTIF_GAP = 8
@@ -95,7 +95,7 @@ const TOP_GAP = 16
 const CLOCK_MAX_HEIGHT = 220
 const CLOCK_MIN_HEIGHT = 110
 const SAFE_GAP = TOP_GAP
-const LOCK_STACK_BOTTOM_INSET = 140
+const LOCK_STACK_BOTTOM_INSET = 110
 const LOCK_STACK_MAX_VISUAL_OFFSET = 36
 const LOCK_CARD_HEIGHT = 90
 const LOCK_CARD_BASE_ALPHA = 0.7
@@ -118,7 +118,7 @@ const totalActivitiesHeight = computed(() => {
 
 // 折叠态最底端可用基准线：若有通知胶囊则贴紧通知胶囊上方（留12px间距），若无通知则贴紧底部快捷按钮上方
 const COLLAPSED_BOTTOM_Y = computed(() => {
-  return screenHeight.value - (lockItems.value.length > 0 ? 134 : 114)
+  return screenHeight.value - (lockItems.value.length > 0 ? 104 : 84)
 })
 
 // 播放器在折叠态的 Y 坐标：紧贴在折叠底线正上方
@@ -1068,7 +1068,7 @@ function notifStyle(i) {
         <div class="ls-scroll-spacer" :style="scrollSpacerStyle"></div>
       </div>
 
-      <!-- 微缩通知胶囊（折叠态）：圆角毛玻璃药丸背景 + 通知图标 + “X条通知”文案 -->
+      <!-- 微缩通知胶囊（折叠态）：圆角毛玻璃药丸背景 + 铃铛图标 + “X条通知”文案 -->
       <div
         v-if="lockItems.length"
         class="ls-pill-container"
@@ -1080,15 +1080,8 @@ function notifStyle(i) {
           :aria-label="notifCountLabel"
           @click="handleExpand"
         >
-          <div class="lp-mini-icons">
-            <template v-for="(item, idx) in lockItems.slice(0, 3)" :key="item.id">
-              <div v-if="item.isActivity" class="lp-mini-act" :class="`is-${item.activity?.type || 'item'}`">
-                <span class="lp-dot"></span>
-              </div>
-              <div v-else class="lp-mini-item" :style="{ zIndex: 10 - idx }">
-                <NotificationIcon :type="item.raw?.iconType" :size="20" />
-              </div>
-            </template>
+          <div class="lp-bell-wrap">
+            <LIcon name="bell" :size="16" />
           </div>
           <span class="lp-glass-count">{{ notifCountLabel }}</span>
         </button>
@@ -1565,9 +1558,9 @@ function notifStyle(i) {
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  height: 38px;
-  padding: 0 16px 0 10px;
+  gap: 7px;
+  height: 36px;
+  padding: 0 16px 0 13px;
   background: rgba(255, 255, 255, 0.22);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
@@ -1585,41 +1578,13 @@ function notifStyle(i) {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.22);
 }
 
-.lp-mini-icons {
-  display: flex;
-  align-items: center;
-}
-
-.lp-mini-item {
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
-  overflow: hidden;
+.lp-bell-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-.lp-mini-item + .lp-mini-item {
-  margin-left: -7px;
-}
-
-.lp-mini-act {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #10b981;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-.lp-mini-act.is-recorder { background: #ef4444; }
-.lp-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ffffff;
+  color: #ffffff;
+  opacity: 0.95;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 .lp-glass-count {
