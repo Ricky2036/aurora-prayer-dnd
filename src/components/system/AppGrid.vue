@@ -13,7 +13,7 @@ const props = defineProps({
   selectedIds: { type: Array, default: () => [] }, draggingId: { type: String, default: null },
   folderTargetId: { type: String, default: null }
 })
-const emit = defineEmits(['item-pointerdown', 'toggle-select', 'open-folder'])
+const emit = defineEmits(['item-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
 const selected = computed(() => new Set(props.selectedIds))
 const appFor = (item) => item?.type === 'app' ? getApp(item.appId) : null
 const folderFor = (item) => item?.type === 'folder' ? props.folders[item.folderId] : null
@@ -42,6 +42,7 @@ function activate(event, id, item) {
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :enter-delay="120 + index * 28" home-anchor />
       <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" @open="emit('open-folder',items[id].folderId,$event)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
+      <button v-if="editing" class="remove-badge" type="button" aria-label="移除桌面项目" @click.stop="emit('request-remove',id)">−</button>
     </div>
   </div>
 </template>
@@ -56,6 +57,7 @@ function activate(event, id, item) {
 .home-item:nth-child(even).is-editing { animation-delay:-85ms; }
 .selection-mark { position:absolute; top:-5px; left:1px; width:20px; height:20px; display:grid; place-items:center; border-radius:50%; color:#fff; background:rgba(50,50,55,.72); border:1.5px solid rgba(255,255,255,.9); font:700 13px/1 var(--font-stack); z-index:4; }
 .is-selected .selection-mark { background:#0a84ff; }
+.remove-badge{position:absolute;right:-5px;top:-6px;width:21px;height:21px;border-radius:50%;background:rgba(45,45,50,.85);color:#fff;font:700 19px/18px var(--font-stack);z-index:5}
 @keyframes home-wiggle { from{transform:rotate(-1deg)} to{transform:rotate(1deg)} }
 @media (prefers-reduced-motion:reduce) { .home-item,.home-item.is-editing{animation:none;transition-duration:1ms} }
 </style>
