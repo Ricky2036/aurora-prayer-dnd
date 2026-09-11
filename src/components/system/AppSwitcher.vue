@@ -31,13 +31,18 @@ const rootRef = ref(null)
 const screenW = ref(0)
 const screenH = ref(0)
 
-/* ---- 几何常量（相对屏幕） ---- */
-const cardW = computed(() => Math.round(screenW.value * 0.86))
-const cardH = computed(() => Math.round(screenH.value * 0.72))
+/* ---- 几何常量（2026-09-11 二轮：按 Ricky 两段参考录屏 + 两张参考图逐帧量出） ----
+ *   卡片      宽 = 高 = 屏幕 × 0.82（与屏幕同比例 → 预览零裁切，Ricky 要求避免过多裁切）
+ *   顶距      屏高 × 0.11；前卡槽位 X = 3.5% + min(焦点,1) × 12.5%（列表首 = 靠左 3.5%，
+ *             浏览第 2 张起 = 16%，与 image3/image2 参考图一致）
+ *   左侧堆叠  每层左移 12.5% 屏宽（露出宽度参考 image2）；右侧队列 间距 0.98×卡宽
+ *             （列表首时右邻露出 ≈16%，参考 image3）
+ *   后卡      亮度 × 0.75（前卡全亮），尺寸不变 */
+const cardW = computed(() => Math.round(screenW.value * 0.82))
+const cardH = computed(() => Math.round(screenH.value * 0.82))
 const cardY = computed(() => Math.round(screenH.value * 0.11))
-const frontX = computed(() => Math.round((screenW.value - cardW.value) / 2))
-const PILE_STEP = 26              // 左侧堆叠每层左移 px
-const QUEUE_RATIO = 0.97          // 右侧队列间距 = cardW × 0.97（露出窄条）
+const PILE_FRAC = 0.125           // 左侧堆叠每层位移（屏宽分数）
+const QUEUE_RATIO = 0.98          // 右侧队列间距 = cardW × 0.98
 const RADIUS = 24
 const previewScale = computed(() => (screenW.value ? cardW.value / screenW.value : 1))
 
@@ -62,28 +67,52 @@ const frontIndex = computed(() => {
 
 const visible = computed(() => system.appSwitcherOpen || system.switcherProgress > 0)
 
+/* 邻居进场：手势路径悬停 ~0.5s 后才进场（Ricky 参考视频 00:03 明确节奏）；
+   直开路径（桌面）下一帧即进场。entranceDone 之后 stagger 清零，
+   否则浏览/吸附时后面的卡会一直带 60ms 延迟（只在进场时要有序） */
+const neighborsIn = ref(false)
+const entranceDone = ref(false)
+let dwellTimer = null
+let settleTimer = null
+
 watch(
   () => system.appSwitcherOpen,
   (open) => {
-    if (!open) return
+    clearTimeout(dwellTimer)
+    clearTimeout(settleTimer)
+    if (!open) { neighborsIn.value = false; entranceDone.value = false; return }
     nextTick(() => {
       measure()
       focusSnap(frontIndex.value)
+      const markDone = (base) => {
+        settleTimer = setTimeout(() => { entranceDone.value = true }, base + apps.value.length * 60 + 320)
+      }
       if (!system.activeAppId) {
-        // 直开路径（桌面进入）：没有前台应用可缩放，直接落到堆叠终态
+        // 桌面直开：无前台应用可缩放，进度直接到 1；
+        // 卡片下一帧才进场（先停在下方 30% 处，靠 transition 逐张上浮，参考视频入场）
         system.setSwitcherProgress(1)
         openSnap(1)
+        dwellTimer = setTimeout(() => { neighborsIn.value = true }, 60)
+        markDone(60)
       } else if (system.switcherProgress < 1) {
-        // 手势路径：从交接进度（HomeIndicator 铺的 ~0.5）继续推到 1
+        // 手势路径：跟手卡从交接进度（~0.5）连续滑进卡位，邻居悬停 0.5s 后进场
         openSnap(system.switcherProgress)
         openTo(1)
+        dwellTimer = setTimeout(() => { neighborsIn.value = true }, 500)
+        markDone(500)
       } else {
         openSnap(1)
+        neighborsIn.value = true
+        entranceDone.value = true
       }
     })
   },
   { immediate: true }
 )
+
+/* ---- 前卡槽位：焦点 0 → 屏宽 3.5%（列表首，右邻露出 16%）；
+        焦点 ≥1 → 屏宽 16%（两侧堆叠/队列对称露出，参考两张参考图） ---- */
+const frontX = computed(() => screenW.value * (0.035 + Math.min(Math.max(focus.value, 0), 1) * PILE_FRAC))
 
 /* ---- 卡片位姿：o = i - focus，前卡居中、左堆右排 ---- */
 function pose(i) {
@@ -95,9 +124,9 @@ function pose(i) {
     x = frontX.value + o * cardW.value * QUEUE_RATIO
   } else {
     // 左侧堆叠
-    x = frontX.value + o * PILE_STEP
+    x = frontX.value + o * screenW.value * PILE_FRAC
   }
-  const scale = 1 - 0.05 * Math.min(ao, 1)
+  const scale = 1 // 尺寸不缩（参考里前后卡同大，差异在亮度）
   const bright = 1 - 0.25 * Math.min(ao, 1)
   return { x, scale, bright, z: 100 - Math.round(ao * 10), o }
 }
@@ -114,13 +143,37 @@ function cardStyle(i) {
   }
 }
 
-/* 堆叠渲染态 = cardStyle + 进度淡入：
-   前卡在进场进度 <1 时透明（跟手卡在同位姿顶替），其余卡按进度淡入 */
+/* 堆叠渲染态：统一的「藏 → 进场」编排，CSS transition 负责丝滑。
+   - 手势路径（应用内）：前卡在进度 <1 时透明（跟手卡同位姿顶替）；
+     邻居悬停 0.5s 前藏在槽位右侧 26% 屏宽处且透明，到点后逐张（i×60ms）滑入。
+   - 桌面路径：所有卡藏在下方 30% 屏高处且透明，下一帧逐张（i×60ms）上浮进场
+     （参考视频：背景模糊压暗 + 卡片自下方有序入场）。 */
+const homePath = computed(() => !system.activeAppId)
 function stackStyle(i) {
-  const base = cardStyle(i)
-  const p = system.switcherProgress
-  const opacity = i === frontIndex.value ? (p >= 0.999 ? 1 : 0) : Math.min(1, p * 1.5)
-  return { ...base, opacity }
+  const p = pose(i)
+  let x = p.x
+  let y = cardY.value
+  let opacity = 1
+  let delay = '0ms'
+  if (i === frontIndex.value && !homePath.value) {
+    opacity = system.switcherProgress >= 0.999 ? 1 : 0
+  } else if (!neighborsIn.value) {
+    opacity = 0
+    if (homePath.value) y += screenH.value * 0.3
+    else x += screenW.value * 0.26
+  } else {
+    delay = entranceDone.value ? '0ms' : `${i * 60}ms`
+  }
+  return {
+    width: cardW.value + 'px',
+    height: cardH.value + 'px',
+    transform: `translate3d(${x}px, ${y}px, 0) scale(${p.scale})`,
+    filter: `brightness(${p.bright})`,
+    zIndex: p.z,
+    borderRadius: RADIUS + 'px',
+    opacity,
+    transitionDelay: delay
+  }
 }
 
 /* ---- 跟手缩放：switcherProgress 0→1 时，前台应用卡从全屏连续收缩到卡位 ---- */
