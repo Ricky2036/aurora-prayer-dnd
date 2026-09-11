@@ -217,14 +217,24 @@ test('DynamicIsland.vue supports mirrored swipe-to-delete, settings jump, and Is
   assert.ok(content.includes('onCardPointerUp'), 'Must handle pointer up for swipe gesture')
 })
 
-test('DevConsole uses the vector alarm icon and concise copy without emoji', () => {
+test('DevConsole defaults to island module and provides 5 system app island buttons', () => {
   const compPath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
   const content = fs.readFileSync(compPath, 'utf8')
 
-  assert.match(content, /CLOCK_ICONS\.alarm/, 'Must render the Clock alarm vector icon')
-  assert.match(content, /isAlarmRinging \? '关闭闹钟' : '开启闹钟'/, 'Idle control copy should be concise')
-  assert.doesNotMatch(content, /🔔/, 'Alarm control must not use emoji')
-  assert.doesNotMatch(content, /触发 20:44 闹钟/, 'Alarm control must not expose fixture time copy')
+  assert.match(content, /:\s*'island'/, 'initialModule must fallback to island')
+  assert.match(content, /<option value="island">灵动岛<\/option>/, 'Module option must be 灵动岛')
+  assert.doesNotMatch(content, /<option value="island">灵动岛与闹钟<\/option>/, 'Must not include 灵动岛与闹钟')
+  assert.match(content, /<span class="pc-card-title">系统应用<\/span>/, 'Must have 系统应用 section title')
+  assert.match(content, /CLOCK_ICONS\.alarm/, 'Must render alarm vector icon')
+  assert.match(content, /CLOCK_ICONS\.stopwatch/, 'Must render stopwatch vector icon')
+  assert.match(content, /CLOCK_ICONS\.timer/, 'Must render timer vector icon')
+  assert.match(content, /GLYPHS\.mic/, 'Must render mic vector icon for recorder')
+  assert.match(content, /GLYPHS\.music/, 'Must render music vector icon')
+  assert.match(content, /<span>闹钟<\/span>/, 'Must list 闹钟 button')
+  assert.match(content, /<span>计时器<\/span>/, 'Must list 计时器 button')
+  assert.match(content, /<span>倒计时<\/span>/, 'Must list 倒计时 button')
+  assert.match(content, /<span>录音<\/span>/, 'Must list 录音 button')
+  assert.match(content, /<span>音乐<\/span>/, 'Must list 音乐 button')
 })
 
 test('LockScreen implements screen-edge clipping with full-width container and overflow visible wrapper', () => {

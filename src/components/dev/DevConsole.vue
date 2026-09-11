@@ -5,8 +5,11 @@ import { useSystemStore } from '../../stores/systemStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useClockStore } from '../../stores/clockStore'
 import { useI18nStore } from '../../stores/i18nStore'
+import { useRecorderStore } from '../../stores/recorderStore'
+import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useCapture } from '../../composables/useCapture'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import { GLYPHS } from '../../assets/icons/glyphs'
 import LIcon from '../ui/LIcon.vue'
 
 /* 微调面板改为按需异步加载 */
@@ -54,10 +57,13 @@ const control = useControlStore()
 const system = useSystemStore()
 const prayerStore = usePrayerStore()
 const clockStore = useClockStore()
+const recorderStore = useRecorderStore()
+const notificationsStore = useNotificationsStore()
 const i18n = useI18nStore()
 
 if (typeof window !== 'undefined') {
   window.__clock = clockStore
+  window.__recorder = recorderStore
 }
 
 /** 默认布局按「系列」分行：tOS 16 / tOS 17 / EE1，每行同样是 CAMON / NOTE / GT */
@@ -124,7 +130,7 @@ const initialModule = (urlParams?.get('overlay') === 'controlCenter' || urlParam
     ? 'island'
     : (urlParams?.get('tab') === 'prayer' || urlParams?.get('tab') === 'muslim' || urlParams?.get('module') === 'muslim')
       ? 'muslim'
-      : 'control'
+      : 'island'
 
 const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim'
 
@@ -136,6 +142,65 @@ watch(selectedModule, (mod) => {
     })
   }
 })
+
+/* ================= 系统应用灵动岛开关与应用状态联动 ================= */
+function toggleAlarmIsland() {
+  if (clockStore.isAlarmActive) {
+    clockStore.dismissAlarm()
+  } else {
+    notificationsStore.setIslandEnabled('alarm', true)
+    clockStore.triggerAlarm()
+  }
+}
+
+function toggleStopwatchIsland() {
+  if (clockStore.isStopwatchActive) {
+    clockStore.resetStopwatch()
+  } else {
+    notificationsStore.setIslandEnabled('stopwatch', true)
+    clockStore.startStopwatch()
+    if (system.activeAppId === 'clock') {
+      system.closeApp()
+    }
+  }
+}
+
+function toggleTimerIsland() {
+  if (clockStore.isTimerActive) {
+    clockStore.cancelTimer()
+  } else {
+    notificationsStore.setIslandEnabled('timer', true)
+    if (clockStore.timer.totalDuration <= 0) {
+      clockStore.setTimerDuration(0, 5, 0)
+    }
+    clockStore.startTimer()
+    if (system.activeAppId === 'clock') {
+      system.closeApp()
+    }
+  }
+}
+
+function toggleRecorderIsland() {
+  if (recorderStore.isRecording) {
+    recorderStore.stopRecording()
+  } else {
+    notificationsStore.setIslandEnabled('recorder', true)
+    recorderStore.startRecording()
+    if (system.activeAppId === 'voicememos') {
+      system.closeApp()
+    }
+  }
+}
+
+function toggleMediaIsland() {
+  if (control.mediaActive) {
+    control.dismissMediaImmediately()
+  } else {
+    notificationsStore.setIslandEnabled('media', true)
+    control.mediaActive = true
+    control.mediaPlaying = true
+  }
+}
 
 /* ================= 移动端悬浮球与弹窗状态 ================= */
 const isDrawerOpen = ref(false)
@@ -434,7 +499,7 @@ function onToggleFineTune(enabled) {
       <div class="pc-select-wrapper">
         <select id="desktop-module-select" v-model="selectedModule" class="pc-module-select">
           <option value="control">控制中心</option>
-          <option value="island">灵动岛与闹钟</option>
+          <option value="island">灵动岛</option>
           <option value="muslim">礼拜与时钟</option>
         </select>
         <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
@@ -560,36 +625,92 @@ function onToggleFineTune(enabled) {
             </div>
           </div>
 
-          <!-- 模块 2: 灵动岛与闹钟 -->
+          <!-- 模块 2: 灵动岛 -->
           <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
-            <!-- 区域 1：闹钟提醒 -->
+            <!-- 区域 1：系统应用 -->
             <div class="pc-section">
               <div class="pc-card-header">
-                <span class="pc-card-title">闹钟提醒</span>
-                <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
-                  {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
+                <span class="pc-card-title">系统应用</span>
+                <span v-if="clockStore.isAlarmActive || clockStore.isStopwatchActive || clockStore.isTimerActive || recorderStore.isRecording || control.mediaActive" class="pc-state-tag is-on">
+                  {{ clockStore.isAlarmActive ? '闹钟进行中' : (clockStore.isStopwatchActive ? '计时中' : (clockStore.isTimerActive ? '倒计时中' : (recorderStore.isRecording ? '录音中' : '音乐播放中'))) }}
                 </span>
               </div>
-              <div style="display: flex; gap: 8px;">
+              <div class="pc-sysapp-grid">
+                <!-- 1. 闹钟 -->
                 <button
-                  class="pc-prayer-btn pc-alarm-trigger-btn"
-                  style="flex: 1;"
-                  :class="{ on: clockStore.isAlarmRinging }"
-                  @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
+                  class="pc-sysapp-btn"
+                  :class="{ on: clockStore.isAlarmActive }"
+                  @click="toggleAlarmIsland"
+                  title="开启/关闭闹钟灵动岛"
                 >
-                  <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path :d="CLOCK_ICONS.alarm" />
                   </svg>
-                  <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '开启闹钟' }}</span>
+                  <span>闹钟</span>
                 </button>
+
+                <!-- 2. 计时器 -->
                 <button
-                  v-if="clockStore.isAlarmActive"
+                  class="pc-sysapp-btn"
+                  :class="{ on: clockStore.isStopwatchActive }"
+                  @click="toggleStopwatchIsland"
+                  title="开启/关闭计时器灵动岛"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.stopwatch" />
+                  </svg>
+                  <span>计时器</span>
+                </button>
+
+                <!-- 3. 倒计时 -->
+                <button
+                  class="pc-sysapp-btn"
+                  :class="{ on: clockStore.isTimerActive }"
+                  @click="toggleTimerIsland"
+                  title="开启/关闭倒计时灵动岛"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.timer" />
+                  </svg>
+                  <span>倒计时</span>
+                </button>
+
+                <!-- 4. 录音 -->
+                <button
+                  class="pc-sysapp-btn"
+                  :class="{ on: recorderStore.isRecording }"
+                  @click="toggleRecorderIsland"
+                  title="开启/关闭录音灵动岛"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="GLYPHS.mic" />
+                  </svg>
+                  <span>录音</span>
+                </button>
+
+                <!-- 5. 音乐 -->
+                <button
+                  class="pc-sysapp-btn"
+                  :class="{ on: control.mediaActive }"
+                  @click="toggleMediaIsland"
+                  title="开启/关闭音乐灵动岛"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="GLYPHS.music" />
+                  </svg>
+                  <span>音乐</span>
+                </button>
+              </div>
+
+              <!-- 闹钟稍后提醒辅助按钮 -->
+              <div v-if="clockStore.isAlarmActive" style="margin-top: 6px;">
+                <button
                   class="pc-prayer-btn"
-                  style="flex: 1;"
+                  style="width: 100%; padding: 6px 0;"
                   :class="{ on: clockStore.isAlarmSnoozing }"
                   @click="clockStore.snoozeAlarm()"
                 >
-                  {{ clockStore.isAlarmSnoozing ? '重置10分' : '延时10分' }}
+                  {{ clockStore.isAlarmSnoozing ? '重置稍后提醒 10 分钟' : '稍后提醒延时 10 分钟' }}
                 </button>
               </div>
             </div>
@@ -615,17 +736,6 @@ function onToggleFineTune(enabled) {
                 >
                   {{ i18n.prayerName(p.id) }}
                 </button>
-              </div>
-            </div>
-
-            <!-- 虚线分割 -->
-            <div class="pc-divider-dashed"></div>
-
-            <!-- 区域 3：系统常驻岛提示 -->
-            <div class="pc-section">
-              <div class="pc-island-hint-row">
-                <span>音乐 / 倒计时 / 录音灵动岛</span>
-                <span class="pc-island-badge">前台应用驱动</span>
               </div>
             </div>
           </div>
@@ -827,7 +937,7 @@ function onToggleFineTune(enabled) {
               <div class="pc-select-wrapper">
                 <select id="mobile-module-select" v-model="selectedModule" class="pc-module-select">
                   <option value="control">控制中心</option>
-                  <option value="island">灵动岛与闹钟</option>
+                  <option value="island">灵动岛</option>
                   <option value="muslim">礼拜与时钟</option>
                 </select>
                 <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
@@ -953,36 +1063,92 @@ function onToggleFineTune(enabled) {
                     </div>
                   </div>
 
-                  <!-- 模块 2: 灵动岛与闹钟 -->
+                  <!-- 模块 2: 灵动岛 -->
                   <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
-                    <!-- 区域 1：闹钟提醒 -->
+                    <!-- 区域 1：系统应用 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
-                        <span class="pc-card-title">闹钟提醒</span>
-                        <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
-                          {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
+                        <span class="pc-card-title">系统应用</span>
+                        <span v-if="clockStore.isAlarmActive || clockStore.isStopwatchActive || clockStore.isTimerActive || recorderStore.isRecording || control.mediaActive" class="pc-state-tag is-on">
+                          {{ clockStore.isAlarmActive ? '闹钟进行中' : (clockStore.isStopwatchActive ? '计时中' : (clockStore.isTimerActive ? '倒计时中' : (recorderStore.isRecording ? '录音中' : '音乐播放中'))) }}
                         </span>
                       </div>
-                      <div style="display: flex; gap: 8px;">
+                      <div class="pc-sysapp-grid">
+                        <!-- 1. 闹钟 -->
                         <button
-                          class="pc-prayer-btn pc-alarm-trigger-btn"
-                          style="flex: 1;"
-                          :class="{ on: clockStore.isAlarmRinging }"
-                          @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
+                          class="pc-sysapp-btn"
+                          :class="{ on: clockStore.isAlarmActive }"
+                          @click="toggleAlarmIsland"
+                          title="开启/关闭闹钟灵动岛"
                         >
-                          <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path :d="CLOCK_ICONS.alarm" />
                           </svg>
-                          <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '开启闹钟' }}</span>
+                          <span>闹钟</span>
                         </button>
+
+                        <!-- 2. 计时器 -->
                         <button
-                          v-if="clockStore.isAlarmActive"
+                          class="pc-sysapp-btn"
+                          :class="{ on: clockStore.isStopwatchActive }"
+                          @click="toggleStopwatchIsland"
+                          title="开启/关闭计时器灵动岛"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="CLOCK_ICONS.stopwatch" />
+                          </svg>
+                          <span>计时器</span>
+                        </button>
+
+                        <!-- 3. 倒计时 -->
+                        <button
+                          class="pc-sysapp-btn"
+                          :class="{ on: clockStore.isTimerActive }"
+                          @click="toggleTimerIsland"
+                          title="开启/关闭倒计时灵动岛"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="CLOCK_ICONS.timer" />
+                          </svg>
+                          <span>倒计时</span>
+                        </button>
+
+                        <!-- 4. 录音 -->
+                        <button
+                          class="pc-sysapp-btn"
+                          :class="{ on: recorderStore.isRecording }"
+                          @click="toggleRecorderIsland"
+                          title="开启/关闭录音灵动岛"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="GLYPHS.mic" />
+                          </svg>
+                          <span>录音</span>
+                        </button>
+
+                        <!-- 5. 音乐 -->
+                        <button
+                          class="pc-sysapp-btn"
+                          :class="{ on: control.mediaActive }"
+                          @click="toggleMediaIsland"
+                          title="开启/关闭音乐灵动岛"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="GLYPHS.music" />
+                          </svg>
+                          <span>音乐</span>
+                        </button>
+                      </div>
+
+                      <!-- 闹钟稍后提醒辅助按钮 -->
+                      <div v-if="clockStore.isAlarmActive" style="margin-top: 6px;">
+                        <button
                           class="pc-prayer-btn"
-                          style="flex: 1;"
+                          style="width: 100%; padding: 6px 0;"
                           :class="{ on: clockStore.isAlarmSnoozing }"
                           @click="clockStore.snoozeAlarm()"
                         >
-                          {{ clockStore.isAlarmSnoozing ? '重置10分' : '延时10分' }}
+                          {{ clockStore.isAlarmSnoozing ? '重置稍后提醒 10 分钟' : '稍后提醒延时 10 分钟' }}
                         </button>
                       </div>
                     </div>
@@ -1008,17 +1174,6 @@ function onToggleFineTune(enabled) {
                         >
                           {{ i18n.prayerName(p.id) }}
                         </button>
-                      </div>
-                    </div>
-
-                    <!-- 虚线分割 -->
-                    <div class="pc-divider-dashed"></div>
-
-                    <!-- 区域 3：系统常驻岛提示 -->
-                    <div class="pc-section">
-                      <div class="pc-island-hint-row">
-                        <span>音乐 / 倒计时 / 录音灵动岛</span>
-                        <span class="pc-island-badge">前台应用驱动</span>
                       </div>
                     </div>
                   </div>
@@ -1578,6 +1733,52 @@ function onToggleFineTune(enabled) {
 
 .pc-btn :deep(.l-icon) {
   margin-right: 7px;
+}
+
+/* 系统应用 5 按钮组 */
+.pc-sysapp-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+.pc-sysapp-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 2px;
+  border-radius: 9px;
+  font: 600 11px/1 var(--font-stack);
+  background: #101014;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  user-select: none;
+}
+
+.pc-sysapp-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+.pc-sysapp-btn:hover {
+  background: #27272a;
+  color: #ffffff;
+}
+
+.pc-sysapp-btn.on {
+  background: #10b981;
+  border-color: #34d399;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
 }
 
 /* 礼拜按钮组 */
