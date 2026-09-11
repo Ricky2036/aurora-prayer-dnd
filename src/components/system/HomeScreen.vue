@@ -16,6 +16,7 @@ const home = useHomeStore()
 const rootRef = ref(null)
 const previewPages = ref(null)
 const pageDragX = ref(0)
+const showPageDots = ref(false)
 const dragging = ref(null)
 const ghost = ref(null)
 const openFolderId = ref(null)
@@ -43,6 +44,7 @@ const ghostApp = computed(() => {
 
 const justUnlocked = ref(false)
 let unlockTimer = null
+let pageIndicatorTimer = null
 watch(() => system.baseLayer, (layer, previous) => {
   if (layer === 'home' && previous === 'lock') {
     justUnlocked.value = true
@@ -56,6 +58,18 @@ let edgeTimer = null
 let folderTimer = null
 let pointer = null
 function clearTimers() { clearTimeout(pressTimer); clearTimeout(edgeTimer); clearTimeout(folderTimer); pressTimer = null; edgeTimer = null; folderTimer = null }
+function revealPageDots() {
+  clearTimeout(pageIndicatorTimer)
+  pageIndicatorTimer = null
+  showPageDots.value = true
+}
+function restoreSearchAfterPaging() {
+  revealPageDots()
+  pageIndicatorTimer = setTimeout(() => {
+    showPageDots.value = false
+    pageIndicatorTimer = null
+  }, 5000)
+}
 function bindWindow() {
   window.addEventListener('pointermove', onPointerMove, { passive: false })
   window.addEventListener('pointerup', onPointerUp)
@@ -175,6 +189,7 @@ function updatePreview(x, y) {
     const requested = home.currentPage + direction
     if (requested < 0) return
     if (requested >= previewPages.value.length) previewPages.value.push([])
+    revealPageDots()
     home.currentPage = Math.min(requested, previewPages.value.length - 1)
     dragging.value.page = home.currentPage
     dragging.value.index = previewPages.value[home.currentPage].length
@@ -206,6 +221,7 @@ function onPointerMove(event) {
     if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return
     clearTimeout(pressTimer)
     if (Math.abs(dy) > Math.abs(dx) * 1.2) { cleanup(false); return }
+    revealPageDots()
     event.preventDefault()
     pageDragX.value = ((home.currentPage === 0 && dx > 0) || (home.currentPage === home.pageCount - 1 && dx < 0)) ? dx * .36 : dx
   }
@@ -231,6 +247,7 @@ function finishItem(cancelled) {
   folderTargetId.value = null
   dockTargetIndex.value = null
   if (cancelled) home.currentPage = Math.min(pointer.startPage,home.pages.length - 1)
+  if (showPageDots.value) restoreSearchAfterPaging()
 }
 function finishPage(cancelled) {
   const elapsed = Math.max(1, performance.now() - pointer.startedAt)
@@ -241,6 +258,7 @@ function finishPage(cancelled) {
   home.setPage(outcome.page)
   if (outcome.openLibrary) emit('open-library')
   pageDragX.value = 0
+  if (showPageDots.value) restoreSearchAfterPaging()
 }
 function cleanup(cancelled) {
   if (!pointer) return
@@ -313,7 +331,7 @@ const selectedFolder = computed(() => {
   const item = home.items[home.selectedItemIds[0]]
   return item?.type === 'folder' ? home.folders[item.folderId] : null
 })
-onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimers(); unbindWindow() })
+onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimers(); unbindWindow() })
 </script>
 
 <template>
@@ -326,7 +344,7 @@ onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimers(); unbindWindow()
       </section>
     </div>
     <button v-if="home.editing" class="done-button" type="button" @click="home.setEditing(false)">完成</button>
-    <div class="indicator-wrap"><PageIndicator :count="displayPages.length" :current="home.currentPage" @search="emit('open-library')" /></div>
+    <div class="indicator-wrap"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="showPageDots" @search="emit('open-library')" /></div>
     <DockBar :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
     <div v-if="home.editing && (home.selectedItemIds.length >= 2 || selectedFolder)" class="folder-tools home-editor">

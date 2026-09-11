@@ -48,6 +48,18 @@ test('folders expose all four sizes, renaming and app drag-out', async () => {
   assert.match(overlay, /文件夹名称/)
 })
 
+test('page dots replace search during paging and restore it after five seconds', async () => {
+  const [home, indicator] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/ui/PageIndicator.vue')
+  ])
+  assert.match(home, /restoreSearchAfterPaging/)
+  assert.match(home, /}, 5000\)/)
+  assert.match(home, /:show-pages="showPageDots"/)
+  assert.match(indicator, /showPages && count > 1/)
+  assert.match(indicator, /indicator-swap/)
+})
+
 test('dock editing, protected uninstall and library filtering are wired to home state', async () => {
   const [home, dock, library] = await Promise.all([
     read('../src/components/system/HomeScreen.vue'),
