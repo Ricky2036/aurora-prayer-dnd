@@ -63,7 +63,7 @@ function activate(event, id, item) {
 </template>
 
 <style scoped>
-.app-grid { width:100%; height:100%; padding:calc(var(--safe-top,54px) + 12px) 24px 0; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:69.5px 69.5px repeat(4,79px); column-gap:var(--grid-gap-x,24px); row-gap:20px; align-content:start; }
+.app-grid { width:100%; height:100%; padding:calc(var(--safe-top,54px) + 12px) 24px 0; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:65.5px 65.5px repeat(4,79px); column-gap:var(--grid-gap-x,24px); row-gap:20px; align-content:start; }
 .app-grid.is-editing { transform:translate3d(0,32px,0) scale(.76); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
 .home-item { position:relative; min-width:0; min-height:79px; display:flex; align-items:flex-start; justify-content:center; transition:transform 220ms cubic-bezier(.22,.8,.26,1),opacity 160ms ease; touch-action:none; }
 .home-item.is-widget { min-height:0; aspect-ratio:1/1; align-self:start; }

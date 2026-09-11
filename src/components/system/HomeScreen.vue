@@ -100,15 +100,17 @@ function setGhostPosition(id, clientX, clientY) {
 function onEmptyPointerDown(event) {
   if (event.button != null && event.button !== 0) return
   if (event.target.closest('[data-home-item],.dock-bar,.home-editor')) return
-  pointer = { id:event.pointerId, mode:'page', startX:event.clientX, startY:event.clientY, startedAt:performance.now(), startPage:home.currentPage, captureEl:capture(event) }
-  pressTimer = setTimeout(() => { if (pointer?.mode === 'page') { home.setEditing(true); pointer = null; unbindWindow() } }, 450)
+  pointer = { id:event.pointerId, mode:'page', startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY,
+    startedAt:performance.now(), startPage:home.currentPage, exitEditingOnTap:home.editing, captureEl:capture(event) }
+  if (!home.editing) pressTimer = setTimeout(() => { if (pointer?.mode === 'page') { home.setEditing(true); pointer = null; unbindWindow() } }, 450)
   bindWindow()
 }
 function onItemPointerDown(event, id, page, index) {
   if (event.button != null && event.button !== 0) return
   event.stopPropagation()
   pointer = { id:event.pointerId, mode:home.editing ? 'item-ready' : 'item-press', itemId:id, page, index,
-    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now(), startPage:home.currentPage, edgeDirection:0, captureEl:capture(event) }
+    startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY, startedAt:performance.now(), startPage:home.currentPage,
+    edgeDirection:0, captureTarget:event.currentTarget, captureEl:null }
   if (!home.editing) pressTimer = setTimeout(() => {
     if (!pointer || pointer.itemId !== id) return
     home.setEditing(true); pointer.mode = 'item-ready'
@@ -121,7 +123,7 @@ function onDockPointerDown(event, id, index) {
   event.stopPropagation()
   pointer = { id:event.pointerId, mode:home.editing ? 'item-ready' : 'item-press', itemId:id, page:home.currentPage, index,
     sourceDock:true, startX:event.clientX, startY:event.clientY, lastX:event.clientX, lastY:event.clientY,
-    startedAt:performance.now(), startPage:home.currentPage, edgeDirection:0, captureEl:capture(event) }
+    startedAt:performance.now(), startPage:home.currentPage, edgeDirection:0, captureTarget:event.currentTarget, captureEl:null }
   if (!home.editing) pressTimer = setTimeout(() => {
     if (!pointer || pointer.itemId !== id) return
     home.setEditing(true); pointer.mode = 'item-ready'
@@ -131,6 +133,9 @@ function onDockPointerDown(event, id, index) {
 }
 function startItemDrag(x, y) {
   if (!pointer?.itemId) return
+  if (!pointer.captureEl && pointer.captureTarget) {
+    try { pointer.captureTarget.setPointerCapture?.(pointer.id); pointer.captureEl = pointer.captureTarget } catch {}
+  }
   pointer.mode = 'item-drag'
   previewPages.value = home.pages.map((page) => [...page])
   dragging.value = { id:pointer.itemId, page:pointer.page, index:pointer.index }
@@ -273,6 +278,12 @@ function finishItem(cancelled) {
 }
 function finishPage(cancelled) {
   const elapsed = Math.max(1, performance.now() - pointer.startedAt)
+  const tapDistance = Math.hypot((pointer.lastX ?? pointer.startX) - pointer.startX, (pointer.lastY ?? pointer.startY) - pointer.startY)
+  if (!cancelled && pointer.exitEditingOnTap && tapDistance < 7) {
+    home.setEditing(false)
+    pageDragX.value = 0
+    return
+  }
   const outcome = cancelled ? { page:home.currentPage, openLibrary:false } : resolveDesktopPage({
     currentPage:home.currentPage, pageCount:home.pageCount, delta:pageDragX.value, velocity:pageDragX.value / elapsed,
     threshold:rootRef.value.getBoundingClientRect().width * .18
