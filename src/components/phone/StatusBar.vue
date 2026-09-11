@@ -226,7 +226,7 @@ watch(isIslandExpanded, (expanded) => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 6.5px 18px 0;
+  padding: 6.5px 24px 0;
   z-index: var(--z-status-bar);
   font: 600 15px/1 var(--font-stack);
   font-variant-numeric: tabular-nums;

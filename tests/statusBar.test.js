@@ -40,3 +40,10 @@ test('status bar time is preserved on home screen and apps, only hidden on lock 
   assert.match(sbContent, /const hideTime = computed\(\(\) => \{\s*return system\.baseLayer === 'lock'\s*\}\)/)
   assert.doesNotMatch(sbContent, /recorder\.isRecording\s*&&\s*system\.activeAppId\s*!==\s*'voicememos'/)
 })
+
+test('status bar horizontal padding insets icons away from screen edge', () => {
+  const sbPath = new URL('../src/components/phone/StatusBar.vue', import.meta.url)
+  const sbContent = fs.readFileSync(sbPath, 'utf8')
+
+  assert.match(sbContent, /padding:\s*6\.5px\s+24px\s+0;/)
+})
