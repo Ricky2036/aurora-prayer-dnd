@@ -57,7 +57,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix lockscreen swipe collapse flickering, remove pill shadow, hide covered cards, and separate notification swipe actions | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `src/components/apps/settings/SettingsNotifications.vue`; `src/stores/notificationsStore.js`; `tests/alarmDynamicIsland.test.js` | `299a4ee` | `82bd75d` |
 | Merged | Antigravity | Restore status bar clock during background voice recording | `antigravity/lane` | `src/components/phone/StatusBar.vue`; `tests/statusBar.test.js` | `9c0896d` | `07c103c` |
 | Merged | Antigravity | Synchronize dynamic island switch off when notification master switch is turned off | `antigravity/lane` | `src/stores/notificationsStore.js`; `src/components/apps/settings/SettingsNotifications.vue`; `tests/notificationsLinkage.test.js` | `069bdb6` | `01604af` |
+| Active | Antigravity | Adjust status bar horizontal inset to pull icons inward from screen edge | `antigravity/lane` | `src/components/phone/StatusBar.vue`; `tests/statusBar.test.js` | Pending | Pending |
 | Active | Codex | Desktop foundation capabilities | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/stores/homeStore.js`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/system/AppLibrary.vue`; `src/components/ui/AppIcon.vue`; new desktop components, layout utilities, and tests | `00c594f` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
-
