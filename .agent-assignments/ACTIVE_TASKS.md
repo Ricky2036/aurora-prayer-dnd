@@ -53,6 +53,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Unify DevConsole prayer buttons style and size to system apps style, and rename dropdown module to 礼拜模式 | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `cd7419d` | `92e059e` |
 | Merged | Antigravity | Default capture and record to without frame, move Control Center module to last in DevConsole dropdown, and remove alarm snooze button | `antigravity/lane` | `src/composables/useCapture.js`; `src/components/dev/DevConsole.vue`; `tests/alarmDynamicIsland.test.js` | `92e059e` | `8a36c78` |
 | Merged | Antigravity | Notification settings highlight fill 30%, lockscreen notification stack half-height leak & swipe down collapse glass pill, and SplitActionCell component | `antigravity/lane` | `src/components/ui/SplitActionCell.vue`; `src/components/ui/ToggleSwitch.vue`; `src/components/apps/settings/SettingsNotifications.vue`; `src/components/system/LockScreen.vue`; `src/utils/notificationStack.js`; `tests/alarmDynamicIsland.test.js` | `dd4721e` | `b1cc400` |
+| Active | Antigravity | Replace collapsed notification icons with control center bell icon and reduce lockscreen bottom blank space by 60% | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/alarmDynamicIsland.test.js` | `5dc993c` | pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
