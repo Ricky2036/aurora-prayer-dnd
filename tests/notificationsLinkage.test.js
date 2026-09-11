@@ -174,3 +174,36 @@ test('screen recording options conform to frame specification', () => {
   assert.equal(framed.preferMp4, false)
 })
 
+test('notification permission authorization modal flow and deny default off behavior', () => {
+  const store = initStore()
+
+  // Initially unprompted
+  assert.equal(store.hasPromptedPermission('voicememos'), false)
+  assert.equal(store.hasPromptedPermission('recorder'), false)
+
+  // 1. If user chooses "不允许" (Don't Allow)
+  store.setAppNotificationEnabled('voicememos', false)
+  store.markPermissionPrompted('voicememos')
+
+  assert.equal(store.hasPromptedPermission('voicememos'), true)
+  assert.equal(store.isAppNotificationEnabled('voicememos'), false)
+  assert.equal(store.isAppNotificationEnabled('recorder'), false)
+  assert.equal(store.islandSettings.recorder, false, 'Dynamic island must default to OFF when permission is denied')
+  assert.equal(store.isIslandEnabled('recorder'), false)
+
+  // 2. Reset permission prompt
+  store.resetPermissionPrompt('voicememos')
+  assert.equal(store.hasPromptedPermission('voicememos'), false)
+
+  // 3. If user chooses "允许" (Allow)
+  store.setAppNotificationEnabled('voicememos', true)
+  store.markPermissionPrompted('voicememos')
+
+  assert.equal(store.hasPromptedPermission('voicememos'), true)
+  assert.equal(store.isAppNotificationEnabled('voicememos'), true)
+  assert.equal(store.isAppNotificationEnabled('recorder'), true)
+  assert.equal(store.islandSettings.recorder, true)
+  assert.equal(store.isIslandEnabled('recorder'), true)
+})
+
+

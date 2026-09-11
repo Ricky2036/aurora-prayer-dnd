@@ -289,6 +289,10 @@ export const MESSAGES = {
       alipay: '您的蚂蚁森林有能量可收集，已有好友帮你浇水。'
     },
 
+    notifAuthPrompt: (app) => `要允许“${app}”向您发送通知吗？`,
+    notifAuthAllow: '允许',
+    notifAuthDeny: '不允许',
+
     // 日历预置事件标题
     evtStandup: '晨会',
     evtQuarterlyReview: '季度产品评审',
@@ -667,6 +671,10 @@ export const MESSAGES = {
       linkedin: 'Congratulations to Wang Wu on the promotion to Senior Product Manager.',
       alipay: 'Your Ant Forest has energy to collect, and a friend has watered it for you.'
     },
+
+    notifAuthPrompt: (app) => `Allow “${app}” to send you notifications?`,
+    notifAuthAllow: 'Allow',
+    notifAuthDeny: 'Don’t Allow',
 
     // Calendar preset events
     evtStandup: 'Standup',
@@ -1048,6 +1056,10 @@ export const MESSAGES = {
       alipay: 'তোমার Ant Forest-এ শক্তি সংগ্রহ করা যাবে, এক বন্ধু তোমাকে পানি দিয়েছে।'
     },
 
+    notifAuthPrompt: (app) => `“${app}” কি আপনাকে বিজ্ঞপ্তি পাঠাতে অনুমতি দেবেন?`,
+    notifAuthAllow: 'অনুমতি দিন',
+    notifAuthDeny: 'অনুমতি দেবেন না',
+
     // Calendar preset events
     evtStandup: 'স্ট্যান্ডআপ',
     evtQuarterlyReview: 'ত্রৈমাসিক পর্যালোচনা',
@@ -1339,7 +1351,11 @@ export const useI18nStore = defineStore('i18n', {
     currentWeekDays: (s) => MESSAGES[s.locale]?.weekDays || MESSAGES.zh.weekDays,
     calWeekDays: (s) => MESSAGES[s.locale]?.calWeekDays || MESSAGES.zh.calWeekDays,
     appName: (s) => (appId) => APP_NAMES[s.locale]?.[appId] || APP_NAMES.zh[appId] || appId,
-    categoryName: (s) => (catKey) => CATEGORIES_NAMES[s.locale]?.[catKey] || CATEGORIES_NAMES.zh[catKey] || catKey
+    categoryName: (s) => (catKey) => CATEGORIES_NAMES[s.locale]?.[catKey] || CATEGORIES_NAMES.zh[catKey] || catKey,
+    notifAuthPrompt: (s) => (app) => {
+      const fn = MESSAGES[s.locale]?.notifAuthPrompt || MESSAGES.zh.notifAuthPrompt
+      return typeof fn === 'function' ? fn(app) : `要允许“${app}”向您发送通知吗？`
+    }
   },
   actions: {
     setLocale(loc) {

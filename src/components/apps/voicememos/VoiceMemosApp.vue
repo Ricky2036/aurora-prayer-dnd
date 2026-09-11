@@ -1,15 +1,54 @@
 <script setup>
-import { computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRecorderStore } from '../../../stores/recorderStore'
 import { useSystemStore } from '../../../stores/systemStore'
+import { useNotificationsStore } from '../../../stores/notificationsStore'
+import NotificationPermissionModal from '../../ui/NotificationPermissionModal.vue'
 
 const recorder = useRecorderStore()
 const system = useSystemStore()
+const notifications = useNotificationsStore()
+
+const showPermissionModal = ref(false)
+const pendingStartRecord = ref(false)
+
+onMounted(() => {
+  // 首次启动录音应用时，若尚未进行过通知授权，则主动弹出系统通知授权弹窗
+  if (!notifications.hasPromptedPermission('voicememos')) {
+    showPermissionModal.value = true
+  }
+})
 
 function toggleRecord() {
   if (recorder.isRecording) {
     recorder.stopRecording()
   } else {
+    // 若尚未进行过通知授权，先弹出授权弹窗，待用户选择后再开始录音
+    if (!notifications.hasPromptedPermission('voicememos')) {
+      pendingStartRecord.value = true
+      showPermissionModal.value = true
+      return
+    }
+    recorder.startRecording()
+  }
+}
+
+function handleAllowPermission() {
+  showPermissionModal.value = false
+  notifications.setAppNotificationEnabled('voicememos', true)
+  notifications.markPermissionPrompted('voicememos')
+  if (pendingStartRecord.value) {
+    pendingStartRecord.value = false
+    recorder.startRecording()
+  }
+}
+
+function handleDenyPermission() {
+  showPermissionModal.value = false
+  notifications.setAppNotificationEnabled('voicememos', false)
+  notifications.markPermissionPrompted('voicememos')
+  if (pendingStartRecord.value) {
+    pendingStartRecord.value = false
     recorder.startRecording()
   }
 }
@@ -31,6 +70,14 @@ function formatDuration(sec) {
 
 <template>
   <div class="voicememos-app">
+    <!-- 通知授权弹窗 -->
+    <NotificationPermissionModal
+      v-model:visible="showPermissionModal"
+      app-id="voicememos"
+      app-name="录音"
+      @allow="handleAllowPermission"
+      @deny="handleDenyPermission"
+    />
     <!-- 顶部状态与标题栏 -->
     <header class="vm-header">
       <h1 class="vm-title">全部录音</h1>
@@ -103,6 +150,7 @@ function formatDuration(sec) {
 
 <style scoped>
 .voicememos-app {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
