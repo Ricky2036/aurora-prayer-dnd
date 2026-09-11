@@ -326,5 +326,26 @@ test('DevConsole prayer card uses 礼拜模式 title and provides SVG icons for 
   assert.match(content, /p\.id === 'isha'|else[\s\S]*?<path d="M21 12\.79A9 9 0 1 1 11\.21 3/, 'Isha must have night moon SVG')
 })
 
+test('DevConsole dropdown puts Control Center last, useCapture defaults to without frame, and removes alarm snooze button', () => {
+  const devConsolePath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const devContent = fs.readFileSync(devConsolePath, 'utf8')
+
+  // Check dropdown option ordering: island -> muslim -> control
+  assert.match(
+    devContent,
+    /<option value="island">灵动岛<\/option>\s*<option value="muslim">礼拜模式<\/option>\s*<option value="control">控制中心<\/option>/,
+    'Dropdown must put control center last'
+  )
+
+  // Verify alarm snooze button is removed from DevConsole
+  assert.doesNotMatch(devContent, /稍后提醒延时/, 'DevConsole must not have snooze button')
+  assert.doesNotMatch(devContent, /clockStore\.snoozeAlarm\(\)/, 'DevConsole must not call snoozeAlarm')
+
+  const capturePath = path.resolve(__dirname, '../src/composables/useCapture.js')
+  const captureContent = fs.readFileSync(capturePath, 'utf8')
+  assert.match(captureContent, /const recordWithFrame = ref\(false\)/, 'recordWithFrame must default to false')
+  assert.match(captureContent, /const screenshotWithFrame = ref\(false\)/, 'screenshotWithFrame must default to false')
+})
+
 
 

@@ -32,12 +32,12 @@ const props = defineProps({
   },
   recordWithFrame: {
     type: Boolean,
-    default: true
+    default: false
   },
   /** 控制台「带壳截图」开关状态（由 App.vue 经 v-model 传入） */
   screenshotWithFrame: {
     type: Boolean,
-    default: true
+    default: false
   },
   /** 截图进行中：禁用按钮 + 显示「截取中...」 */
   isCapturing: {
@@ -498,9 +498,9 @@ function onToggleFineTune(enabled) {
       <label for="desktop-module-select" class="pc-module-label">切换模块</label>
       <div class="pc-select-wrapper">
         <select id="desktop-module-select" v-model="selectedModule" class="pc-module-select">
-          <option value="control">控制中心</option>
           <option value="island">灵动岛</option>
           <option value="muslim">礼拜模式</option>
+          <option value="control">控制中心</option>
         </select>
         <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -699,18 +699,6 @@ function onToggleFineTune(enabled) {
                     <path :d="GLYPHS.music" />
                   </svg>
                   <span>音乐</span>
-                </button>
-              </div>
-
-              <!-- 闹钟稍后提醒辅助按钮 -->
-              <div v-if="clockStore.isAlarmActive" style="margin-top: 6px;">
-                <button
-                  class="pc-prayer-btn"
-                  style="width: 100%; padding: 6px 0;"
-                  :class="{ on: clockStore.isAlarmSnoozing }"
-                  @click="clockStore.snoozeAlarm()"
-                >
-                  {{ clockStore.isAlarmSnoozing ? '重置稍后提醒 10 分钟' : '稍后提醒延时 10 分钟' }}
                 </button>
               </div>
             </div>
@@ -1031,9 +1019,9 @@ function onToggleFineTune(enabled) {
               <label for="mobile-module-select" class="pc-module-label">切换模块</label>
               <div class="pc-select-wrapper">
                 <select id="mobile-module-select" v-model="selectedModule" class="pc-module-select">
-                  <option value="control">控制中心</option>
                   <option value="island">灵动岛</option>
                   <option value="muslim">礼拜模式</option>
+                  <option value="control">控制中心</option>
                 </select>
                 <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -1232,18 +1220,6 @@ function onToggleFineTune(enabled) {
                             <path :d="GLYPHS.music" />
                           </svg>
                           <span>音乐</span>
-                        </button>
-                      </div>
-
-                      <!-- 闹钟稍后提醒辅助按钮 -->
-                      <div v-if="clockStore.isAlarmActive" style="margin-top: 6px;">
-                        <button
-                          class="pc-prayer-btn"
-                          style="width: 100%; padding: 6px 0;"
-                          :class="{ on: clockStore.isAlarmSnoozing }"
-                          @click="clockStore.snoozeAlarm()"
-                        >
-                          {{ clockStore.isAlarmSnoozing ? '重置稍后提醒 10 分钟' : '稍后提醒延时 10 分钟' }}
                         </button>
                       </div>
                     </div>
@@ -1974,33 +1950,6 @@ function onToggleFineTune(enabled) {
   box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
 }
 
-/* 稍后提醒等通用辅助按钮 */
-.pc-prayer-btn {
-  padding: 8px 0;
-  border-radius: 9px;
-  font: 600 11px/1 var(--font-stack);
-  background: #101014;
-  border: 1px solid #27272a;
-  color: #d4d4d8;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-  user-select: none;
-}
-
-.pc-prayer-btn:hover {
-  background: #27272a;
-  color: #ffffff;
-}
-
-.pc-prayer-btn.on {
-  background: #10b981;
-  border-color: #34d399;
-  color: #ffffff;
-  font-weight: 700;
-  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
-}
 
 .pc-alarm-trigger-btn {
   display: inline-flex;
