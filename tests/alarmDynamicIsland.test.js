@@ -311,6 +311,13 @@ test('DevConsole prayer card uses 礼拜模式 title and provides SVG icons for 
   assert.doesNotMatch(content, /礼拜灵动岛/, 'DevConsole must no longer use 礼拜灵动岛')
   assert.match(content, /<span class="pc-card-title">礼拜模式<\/span>/, 'Must use 礼拜模式 title')
 
+  // Check dropdown module options
+  assert.doesNotMatch(content, /礼拜与时钟/, 'DevConsole dropdown must no longer contain 礼拜与时钟')
+  assert.match(content, /<option value="muslim">礼拜模式<\/option>/, 'DevConsole dropdown must contain 礼拜模式')
+
+  // Check buttons style unification to pc-sysapp-btn
+  assert.match(content, /class="pc-sysapp-grid"[\s\S]*?class="pc-sysapp-btn"[\s\S]*?p\.id === 'fajr'/, 'Prayer buttons must use pc-sysapp-grid and pc-sysapp-btn')
+
   // Check 5 prayer SVGs
   assert.match(content, /p\.id === 'fajr'[\s\S]*?<svg[\s\S]*?<path d="M12 2v6"/, 'Fajr must have sunrise SVG')
   assert.match(content, /p\.id === 'dhuhr'[\s\S]*?<circle cx="12" cy="12" r="4"/, 'Dhuhr must have midday sun SVG')
@@ -318,5 +325,6 @@ test('DevConsole prayer card uses 礼拜模式 title and provides SVG icons for 
   assert.match(content, /p\.id === 'maghrib'[\s\S]*?<path d="M12 10v6"/, 'Maghrib must have sunset SVG')
   assert.match(content, /p\.id === 'isha'|else[\s\S]*?<path d="M21 12\.79A9 9 0 1 1 11\.21 3/, 'Isha must have night moon SVG')
 })
+
 
 

@@ -500,7 +500,7 @@ function onToggleFineTune(enabled) {
         <select id="desktop-module-select" v-model="selectedModule" class="pc-module-select">
           <option value="control">控制中心</option>
           <option value="island">灵动岛</option>
-          <option value="muslim">礼拜与时钟</option>
+          <option value="muslim">礼拜模式</option>
         </select>
         <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -726,19 +726,19 @@ function onToggleFineTune(enabled) {
                   {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
                 </span>
               </div>
-              <div class="prayer-buttons-grid">
+              <div class="pc-sysapp-grid">
                 <button
                   v-for="p in prayerStore.prayers"
                   :key="p.id"
-                  class="pc-prayer-btn"
+                  class="pc-sysapp-btn"
                   :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                   @click="prayerStore.toggleSimulatedPrayer(p.id)"
                 >
                   <!-- 晨礼：朝阳破晓 -->
                   <svg
                     v-if="p.id === 'fajr'"
-                    width="18"
-                    height="18"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -755,8 +755,8 @@ function onToggleFineTune(enabled) {
                   <!-- 晌礼：正午烈日 -->
                   <svg
                     v-else-if="p.id === 'dhuhr'"
-                    width="18"
-                    height="18"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -777,8 +777,8 @@ function onToggleFineTune(enabled) {
                   <!-- 哺礼：斜阳斜影 -->
                   <svg
                     v-else-if="p.id === 'asr'"
-                    width="18"
-                    height="18"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -797,8 +797,8 @@ function onToggleFineTune(enabled) {
                   <!-- 昏礼：落日余晖 -->
                   <svg
                     v-else-if="p.id === 'maghrib'"
-                    width="18"
-                    height="18"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -816,8 +816,8 @@ function onToggleFineTune(enabled) {
                   <!-- 宵礼：夜空星月 -->
                   <svg
                     v-else
-                    width="18"
-                    height="18"
+                    width="16"
+                    height="16"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
@@ -835,7 +835,7 @@ function onToggleFineTune(enabled) {
             </div>
           </div>
 
-          <!-- 模块 3: 礼拜与时钟 -->
+          <!-- 模块 3: 礼拜模式 -->
           <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
             <!-- 区域 1：智慧建议模式 -->
             <div class="pc-section">
@@ -1033,7 +1033,7 @@ function onToggleFineTune(enabled) {
                 <select id="mobile-module-select" v-model="selectedModule" class="pc-module-select">
                   <option value="control">控制中心</option>
                   <option value="island">灵动岛</option>
-                  <option value="muslim">礼拜与时钟</option>
+                  <option value="muslim">礼拜模式</option>
                 </select>
                 <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -1259,19 +1259,19 @@ function onToggleFineTune(enabled) {
                           {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
                         </span>
                       </div>
-                      <div class="prayer-buttons-grid">
+                      <div class="pc-sysapp-grid">
                         <button
                           v-for="p in prayerStore.prayers"
                           :key="p.id"
-                          class="pc-prayer-btn"
+                          class="pc-sysapp-btn"
                           :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                           @click="prayerStore.toggleSimulatedPrayer(p.id)"
                         >
                           <!-- 晨礼：朝阳破晓 -->
                           <svg
                             v-if="p.id === 'fajr'"
-                            width="18"
-                            height="18"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -1288,8 +1288,8 @@ function onToggleFineTune(enabled) {
                           <!-- 晌礼：正午烈日 -->
                           <svg
                             v-else-if="p.id === 'dhuhr'"
-                            width="18"
-                            height="18"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -1310,8 +1310,8 @@ function onToggleFineTune(enabled) {
                           <!-- 哺礼：斜阳斜影 -->
                           <svg
                             v-else-if="p.id === 'asr'"
-                            width="18"
-                            height="18"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -1330,8 +1330,8 @@ function onToggleFineTune(enabled) {
                           <!-- 昏礼：落日余晖 -->
                           <svg
                             v-else-if="p.id === 'maghrib'"
-                            width="18"
-                            height="18"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -1349,8 +1349,8 @@ function onToggleFineTune(enabled) {
                           <!-- 宵礼：夜空星月 -->
                           <svg
                             v-else
-                            width="18"
-                            height="18"
+                            width="16"
+                            height="16"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -1368,7 +1368,7 @@ function onToggleFineTune(enabled) {
                     </div>
                   </div>
 
-                  <!-- 模块 3: 礼拜与时钟 -->
+                  <!-- 模块 3: 礼拜模式 -->
                   <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
                     <!-- 区域 1：智慧建议模式 -->
                     <div class="pc-section">
@@ -1954,8 +1954,11 @@ function onToggleFineTune(enabled) {
 .pc-sysapp-btn svg {
   width: 16px;
   height: 16px;
-  fill: currentColor;
   flex-shrink: 0;
+}
+
+.pc-sysapp-btn svg:not([stroke]) {
+  fill: currentColor;
 }
 
 .pc-sysapp-btn:hover {
@@ -1971,51 +1974,23 @@ function onToggleFineTune(enabled) {
   box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
 }
 
-/* 礼拜按钮组 */
-.prayer-buttons-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
-}
-
+/* 稍后提醒等通用辅助按钮 */
 .pc-prayer-btn {
   padding: 8px 0;
-  border-radius: 8px;
-  font: 500 12px/1 var(--font-stack);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.7);
+  border-radius: 9px;
+  font: 600 11px/1 var(--font-stack);
+  background: #101014;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   -webkit-tap-highlight-color: transparent !important;
   outline: none !important;
   user-select: none;
 }
 
-.prayer-buttons-grid .pc-prayer-btn {
-  height: 52px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-}
-
-.prayer-buttons-grid .pc-prayer-btn svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.prayer-buttons-grid .pc-prayer-btn span {
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1;
-}
-
 .pc-prayer-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: #27272a;
   color: #ffffff;
 }
 
