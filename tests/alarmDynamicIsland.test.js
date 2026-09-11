@@ -291,17 +291,17 @@ test('notifIcons and i18nStore provide recorder icon and title definitions', () 
   assert.match(i18nContent, /recorder:\s*'Voice Memos'/, 'i18nStore en must define recorder title as Voice Memos')
 })
 
-test('SettingsNotifications decouples master switch and links live activity toggle to islandSettings', () => {
+test('SettingsNotifications links notification master switch and live activity toggle to notificationsStore', () => {
   const notifSettingsPath = path.resolve(__dirname, '../src/components/apps/settings/SettingsNotifications.vue')
   const content = fs.readFileSync(notifSettingsPath, 'utf8')
 
-  // Master switch is purely appStates and decoupled from islandSettings
-  assert.match(content, /function getAppState\(id\) \{\s*return appStates\.value\[id\] !== false\s*\}/, 'getAppState must be decoupled from islandSettings')
+  // Master switch delegates to notificationsStore
+  assert.match(content, /function getAppState\(id\) \{\s*return notificationsStore\.isAppNotificationEnabled\(id\)\s*\}/, 'getAppState must check isAppNotificationEnabled')
 
   // Live activity switch links to notificationsStore islandSettings
-  assert.match(content, /getIslandKeyForApp/, 'Must resolve island key for application')
-  assert.match(content, /notificationsStore\.isIslandEnabled\(islandKey\)/, 'getAppLiveActivityState must check isIslandEnabled')
-  assert.match(content, /notificationsStore\.setIslandEnabled\(islandKey,\s*next\)/, 'toggleAppLiveActivityState must call setIslandEnabled')
+  assert.match(content, /getIslandKeysForApp/, 'Must resolve island keys for application')
+  assert.match(content, /notificationsStore\.islandSettings\[k\] !== false/, 'getAppLiveActivityState must check islandSettings')
+  assert.match(content, /notificationsStore\.setIslandEnabled\(k,\s*next\)/, 'toggleAppLiveActivityState must call setIslandEnabled')
 })
 
 test('DevConsole prayer card uses 礼拜模式 title and provides SVG icons for all 5 prayers', () => {

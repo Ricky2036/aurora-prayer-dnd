@@ -10,7 +10,7 @@ import AppIcon from '../../ui/AppIcon.vue'
 import { getApp } from '../../../config/apps'
 import { seedNotifications } from '../../../config/seedNotifications'
 import { useI18nStore } from '../../../stores/i18nStore'
-import { useNotificationsStore } from '../../../stores/notificationsStore'
+import { useNotificationsStore, getIslandKeysForApp } from '../../../stores/notificationsStore'
 import { formatRelativeTime } from '../../../utils/timeFormat'
 import { CLOCK_ICONS } from '../../apps/clock/clockIcons'
 import { GLYPHS } from '../../../assets/icons/glyphs'
@@ -178,38 +178,28 @@ const notificationApps = computed(() => {
   return Array.from(map.values())
 })
 
-function getIslandKeyForApp(id) {
-  if (id === 'recorder' || id === 'voicememos') return 'recorder'
-  if (id === 'alarm') return 'alarm'
-  if (id === 'timer') return 'timer'
-  if (id === 'stopwatch') return 'stopwatch'
-  if (id === 'clock') return 'alarm'
-  if (id === 'media' || id === 'music' || id === 'spotify') return 'media'
-  if (id === 'prayer') return 'prayer'
-  return null
-}
-
-const appStates = ref({})
 function getAppState(id) {
-  return appStates.value[id] !== false
+  return notificationsStore.isAppNotificationEnabled(id)
 }
 function toggleAppState(id) {
-  appStates.value[id] = !getAppState(id)
+  notificationsStore.toggleAppNotification(id)
 }
 
 const appLiveActivityStates = ref({})
 function getAppLiveActivityState(id) {
-  const islandKey = getIslandKeyForApp(id)
-  if (islandKey && islandKey in notificationsStore.islandSettings) {
-    return notificationsStore.isIslandEnabled(islandKey)
+  const islandKeys = getIslandKeysForApp(id)
+  if (islandKeys.length > 0) {
+    return islandKeys.some((k) => notificationsStore.islandSettings[k] !== false)
   }
   return appLiveActivityStates.value[id] !== false
 }
 function toggleAppLiveActivityState(id) {
-  const islandKey = getIslandKeyForApp(id)
-  if (islandKey && islandKey in notificationsStore.islandSettings) {
-    const next = !notificationsStore.isIslandEnabled(islandKey)
-    notificationsStore.setIslandEnabled(islandKey, next)
+  const islandKeys = getIslandKeysForApp(id)
+  if (islandKeys.length > 0) {
+    const next = !getAppLiveActivityState(id)
+    for (const k of islandKeys) {
+      notificationsStore.setIslandEnabled(k, next)
+    }
     appLiveActivityStates.value[id] = next
     return
   }
@@ -432,7 +422,12 @@ const emit = defineEmits(['back-to-settings'])
                 <img :src="voicememosIconUrl" alt="Voice Memos" class="db-icon-img" />
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.recorder" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.recorder"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('recorder', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 闹钟 -->
@@ -448,7 +443,12 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.alarm" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.alarm"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('alarm', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 倒计时 -->
@@ -464,7 +464,12 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.timer" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.timer"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('timer', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 秒表 -->
@@ -480,7 +485,12 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.stopwatch" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.stopwatch"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('stopwatch', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 礼拜模式 -->
@@ -496,7 +506,12 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.prayer" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.prayer"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('prayer', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 媒体播控 -->
@@ -513,7 +528,12 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.media" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.media"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('media', val)"
+              />
+            </template>
           </ListCell>
         </div>
       </div>

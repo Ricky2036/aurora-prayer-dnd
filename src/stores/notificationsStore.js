@@ -3,6 +3,41 @@ import { seedNotifications } from '../config/seedNotifications.js'
 
 let nextId = 100
 
+/**
+ * 根据应用 ID 获取其关联的灵动岛活动键列表
+ */
+export function getIslandKeysForApp(appId) {
+  if (!appId) return []
+  if (appId === 'recorder' || appId === 'voicememos') return ['recorder']
+  if (appId === 'clock') return ['alarm', 'timer', 'stopwatch']
+  if (appId === 'alarm') return ['alarm']
+  if (appId === 'timer') return ['timer']
+  if (appId === 'stopwatch') return ['stopwatch']
+  if (appId === 'media' || appId === 'music' || appId === 'spotify') return ['media']
+  if (appId === 'prayer') return ['prayer']
+  return []
+}
+
+/**
+ * 根据灵动岛活动键获取其对应的父级应用 ID 列表
+ */
+export function getParentAppsForIslandKey(islandKey) {
+  switch (islandKey) {
+    case 'recorder':
+      return ['recorder', 'voicememos']
+    case 'alarm':
+    case 'timer':
+    case 'stopwatch':
+      return ['clock', islandKey]
+    case 'prayer':
+      return ['prayer', 'clock']
+    case 'media':
+      return ['media', 'music', 'spotify']
+    default:
+      return []
+  }
+}
+
 /** 通知中心数据：锁屏摘要 / 通知中心 / 角标三处共享 */
 export const useNotificationsStore = defineStore('notifications', {
   state: () => ({
@@ -11,6 +46,7 @@ export const useNotificationsStore = defineStore('notifications', {
     targetSubView: null, // 'dynamicBar' | 'appDetail' | 'main' | null
     targetIslandKey: null, // 'recorder' | 'alarm' | 'timer' | 'stopwatch' | 'prayer' | 'media' | null
     targetAppId: null, // 'whatsapp' | 'gmail' | 'spotify' ... | null
+    appSettings: {}, // appId -> boolean (true: 允许通知, false: 关闭通知)
     islandSettings: {
       master: true,
       alarm: true,
@@ -30,9 +66,31 @@ export const useNotificationsStore = defineStore('notifications', {
       for (const n of s.list) map[n.appId] = (map[n.appId] || 0) + 1
       return map
     },
+    /** 查询应用是否允许通知（总开关），默认允许 */
+    isAppNotificationEnabled: (s) => (appId) => {
+      if (!appId) return true
+      if (s.appSettings[appId] !== undefined) {
+        return s.appSettings[appId]
+      }
+      if (appId === 'voicememos' && s.appSettings['recorder'] !== undefined) {
+        return s.appSettings['recorder']
+      }
+      if (appId === 'recorder' && s.appSettings['voicememos'] !== undefined) {
+        return s.appSettings['voicememos']
+      }
+      return true
+    },
     /** 检查指定活动是否允许上灵动岛展示 */
     isIslandEnabled: (s) => (key) => {
-      return s.islandSettings[key] !== false
+      if (s.islandSettings[key] === false) return false
+      // 若该活动所属父应用的通知总开关被关闭，灵动岛也不允许展示
+      const parentApps = getParentAppsForIslandKey(key)
+      for (const p of parentApps) {
+        if (s.appSettings[p] === false) {
+          return false
+        }
+      }
+      return true
     }
   },
 
@@ -70,9 +128,43 @@ export const useNotificationsStore = defineStore('notifications', {
       this.targetIslandKey = null
     },
 
+    /**
+     * 设置应用的通知权限（总开关）。
+     * 当关闭应用的通知总开关时，若该应用具有灵动岛实时活动，灵动岛开关同步关闭。
+     * 当重新开启通知总开关时，灵动岛开关同步开启。
+     */
+    setAppNotificationEnabled(appId, enabled) {
+      if (!appId) return
+      this.appSettings[appId] = enabled
+      if (appId === 'voicememos') this.appSettings['recorder'] = enabled
+      if (appId === 'recorder') this.appSettings['voicememos'] = enabled
+
+      const islandKeys = getIslandKeysForApp(appId)
+      for (const key of islandKeys) {
+        if (key in this.islandSettings) {
+          this.islandSettings[key] = enabled
+        }
+      }
+    },
+
+    toggleAppNotification(appId) {
+      const next = !this.isAppNotificationEnabled(appId)
+      this.setAppNotificationEnabled(appId, next)
+      return next
+    },
+
     setIslandEnabled(key, enabled) {
       if (key in this.islandSettings) {
         this.islandSettings[key] = enabled
+        // 若单独打开灵动岛开关，确保对应的应用通知总开关也是开启的
+        if (enabled) {
+          const parentApps = getParentAppsForIslandKey(key)
+          for (const p of parentApps) {
+            if (this.appSettings[p] === false) {
+              this.appSettings[p] = true
+            }
+          }
+        }
       }
     }
   }
