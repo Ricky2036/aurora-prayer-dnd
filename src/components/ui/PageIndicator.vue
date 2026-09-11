@@ -5,7 +5,8 @@ import { useI18nStore } from '../../stores/i18nStore'
 /** iOS 16 风格分页指示：圆点 + 搜索胶囊 */
 const props = defineProps({
   count: { type: Number, default: 1 },
-  current: { type: Number, default: 0 }
+  current: { type: Number, default: 0 },
+  showPages: { type: Boolean, default: false }
 })
 const emit = defineEmits(['search'])
 const i18n = useI18nStore()
@@ -13,17 +14,15 @@ const i18n = useI18nStore()
 
 <template>
   <div class="page-indicator">
-    <span
-      v-if="count > 1"
-      v-for="i in count"
-      :key="i"
-      class="dot"
-      :class="{ active: i - 1 === current }"
-    ></span>
-    <button class="search-pill" @click="emit('search')">
-      <svg width="12" height="12" viewBox="0 0 24 24"><path :d="GLYPHS.search" fill="#fff" /></svg>
-      <span>{{ i18n.t('search') }}</span>
-    </button>
+    <Transition name="indicator-swap" mode="out-in">
+      <div v-if="showPages && count > 1" key="pages" class="page-dots" aria-label="桌面页面">
+        <span v-for="i in count" :key="i" class="dot" :class="{ active: i - 1 === current }"></span>
+      </div>
+      <button v-else key="search" class="search-pill" @click="emit('search')">
+        <svg width="12" height="12" viewBox="0 0 24 24"><path :d="GLYPHS.search" fill="#fff" /></svg>
+        <span>{{ i18n.t('search') }}</span>
+      </button>
+    </Transition>
   </div>
 </template>
 
@@ -31,8 +30,11 @@ const i18n = useI18nStore()
 .page-indicator {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  min-width: 72px;
+  height: 26px;
 }
+.page-dots { display:flex; align-items:center; justify-content:center; gap:8px; min-height:26px; }
 .dot {
   width: 7px;
   height: 7px;
@@ -55,4 +57,6 @@ const i18n = useI18nStore()
   transition: transform 0.15s ease;
 }
 .search-pill:active { transform: scale(0.94); }
+.indicator-swap-enter-active,.indicator-swap-leave-active { transition:opacity 150ms ease,transform 150ms ease; }
+.indicator-swap-enter-from,.indicator-swap-leave-to { opacity:0;transform:scale(.86); }
 </style>
