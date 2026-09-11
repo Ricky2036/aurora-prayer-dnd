@@ -61,6 +61,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix Spotify notification settings jump and direct MP4 unframed screen recording | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/App.vue`; `src/composables/useCapture.js`; `tests/notificationsLinkage.test.js` | `5474bfe` | `e4ff671` |
 | Active | Codex | Desktop foundation capabilities (continued) | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/stores/homeStore.js`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/system/AppLibrary.vue`; `src/components/ui/AppIcon.vue`; new desktop components, layout utilities, and tests | `00c594f` | `d6a6d43..2a18a71` |
 | Merged | Antigravity | Fix mobile LockScreen notification swipe flickering and refine Dynamic Island compact capsule & icon size | `antigravity/lane` | None (locks released) | `2bb765b` | `e83ccb6` |
-| Active | Antigravity | Eliminate lockscreen notification scroll lag and add desktop mouse drag scrolling | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/alarmDynamicIsland.test.js` | `f2d052f` | — |
+| Merged | Antigravity | Eliminate lockscreen notification scroll lag and add desktop mouse drag scrolling | `antigravity/lane` | None (locks released) | `f2d052f` | `e94b54d` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
