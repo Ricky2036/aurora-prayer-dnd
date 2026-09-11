@@ -101,6 +101,21 @@ test('protects core apps while allowing regular apps to be uninstalled', () => {
   assert.ok(store.uninstalledAppIds.includes('weather'))
 })
 
+test('removes an app from the desktop without uninstalling it', () => {
+  setActivePinia(createPinia())
+  const store = useHomeStore()
+  store.resetLayout()
+  assert.equal(store.removeFromDesktop('app:weather'), true)
+  assert.equal(store.itemLocation('app:weather'), null)
+  assert.ok(store.items['app:weather'])
+  assert.equal(store.appInstalled('weather'), true)
+  assert.ok(store.hiddenDesktopAppIds.includes('weather'))
+
+  const restored = loadHomeState({ getItem: () => JSON.stringify(store.$state) })
+  assert.equal(restored.pages.flat().includes('app:weather'), false)
+  assert.ok(restored.items['app:weather'])
+})
+
 test('restores valid persisted state and falls back from malformed data', () => {
   const valid = createDefaultHomeState()
   valid.uninstalledAppIds = ['weather']

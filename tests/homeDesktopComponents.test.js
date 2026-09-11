@@ -55,9 +55,27 @@ test('page dots replace search during paging and restore it after five seconds',
   ])
   assert.match(home, /restoreSearchAfterPaging/)
   assert.match(home, /}, 5000\)/)
-  assert.match(home, /:show-pages="showPageDots"/)
-  assert.match(indicator, /showPages && count > 1/)
+  assert.match(home, /:show-pages="home\.editing \|\| showPageDots"/)
+  assert.match(indicator, /v-if="showPages"/)
   assert.match(indicator, /indicator-swap/)
+})
+
+test('desktop edit mode matches the reference action and selection surfaces', async () => {
+  const [home, grid, folder] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/components/home/HomeFolderOverlay.vue')
+  ])
+  assert.match(home, /class="edit-actions home-editor"/)
+  assert.match(home, /class="edit-dashboard home-editor"/)
+  assert.match(home, /class="layout-picker home-editor"/)
+  assert.match(home, /<DockBar v-if="!home\.editing"/)
+  assert.match(home, /removeSelectedFromDesktop/)
+  assert.doesNotMatch(grid, /class="remove-badge"/)
+  assert.match(grid, /\.selection-mark \{[^}]*right:-\d+px/)
+  assert.match(grid, /backdrop-filter:blur\(12px\) saturate\(180%\)/)
+  assert.match(folder, /background:transparent/)
+  assert.doesNotMatch(folder, /class="folder-close"/)
 })
 
 test('dock editing, protected uninstall and library filtering are wired to home state', async () => {

@@ -15,7 +15,7 @@ const i18n = useI18nStore()
 <template>
   <div class="page-indicator">
     <Transition name="indicator-swap" mode="out-in">
-      <div v-if="showPages && count > 1" key="pages" class="page-dots" aria-label="桌面页面">
+      <div v-if="showPages" key="pages" class="page-dots" aria-label="桌面页面">
         <span v-for="i in count" :key="i" class="dot" :class="{ active: i - 1 === current }"></span>
       </div>
       <button v-else key="search" class="search-pill" @click="emit('search')">

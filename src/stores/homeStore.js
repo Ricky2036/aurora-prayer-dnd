@@ -43,6 +43,7 @@ export function createDefaultHomeState() {
     folders: {},
     dock: dockApps.map((app) => appItemId(app.id)).slice(0, 4),
     uninstalledAppIds: [],
+    hiddenDesktopAppIds: [],
     removedWidgetIds: [],
     hiddenIconId: null,
     editing: false,
@@ -64,6 +65,7 @@ function reconcileStoredState(raw) {
 
   const knownApps = new Set(APPS.map((app) => app.id))
   const uninstalled = new Set((raw.uninstalledAppIds || []).filter((id) => knownApps.has(id)))
+  const hiddenDesktop = new Set((raw.hiddenDesktopAppIds || []).filter((id) => knownApps.has(id) && !uninstalled.has(id)))
   const removedWidgets = new Set(raw.removedWidgetIds || [])
   const items = {}
 
@@ -81,7 +83,7 @@ function reconcileStoredState(raw) {
 
   const folders = {}
   for (const [id, folder] of Object.entries(raw.folders || {})) {
-    const appIds = [...new Set((folder.appIds || []).filter((appId) => knownApps.has(appId) && !uninstalled.has(appId)))]
+    const appIds = [...new Set((folder.appIds || []).filter((appId) => knownApps.has(appId) && !uninstalled.has(appId) && !hiddenDesktop.has(appId)))]
     if (!items[folderItemId(id)] || appIds.length === 0) continue
     folders[id] = {
       id,
@@ -96,12 +98,12 @@ function reconcileStoredState(raw) {
     if (item.type === 'folder' && !folders[item.folderId]) delete items[id]
   }
 
-  let pages = raw.pages.map((page) => [...new Set((page || []).filter((id) => items[id]))])
-  let dock = [...new Set((raw.dock || []).filter((id) => items[id]?.type === 'app'))].slice(0, 4)
+  let pages = raw.pages.map((page) => [...new Set((page || []).filter((id) => items[id] && !hiddenDesktop.has(items[id]?.appId)))])
+  let dock = [...new Set((raw.dock || []).filter((id) => items[id]?.type === 'app' && !hiddenDesktop.has(items[id].appId)))].slice(0, 4)
   const inFolder = new Set(Object.values(folders).flatMap((folder) => folder.appIds.map(appItemId)))
   pages = pages.map((page) => page.filter((id) => !dock.includes(id) && !inFolder.has(id)))
 
-  const located = new Set([...pages.flat(), ...dock, ...inFolder])
+  const located = new Set([...pages.flat(), ...dock, ...inFolder, ...[...hiddenDesktop].map(appItemId)])
   for (const [id, item] of Object.entries(defaults.items)) {
     if (item.type === 'widget') {
       if (!removedWidgets.has(item.widgetId) && !items[id]) {
@@ -130,6 +132,7 @@ function reconcileStoredState(raw) {
     folders,
     dock,
     uninstalledAppIds: [...uninstalled],
+    hiddenDesktopAppIds: [...hiddenDesktop],
     removedWidgetIds: [...removedWidgets]
   }
 }
@@ -169,6 +172,7 @@ export const useHomeStore = defineStore('home', {
           folders: this.folders,
           dock: this.dock,
           uninstalledAppIds: this.uninstalledAppIds,
+          hiddenDesktopAppIds: this.hiddenDesktopAppIds,
           removedWidgetIds: this.removedWidgetIds
         })
         storage.setItem(HOME_STORAGE_KEY, JSON.stringify(data))
@@ -201,6 +205,7 @@ export const useHomeStore = defineStore('home', {
 
     moveItem(itemId, targetPage, targetIndex) {
       if (!this.items[itemId]) return false
+      if (this.items[itemId].type === 'app') this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== this.items[itemId].appId)
       this.pages = moveHomeItem(this.pages, itemId, targetPage, targetIndex)
       this.reflow()
       this.currentPage = Math.max(0, Math.min(targetPage, this.pages.length - 1))
@@ -237,6 +242,7 @@ export const useHomeStore = defineStore('home', {
       this.dock = this.dock.filter((id) => id !== item.id)
       for (const other of Object.values(this.folders)) other.appIds = other.appIds.filter((id) => id !== item.appId)
       folder.appIds.push(item.appId)
+      this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== item.appId)
       this.reflow()
       this.persist()
       return true
@@ -247,6 +253,7 @@ export const useHomeStore = defineStore('home', {
       const id = appItemId(appId)
       if (!folder?.appIds.includes(appId) || !this.items[id]) return false
       folder.appIds = folder.appIds.filter((value) => value !== appId)
+      this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== appId)
       this.pages = moveHomeItem(this.pages, id, targetPage, targetIndex)
       if (folder.appIds.length === 0) this.removeFolder(folderId, false)
       else this.reflow()
@@ -297,6 +304,7 @@ export const useHomeStore = defineStore('home', {
     moveToDock(itemId, targetIndex = this.dock.length) {
       const item = this.items[itemId]
       if (!item || item.type !== 'app') return false
+      this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== item.appId)
       this.pages = removeHomeItemFromPages(this.pages, itemId)
       for (const folder of Object.values(this.folders)) folder.appIds = folder.appIds.filter((id) => id !== item.appId)
       this.dock = this.dock.filter((id) => id !== itemId)
@@ -312,8 +320,23 @@ export const useHomeStore = defineStore('home', {
 
     moveFromDock(itemId, targetPage = this.currentPage, targetIndex = 0) {
       if (!this.dock.includes(itemId)) return false
+      const item = this.items[itemId]
+      if (item?.type === 'app') this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== item.appId)
       this.dock = this.dock.filter((id) => id !== itemId)
       this.pages = moveHomeItem(this.pages, itemId, targetPage, targetIndex)
+      this.reflow()
+      this.persist()
+      return true
+    },
+
+    removeFromDesktop(itemId) {
+      const item = this.items[itemId]
+      if (!item || item.type !== 'app') return false
+      this.pages = removeHomeItemFromPages(this.pages, itemId)
+      this.dock = this.dock.filter((id) => id !== itemId)
+      for (const folder of Object.values(this.folders)) folder.appIds = folder.appIds.filter((id) => id !== item.appId)
+      if (!this.hiddenDesktopAppIds.includes(item.appId)) this.hiddenDesktopAppIds.push(item.appId)
+      this.selectedItemIds = this.selectedItemIds.filter((id) => id !== itemId)
       this.reflow()
       this.persist()
       return true
@@ -329,6 +352,7 @@ export const useHomeStore = defineStore('home', {
         if (folder.appIds.length === 0) this.removeFolder(folderId, false)
       }
       delete this.items[itemId]
+      this.hiddenDesktopAppIds = this.hiddenDesktopAppIds.filter((id) => id !== appId)
       if (!this.uninstalledAppIds.includes(appId)) this.uninstalledAppIds.push(appId)
       this.selectedItemIds = this.selectedItemIds.filter((id) => id !== itemId)
       this.reflow()
