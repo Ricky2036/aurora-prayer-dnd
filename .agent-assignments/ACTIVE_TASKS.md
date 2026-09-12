@@ -69,12 +69,12 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `763378f` |
 | Merged | Antigravity | Fix LockScreen mobile touch gestures: separate non-card swipe to unlock, resolve card scroll stuck & desktop leak, and support touch swipe down collapse | `antigravity/lane` | None (locks released) | `0dc5cac` | `ac79331` |
 | Merged | Antigravity | Move DevConsole fullscreen and screen power buttons into Prototype Controls card | `antigravity/lane` | None (locks released) | `5e8b28d` | `1cf32f4` |
-| Active | Codex | Desktop direct drag and pinch edit | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/ui/AppIcon.vue`; `src/components/home/HomeFolder.vue`; `src/components/home/HomeFolderOverlay.vue`; `tests/homeDesktopComponents.test.js` | `023a810` | — |
+| Merged | Codex | Desktop direct drag, pinch edit, and anchored folder motion | `codex/lane` | None (desktop file locks released) | `023a810` | `50a844f..d9652c1` |
 | Merged | Antigravity | DevConsole record button unhighlight default style and text refinement | `antigravity/lane` | None (locks released) | `8cecb67` | `37682ee` |
 | Merged | Antigravity | Premium natural titanium phone frame redesign with ultra-thin bezel, 50px radius, and authentic buttons | `antigravity/lane` | None (locks released) | `07e85f4` | `f2adc92` |
 | Merged | Antigravity | Optimize mobile floating console button: remove background, enlarge phone icon, and add settings gear icon | `antigravity/lane` | None (locks released) | `082d100` | `706dad2` |
 | Merged | Antigravity | Refine mobile floating console button: canonical headerSettings icon, perfect flexbox centering, and slender flagship phone frame | `antigravity/lane` | None (locks released) | `706dad2` | `b565ddf` |
 | Merged | Antigravity | Miniature prototype phone frame FAB: dark titanium bezel, 5 side keys, pure black screen, white solid gear, no shadow, and easter egg spin | `antigravity/lane` | None (locks released) | `b565ddf` | `79f2340` |
+| Active | Antigravity | Simplify mobile FAB: solid black border, deep grey screen, 80% opacity white gear, and squat proportion | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `79f2340` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
-
