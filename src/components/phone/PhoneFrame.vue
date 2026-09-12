@@ -46,45 +46,45 @@
 <style scoped>
 .phone-frame {
   position: relative;
-  /* 5px 钛金属立体弧面外框 + 5px 内侧深邃纯黑边，单边 10px，两侧合计 20px；与参考图 1:1 等宽黄金比例像素级匹配 */
+  /* 5px 深黑钛金属立体弧面外框 + 5px 内侧深邃纯黑边，单边 10px，两侧合计 20px；与参考图 1:1 等宽黄金比例像素级匹配 */
   width: calc(var(--screen-w) + 20px);
   height: calc(var(--screen-h) + 20px);
   border-radius: calc(var(--screen-radius) + 10px);
-  /* 钛金属底色与柔和漫反射基底 */
-  background: #9ca3af;
+  /* 深空黑钛金属（Space Black Titanium）底色 */
+  background: #1e2025;
   box-shadow:
-    /* 外边缘立体轮廓线 */
-    0 0 0 0.5px rgba(90, 96, 108, 0.45),
-    0 0 0 1px rgba(50, 55, 65, 0.2),
-    /* 3D 圆柱形金属弧面（柔和同心漫反射） */
-    inset 0 0 0.5px 0.5px #747b88,
-    inset 0 0 1px 1.5px #9ca3af,
-    inset 0 0 1.5px 2.5px #dce1ea,
-    inset 0 0 1px 3.2px #eef2f7,
-    inset 0 0 1.5px 4.2px #6b7280,
-    inset 0 0 0.5px 5px #14161a,
-    /* 顶部与左侧微妙环境光入射 */
-    inset 0 1px 1px rgba(255, 255, 255, 0.6),
-    inset 1px 0 1px rgba(255, 255, 255, 0.4),
-    /* 底部与右侧环境光吸收 */
-    inset 0 -1px 1px rgba(0, 0, 0, 0.25),
-    /* 摄影级多层自然投影 */
-    0 32px 80px -15px rgba(15, 23, 42, 0.42),
-    0 14px 32px -8px rgba(15, 23, 42, 0.26),
-    0 4px 12px -2px rgba(0, 0, 0, 0.16);
+    /* 外边缘极细深空金属轮廓切线 */
+    0 0 0 0.5px rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.75),
+    /* 3D 圆柱形金属 bead 弧面（深黑钛漫反射，环绕全机身外沿） */
+    inset 0 0 0.5px 0.5px #121317,
+    inset 0 0 1px 1.5px #262930,
+    inset 0 0 1.5px 2.5px #4a4f5c,
+    inset 0 0 1px 3.2px #606775,
+    inset 0 0 1.5px 4.2px #22242a,
+    inset 0 0 0.5px 5px #07080a,
+    /* 顶部与左侧微妙环境入射高光（深色金属冷光微光） */
+    inset 0 1px 1px rgba(255, 255, 255, 0.22),
+    inset 1px 0 1px rgba(255, 255, 255, 0.15),
+    /* 底部与右侧深邃背阴 */
+    inset 0 -1px 1px rgba(0, 0, 0, 0.7),
+    /* 摄影级多层自然深色工作台投影 */
+    0 32px 80px -15px rgba(0, 0, 0, 0.65),
+    0 14px 32px -8px rgba(0, 0, 0, 0.45),
+    0 4px 12px -2px rgba(0, 0, 0, 0.3);
   padding: 5px;
 }
 
-/* 4 处天线绝缘隔断条 */
+/* 4 处天线绝缘隔断条（深空黑微细哑光条） */
 .antenna-band {
   position: absolute;
   width: 5px;
   height: 2px;
-  background: #828896;
-  box-shadow: 0 0.5px 0.5px rgba(0, 0, 0, 0.3);
+  background: #282a30;
+  box-shadow: 0 0.5px 0.5px rgba(0, 0, 0, 0.6);
   z-index: 2;
   pointer-events: none;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 .antenna-tl { left: 0; top: 100px; }
 .antenna-tr { right: 0; top: 100px; }
@@ -100,8 +100,8 @@
   background: #000000;
   padding: 5px;
   box-shadow:
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.05),
-    0 0 0 0.5px rgba(0, 0, 0, 0.9);
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.04),
+    0 0 0 0.5px rgba(0, 0, 0, 0.95);
 }
 
 /* 顶部超窄微缝听筒 */
@@ -113,10 +113,10 @@
   width: 48px;
   height: 1.6px;
   border-radius: 1px;
-  background: #0d0d10;
+  background: #050507;
   box-shadow:
     inset 0 0.5px 0.5px rgba(0, 0, 0, 0.95),
-    0 0.5px 0.5px rgba(255, 255, 255, 0.08);
+    0 0.5px 0.5px rgba(255, 255, 255, 0.05);
   z-index: 10;
   pointer-events: none;
 }
@@ -165,7 +165,7 @@
   pointer-events: none;
 }
 
-/* ================= 侧边高质感钛金属按键 ================= */
+/* ================= 侧边高质感深空黑钛金属按键 ================= */
 .side-btn {
   position: absolute;
   pointer-events: none;
@@ -178,11 +178,11 @@
   left: -2.5px;
   width: 3px;
   border-radius: 2px 0 0 2px;
-  background: linear-gradient(90deg, #949ba7 0%, #e2e6eb 50%, #afb5bf 100%);
+  background: linear-gradient(90deg, #1b1d22 0%, #3e434f 50%, #22252c 100%);
   box-shadow:
-    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.85),
-    inset 0 -0.5px 0.5px rgba(80, 85, 95, 0.6),
-    -1px 1.5px 3px rgba(0, 0, 0, 0.35);
+    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.8),
+    -1px 1.5px 3px rgba(0, 0, 0, 0.6);
 }
 
 .action-btn {
@@ -207,24 +207,24 @@
   width: 3px;
   height: 72px;
   border-radius: 0 2px 2px 0;
-  background: linear-gradient(270deg, #949ba7 0%, #e2e6eb 50%, #afb5bf 100%);
+  background: linear-gradient(270deg, #1b1d22 0%, #3e434f 50%, #22252c 100%);
   box-shadow:
-    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.85),
-    inset 0 -0.5px 0.5px rgba(80, 85, 95, 0.6),
-    1px 1.5px 3px rgba(0, 0, 0, 0.35);
+    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.3),
+    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.8),
+    1px 1.5px 3px rgba(0, 0, 0, 0.6);
 }
 
-/* 相机控制键（Camera Control）：蓝宝石轻触感与微凹金属切角 */
+/* 相机控制键（Camera Control）：深色蓝宝石触感与微凹深黑切角 */
 .camera-control {
   right: -1.5px;
   top: 540px;
   width: 2px;
   height: 52px;
   border-radius: 0 1px 1px 0;
-  background: linear-gradient(270deg, #747a86 0%, #b2b8c2 50%, #606672 100%);
+  background: linear-gradient(270deg, #16171b 0%, #2c3038 50%, #18191d 100%);
   box-shadow:
-    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.7),
-    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.5),
-    0.5px 1px 2px rgba(0, 0, 0, 0.25);
+    inset 0 0.5px 0.5px rgba(255, 255, 255, 0.2),
+    inset 0 -0.5px 0.5px rgba(0, 0, 0, 0.9),
+    0.5px 1px 2px rgba(0, 0, 0, 0.5);
 }
 </style>
