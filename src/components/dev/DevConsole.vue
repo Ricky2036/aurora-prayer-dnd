@@ -521,7 +521,7 @@ function onToggleFineTune(enabled) {
         <!-- 录屏动作按钮 -->
         <button
           class="pc-btn"
-          :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+          :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-secondary'"
           :disabled="isTranscoding"
           @click="emit('toggle-recording')"
         >
@@ -531,7 +531,7 @@ function onToggleFineTune(enabled) {
           </template>
           <template v-else-if="isRecording">
             <LIcon name="video" :size="14" />
-            <span>停止 · {{ recordElapsed }}</span>
+            <span>{{ recordElapsed }}</span>
           </template>
           <template v-else>
             <LIcon name="video" :size="14" />
@@ -1052,7 +1052,7 @@ function onToggleFineTune(enabled) {
                 <!-- 录屏动作按钮 -->
                 <button
                   class="pc-btn"
-                  :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+                  :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-secondary'"
                   :disabled="isTranscoding"
                   @click="emit('toggle-recording')"
                 >
@@ -1062,7 +1062,7 @@ function onToggleFineTune(enabled) {
                   </template>
                   <template v-else-if="isRecording">
                     <LIcon name="video" :size="14" />
-                    <span>停止 · {{ recordElapsed }}</span>
+                    <span>{{ recordElapsed }}</span>
                   </template>
                   <template v-else>
                     <LIcon name="video" :size="14" />
