@@ -67,5 +67,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Refine notification authorization modal to record click trigger & Control Center bell icon | `antigravity/lane` | None (locks released) | d91f06d | `4e8a6e9` |
 | Merged | Codex | Restore app taps after desktop editing | `codex/lane` | None (locks released) | `20174e4` | `4b2d285` |
 | Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `763378f` |
+| Active | Antigravity | Fix LockScreen mobile touch gestures: separate non-card swipe to unlock, resolve card scroll stuck & desktop leak, and support touch swipe down collapse | `antigravity/lane` | `src/components/system/LockScreen.vue` | `0dc5cac` | Pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.

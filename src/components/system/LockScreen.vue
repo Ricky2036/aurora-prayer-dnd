@@ -16,6 +16,7 @@ import { GLYPHS } from '../../assets/icons/glyphs'
 import NotificationIcon from '../ui/NotificationIcon.vue'
 import { formatRelativeTime } from '../../utils/timeFormat'
 import { getNotificationStackLayout } from '../../utils/notificationStack'
+import { clamp, createVelocityTracker } from '../../utils/math'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
 import albumArt from '../../assets/img/album-2.jpg'
 
@@ -79,6 +80,8 @@ onBeforeUnmount(() => {
   if (resizeObserver) resizeObserver.disconnect()
   window.removeEventListener('resize', updateScreenHeight)
   if (scrollIdleTimer) clearTimeout(scrollIdleTimer)
+  cancelMomentum()
+  if (stateTransitionTimer) clearTimeout(stateTransitionTimer)
 })
 
 const BASE_Y = computed(() => screenHeight.value - 224)
@@ -169,7 +172,21 @@ const lockItems = computed(() => {
 })
 /* 「N 条通知」的 N 与量词语序各语言不同，交给 i18n 拼 */
 const notifCountLabel = computed(() => i18n.t('notifCount')(lockItems.value.length))
-const MAX_SCROLL = computed(() => Math.max(0, (lockItems.value.length - 1) * NOTIF_SPACING))
+const TARGET_SCROLL_TOP_Y = CLOCK_TOP + CLOCK_MIN_HEIGHT + SAFE_GAP + 4
+const liftDistance = computed(() => Math.max(0, TOP_WIDGET_START_Y.value - TARGET_SCROLL_TOP_Y))
+const overflowDistance = computed(() => {
+  if (lockItems.value.length === 0 && standaloneActivities.value.length === 0) return 0
+  const totalStackHeight = (control.mediaActive ? (PLAYER_HEIGHT + PLAYER_NOTIF_GAP) : 0)
+    + totalActivitiesHeight.value
+    + Math.max(0, lockItems.value.length - 1) * NOTIF_SPACING
+    + (lockItems.value.length > 0 ? LOCK_CARD_HEIGHT : 0)
+  const targetBottom = screenHeight.value - 100
+  return Math.max(0, TOP_WIDGET_START_Y.value + totalStackHeight - targetBottom)
+})
+const MAX_SCROLL = computed(() => {
+  if (lockItems.value.length === 0 && standaloneActivities.value.length === 0) return 0
+  return Math.max(liftDistance.value, overflowDistance.value)
+})
 const scrollSpacerStyle = computed(() => ({ height: `${NATIVE_EXPAND_OFFSET + MAX_SCROLL.value}px` }))
 
 /* ---------- 原生滚动状态：与通知中心一样由浏览器处理触摸惯性 ---------- */
@@ -214,6 +231,7 @@ let isCardVerticalDragging = false
 let cardDragStartScrollTop = 0
 
 function onCardPointerDown(e, id) {
+  if (e.pointerType === 'touch') return
   // 普通通知在折叠态禁止横滑，但活跃灵动岛卡片始终默认展开展示，允许随时左滑操作
   const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
   if (isCollapsed.value && !isAct) return
@@ -230,6 +248,7 @@ function onCardPointerDown(e, id) {
 }
 
 function onCardPointerMove(e, id) {
+  if (e.pointerType === 'touch') return
   const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
   if (activeCardId !== id || (isCollapsed.value && !isAct)) return
   const dx = e.clientX - cardPointerStartX
@@ -279,6 +298,7 @@ let justSwipedId = null
 const swipedTransitionId = ref(null)
 
 function onCardPointerCancel(e, id) {
+  if (e.pointerType === 'touch') return
   if (activeCardId !== id) return
   if (isSwipingCard) {
     const next = { ...swipeOffsets.value }
@@ -297,6 +317,7 @@ function onCardPointerCancel(e, id) {
 }
 
 function onCardPointerUp(e, id) {
+  if (e.pointerType === 'touch') return
   if (activeCardId !== id) return
   if (isSwipingCard) {
     justSwipedId = id
@@ -340,14 +361,18 @@ function onCardPointerUp(e, id) {
     }, 150)
     const dy = e.clientY - cardPointerStartY
     const dx = e.clientX - cardPointerStartX
-    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && cardDragStartScrollTop <= 0) {
+    const pulledPastTop = (cardDragStartScrollTop - dy) < -15
+    const isAtTopAndDraggingDown = cardDragStartScrollTop <= 15 && dy > 30
+    if ((pulledPastTop || isAtTopAndDraggingDown) && Math.abs(dy) > Math.abs(dx) * 1.2) {
       collapseNotifications()
     }
   } else if (!isCollapsed.value) {
     // 纵向明确下滑收起通知手势（在手指抬起释放时触发，决不在拖拽中途提前收起导致事件丢失和高频闪跳）
     const dy = e.clientY - cardPointerStartY
     const dx = e.clientX - cardPointerStartX
-    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && scrollY.value <= 0) {
+    const pulledPastTop = (cardDragStartScrollTop - dy) < -15
+    const isAtTopAndDraggingDown = (scrollY.value <= 15 || cardDragStartScrollTop <= 15) && dy > 30
+    if ((pulledPastTop || isAtTopAndDraggingDown) && Math.abs(dy) > Math.abs(dx) * 1.2) {
       collapseNotifications()
     }
   }
@@ -360,6 +385,175 @@ function onCardPointerUp(e, id) {
   swipeGestureDecided = false
   cardPointerTarget = null
   cardPointerId = null
+}
+
+/* ---------- 移动端 Touch 专用手势处理（防浏览器原生滚动判定导致 pointercancel 异常） ---------- */
+let cardTouchStartX = 0
+let cardTouchStartY = 0
+let cardTouchStartScrollTop = 0
+let cardTouchInitialOffset = 0
+let isCardTouchSwiping = false
+let isCardTouchVerticalDragging = false
+let cardTouchDecided = false
+const cardTouchVelocityTracker = createVelocityTracker()
+let momentumRaf = null
+
+function cancelMomentum() {
+  if (momentumRaf) {
+    cancelAnimationFrame(momentumRaf)
+    momentumRaf = null
+  }
+}
+
+function applyMomentumScroll(initialDelta) {
+  cancelMomentum()
+  if (!listRef.value) return
+  let delta = initialDelta
+  const step = () => {
+    if (!listRef.value) return
+    listRef.value.scrollTop = clamp(listRef.value.scrollTop + delta, 0, MAX_SCROLL.value)
+    delta *= 0.90
+    if (Math.abs(delta) > 0.5) {
+      momentumRaf = requestAnimationFrame(step)
+    } else {
+      momentumRaf = null
+    }
+  }
+  momentumRaf = requestAnimationFrame(step)
+}
+
+function onCardTouchStart(e, id) {
+  cancelMomentum()
+  const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
+  if (isCollapsed.value && !isAct) return
+  if (!e.touches || e.touches.length !== 1) return
+  activeCardId = id
+  const touch = e.touches[0]
+  cardTouchStartX = touch.clientX
+  cardTouchStartY = touch.clientY
+  cardTouchStartScrollTop = listRef.value ? listRef.value.scrollTop : 0
+  cardTouchInitialOffset = swipeOffsets.value[id] || 0
+  cardTouchDecided = false
+  isCardTouchSwiping = false
+  isCardTouchVerticalDragging = false
+  cardTouchVelocityTracker.reset()
+  cardTouchVelocityTracker.add(touch.clientY)
+}
+
+function onCardTouchMove(e, id) {
+  const isAct = activeActivities.value.some(a => a.id === id) || id === '__recorder__'
+  if (activeCardId !== id || (isCollapsed.value && !isAct)) return
+  if (!e.touches || e.touches.length !== 1) return
+  const touch = e.touches[0]
+  const dx = touch.clientX - cardTouchStartX
+  const dy = touch.clientY - cardTouchStartY
+  cardTouchVelocityTracker.add(touch.clientY)
+
+  if (!cardTouchDecided) {
+    if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+      cardTouchDecided = true
+      if (Math.abs(dx) > Math.abs(dy)) {
+        isCardTouchSwiping = true
+        isCardTouchVerticalDragging = false
+      } else {
+        isCardTouchSwiping = false
+        isCardTouchVerticalDragging = true
+      }
+    }
+  }
+
+  if (isCardTouchSwiping) {
+    if (e.cancelable) e.preventDefault()
+    let nextOffset = cardTouchInitialOffset + dx
+    if (nextOffset > 0) nextOffset = nextOffset * 0.2
+    if (nextOffset < -260) nextOffset = -260 + (nextOffset + 260) * 0.2
+    swipeOffsets.value = {
+      ...swipeOffsets.value,
+      [id]: nextOffset
+    }
+  } else if (isCardTouchVerticalDragging) {
+    if (e.cancelable) e.preventDefault()
+    if (listRef.value) {
+      listRef.value.scrollTop = clamp(cardTouchStartScrollTop - dy, 0, MAX_SCROLL.value)
+    }
+  }
+}
+
+function onCardTouchEnd(e, id) {
+  if (activeCardId !== id) return
+  const touch = e.changedTouches ? e.changedTouches[0] : null
+  const dx = touch ? touch.clientX - cardTouchStartX : 0
+  const dy = touch ? touch.clientY - cardTouchStartY : 0
+
+  if (isCardTouchSwiping) {
+    justSwipedId = id
+    swipedTransitionId.value = id
+    setTimeout(() => {
+      if (justSwipedId === id) justSwipedId = null
+    }, 250)
+    setTimeout(() => {
+      if (swipedTransitionId.value === id) swipedTransitionId.value = null
+    }, 280)
+
+    const currentOffset = swipeOffsets.value[id] || 0
+    if (currentOffset <= -170) {
+      swipedTransitionId.value = id
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -420
+      }
+      setTimeout(() => {
+        const item = lockItems.value.find(n => n.id === id) || activeActivities.value.find(a => a.id === id) || { id }
+        onDeleteCard(item)
+      }, 200)
+    } else if (currentOffset < -45) {
+      resetOtherCards(id)
+      swipeOffsets.value = {
+        ...swipeOffsets.value,
+        [id]: -118
+      }
+    } else {
+      const next = { ...swipeOffsets.value }
+      delete next[id]
+      swipeOffsets.value = next
+    }
+  } else if (isCardTouchVerticalDragging) {
+    justSwipedId = id
+    setTimeout(() => {
+      if (justSwipedId === id) justSwipedId = null
+    }, 150)
+
+    // 关键：在列表顶部明确下滑，或从接近顶部的位置向下拉过顶部时，触发收起为胶囊
+    const pulledPastTop = (cardTouchStartScrollTop - dy) < -15
+    const isAtTopAndDraggingDown = cardTouchStartScrollTop <= 15 && dy > 30
+    if ((pulledPastTop || isAtTopAndDraggingDown) && Math.abs(dy) > Math.abs(dx) * 1.2) {
+      collapseNotifications()
+    } else {
+      // 快速甩动手势（flick）：应用惯性减速滚动
+      const v = cardTouchVelocityTracker.velocity()
+      if (Math.abs(v) > 0.35 && listRef.value) {
+        applyMomentumScroll(-v * 260)
+      }
+    }
+  }
+
+  activeCardId = null
+  isCardTouchSwiping = false
+  isCardTouchVerticalDragging = false
+  cardTouchDecided = false
+}
+
+function onCardTouchCancel(e, id) {
+  if (activeCardId !== id) return
+  if (isCardTouchSwiping) {
+    const next = { ...swipeOffsets.value }
+    delete next[id]
+    swipeOffsets.value = next
+  }
+  activeCardId = null
+  isCardTouchSwiping = false
+  isCardTouchVerticalDragging = false
+  cardTouchDecided = false
 }
 
 /* ---------- 下滑收起通知与手势处理 ---------- */
@@ -380,6 +574,7 @@ function triggerStateTransition() {
 function collapseNotifications() {
   const now = Date.now()
   if (isCollapsed.value || now - lastStateChangeTime < STATE_TRANSITION_MS) return
+  cancelMomentum()
   lastStateChangeTime = now
   isCollapsed.value = true
   triggerStateTransition()
@@ -397,7 +592,7 @@ let clipIsDragging = false
 let clipPointerId = null
 
 function onClipPointerDown(e) {
-  if (isCollapsed.value) return
+  if (e.pointerType === 'touch' || isCollapsed.value) return
   clipPointerStartY = e.clientY
   clipPointerStartX = e.clientX
   clipStartScrollTop = listRef.value ? listRef.value.scrollTop : 0
@@ -407,7 +602,7 @@ function onClipPointerDown(e) {
 }
 
 function onClipPointerMove(e) {
-  if (!clipPointerActive || isCollapsed.value || isSwipingCard) return
+  if (e.pointerType === 'touch' || !clipPointerActive || isCollapsed.value || isSwipingCard) return
   const dy = e.clientY - clipPointerStartY
   const dx = e.clientX - clipPointerStartX
 
@@ -431,10 +626,13 @@ function onClipPointerMove(e) {
 }
 
 function onClipPointerUp(e) {
+  if (e.pointerType === 'touch') return
   if (clipPointerActive && !isCollapsed.value && !isSwipingCard) {
     const dy = e.clientY - clipPointerStartY
     const dx = e.clientX - clipPointerStartX
-    if (dy > 36 && Math.abs(dy) > Math.abs(dx) * 1.4 && clipStartScrollTop <= 0) {
+    const pulledPastTop = (clipStartScrollTop - dy) < -15
+    const isAtTopAndDraggingDown = clipStartScrollTop <= 15 && dy > 30
+    if ((pulledPastTop || isAtTopAndDraggingDown) && Math.abs(dy) > Math.abs(dx) * 1.2) {
       collapseNotifications()
     }
   }
@@ -644,6 +842,7 @@ function handleCardClick(item) {
 /* 点击播放器/通知/胶囊：折叠→展开；已展开且未滚远→滚到挤压位 */
 function handleExpand() {
   const now = Date.now()
+  cancelMomentum()
   if (isCollapsed.value) {
     if (now - lastStateChangeTime < STATE_TRANSITION_MS) return
     lastStateChangeTime = now
@@ -663,7 +862,7 @@ function handleExpand() {
 const { value: progress, animateTo, snapTo } = useSpring(0, 'ios-gentle')
 let unlocked = false
 
-useSwipeGesture(unlockRef, {
+const unlockGesture = useSwipeGesture(unlockRef, {
   axis: 'y',
   direction: -1,
   span: UNLOCK_SPAN,
@@ -699,6 +898,7 @@ useSwipeGesture(unlockRef, {
 /* 点击空白处 → 收起已滑开卡片 &（展开态时）收起锁屏展开列表 */
 function onBackdropTap(e) {
   if (isIslandModalVisible.value) return
+  if (Date.now() - unlockGesture.lastDragEndAt() < 300) return
   // 点击卡片本体、按钮或交互区域内部时不收起滑开状态
   if (e.target.closest('.ls-card-front, .ls-swipe-actions, .ls-action-btn, .ls-shortcut, .ls-pill, .island-modal-backdrop')) {
     return
@@ -774,7 +974,7 @@ const clipStyle = computed(() => {
     clipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
     WebkitClipPath: `inset(${clipTop.value}px ${sideInset}px -100px ${sideInset}px)`,
     transition: isStateTransitioning.value ? 'clip-path 0.28s cubic-bezier(0.1, 0.9, 0.2, 1)' : 'none',
-    pointerEvents: isCollapsed.value ? 'none' : 'auto'
+    pointerEvents: 'none'
   }
 })
 const clockStyle = computed(() => ({
@@ -931,7 +1131,7 @@ function notifStyle(i) {
       <!-- 裁剪容器：播放器 + 通知队列 -->
       <div
         ref="listRef"
-        class="ls-clip ls-interact"
+        class="ls-clip"
         tabindex="0"
         :style="clipStyle"
         @scroll.passive="handleListScroll"
@@ -945,7 +1145,7 @@ function notifStyle(i) {
         <!-- 活跃活动卡片队列：同步所有活跃灵动岛（不设数量上限，有几个显示几个，展开与折叠均呈现） -->
         <template v-for="(act, actIdx) in standaloneActivities" :key="act.id">
           <div
-            class="ls-card-wrapper ls-activity-standalone"
+            class="ls-card-wrapper ls-activity-standalone ls-interact"
             :style="activityCardStyle(actIdx)"
           >
             <!-- 底层滑动操作按钮 -->
@@ -989,6 +1189,10 @@ function notifStyle(i) {
               @pointermove="onCardPointerMove($event, act.id)"
               @pointerup="onCardPointerUp($event, act.id)"
               @pointercancel="onCardPointerCancel($event, act.id)"
+              @touchstart="onCardTouchStart($event, act.id)"
+              @touchmove="onCardTouchMove($event, act.id)"
+              @touchend="onCardTouchEnd($event, act.id)"
+              @touchcancel="onCardTouchCancel($event, act.id)"
               @click="handleActivityCardClick(act)"
             >
               <!-- 闹钟类型 -->
@@ -1129,7 +1333,7 @@ function notifStyle(i) {
         <!-- 音乐播放器卡片 -->
         <MusicPlayerCard
           v-if="control.mediaActive"
-          class="ls-player-in-lock"
+          class="ls-player-in-lock ls-interact"
           :style="{ transform: `translateY(${currentPlayerY}px)`, transition: transitionStyle, zIndex: 200 }"
           @click="handleExpand"
         />
@@ -1138,7 +1342,7 @@ function notifStyle(i) {
         <div
           v-for="(item, i) in lockItems"
           :key="item.id"
-          class="ls-card-wrapper"
+          class="ls-card-wrapper ls-interact"
           :style="notifStyle(i)"
         >
           <!-- 底层滑动操作按钮 -->
@@ -1209,6 +1413,10 @@ function notifStyle(i) {
             @pointermove="onCardPointerMove($event, item.id)"
             @pointerup="onCardPointerUp($event, item.id)"
             @pointercancel="onCardPointerCancel($event, item.id)"
+            @touchstart="onCardTouchStart($event, item.id)"
+            @touchmove="onCardTouchMove($event, item.id)"
+            @touchend="onCardTouchEnd($event, item.id)"
+            @touchcancel="onCardTouchCancel($event, item.id)"
             @click="handleCardClick(item)"
           >
             <template v-if="item.isActivity">
@@ -1275,12 +1483,12 @@ function notifStyle(i) {
 
       <!-- 底部快捷按钮 -->
       <div class="ls-shortcuts">
-        <button class="ls-shortcut">
+        <button class="ls-shortcut ls-interact">
           <svg width="11" height="22" viewBox="0 0 13 26" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12.9521 4.21973C12.9521 4.94134 12.9534 5.38321 12.8994 5.78125L12.873 5.9502C12.8112 6.29076 12.7142 6.62432 12.583 6.94434L12.5244 7.08008C12.3399 7.49444 12.0799 7.8732 11.6152 8.55469L10.6641 9.94922C10.4818 10.2166 10.3834 10.3631 10.3174 10.4824L10.2598 10.5967C10.2134 10.7009 10.1764 10.8093 10.1494 10.9199L10.126 11.0313C10.0968 11.1922 10.0957 11.3625 10.0957 11.7949V21.5234C10.0957 22.3253 10.0997 22.8347 9.97949 23.251L9.9541 23.333C9.70427 24.069 9.14624 24.6571 8.43066 24.9473L8.28613 25.002C7.85429 25.1485 7.33185 25.1426 6.47656 25.1426C5.6747 25.1426 5.16534 25.1475 4.74902 25.0273L4.66699 25.002C3.93102 24.7521 3.34291 24.1941 3.05273 23.4785L2.99805 23.333C2.85161 22.9012 2.85742 22.3787 2.85742 21.5234V11.7949C2.85742 11.4708 2.85644 11.294 2.84375 11.1582L2.82617 11.0313C2.80579 10.9191 2.77633 10.8087 2.73633 10.7022L2.69238 10.5967C2.62588 10.4474 2.53148 10.3062 2.28809 9.94922L1.33691 8.55469C0.930372 7.95843 0.680631 7.59372 0.500977 7.23438L0.427735 7.08008C0.28705 6.76403 0.18029 6.43383 0.108399 6.09571L0.0800785 5.9502C-0.000878744 5.50394 3.97248e-07 5.04458 3.97248e-07 4.21973V4.19043H12.9521V4.21973ZM6.47656 11.4287C5.84543 11.4287 5.33308 11.9402 5.33301 12.5713V15.6191C5.33306 16.2503 5.84541 16.7617 6.47656 16.7617C7.10755 16.7615 7.61909 16.2502 7.61914 15.6191V12.5713C7.61906 11.9403 7.10753 11.4289 6.47656 11.4287ZM10.1328 4.06301e-06C10.5531 4.06301e-06 10.8919 -0.000816891 11.165 0.0214884C11.4426 0.0441692 11.6865 0.0930966 11.9121 0.208012C12.2705 0.39063 12.5625 0.681672 12.7451 1.04004L12.7852 1.125C12.8717 1.32664 12.9108 1.54417 12.9307 1.78711C12.9502 2.02654 12.9509 2.31612 12.9512 2.667H0.00097696C0.00120547 2.31612 0.00192381 2.02654 0.0214848 1.78711C0.0441676 1.50954 0.0930992 1.26562 0.208008 1.04004C0.390585 0.681863 0.68186 0.39059 1.04004 0.208012C1.26562 0.0931034 1.50953 0.0441715 1.78711 0.0214884C2.06032 -0.000832108 2.39893 4.05951e-06 2.81934 4.06301e-06H10.1328Z" fill="white"/>
           </svg>
         </button>
-        <button class="ls-shortcut">
+        <button class="ls-shortcut ls-interact">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M13.9922 2.65625C14.1016 2.67187 14.2031 2.67969 14.2969 2.67969C14.4062 2.67969 14.5156 2.69531 14.625 2.72656C14.7344 2.75781 14.8359 2.79688 14.9297 2.84375C15.0391 2.875 15.1484 2.92188 15.2578 2.98438C15.3359 3.04687 15.4141 3.10938 15.4922 3.17188C15.5703 3.23437 15.6484 3.30469 15.7266 3.38281L16.9688 4.625C17.0938 4.75 17.1719 4.82812 17.2031 4.85938C17.25 4.89063 17.2812 4.91406 17.2969 4.92969C17.3125 4.94531 17.3281 4.96094 17.3438 4.97656C17.375 4.97656 17.4062 4.97656 17.4375 4.97656C17.4531 4.99219 17.4844 5 17.5312 5C17.5781 5 17.6953 5 17.8828 5H18.2578C18.5859 5 18.8828 5 19.1484 5C19.4141 5 19.6562 5.00781 19.875 5.02344C20.0938 5.05469 20.3047 5.09375 20.5078 5.14062C20.7109 5.17188 20.9062 5.24219 21.0938 5.35156C21.4062 5.49219 21.6797 5.6875 21.9141 5.9375C22.1484 6.17188 22.3359 6.4375 22.4766 6.73438C22.5859 6.92188 22.6641 7.11719 22.7109 7.32031C22.7578 7.52344 22.7891 7.74219 22.8047 7.97656C22.8203 8.17969 22.8281 8.41406 22.8281 8.67969C22.8281 8.94531 22.8281 9.24219 22.8281 9.57031V16.7656C22.8281 17.0938 22.8281 17.3906 22.8281 17.6562C22.8281 17.9219 22.8203 18.1562 22.8047 18.3594C22.7891 18.5781 22.7578 18.7969 22.7109 19.0156C22.6641 19.2188 22.5859 19.4141 22.4766 19.6016C22.3359 19.8984 22.1484 20.1641 21.9141 20.3984C21.6797 20.6328 21.4062 20.8281 21.0938 20.9844C20.9062 21.0781 20.7109 21.1484 20.5078 21.1953C20.3047 21.2422 20.0938 21.2734 19.875 21.2891C19.6562 21.3203 19.4141 21.3359 19.1484 21.3359C18.8828 21.3359 18.5859 21.3359 18.2578 21.3359H5.74219C5.41406 21.3359 5.11719 21.3359 4.85156 21.3359C4.58594 21.3359 4.34375 21.3203 4.125 21.2891C3.90625 21.2734 3.69531 21.2422 3.49219 21.1953C3.28906 21.1484 3.09375 21.0781 2.90625 20.9844C2.59375 20.8281 2.32031 20.6328 2.08594 20.3984C1.85156 20.1641 1.66406 19.8984 1.52344 19.6016C1.41406 19.4141 1.33594 19.2188 1.28906 19.0156C1.24219 18.7969 1.21094 18.5781 1.19531 18.3594C1.17969 18.1562 1.17188 17.9219 1.17188 17.6562C1.17188 17.3906 1.17188 17.0938 1.17188 16.7656V9.57031C1.17188 9.24219 1.17188 8.94531 1.17188 8.67969C1.17188 8.41406 1.17969 8.17969 1.19531 7.97656C1.21094 7.74219 1.24219 7.52344 1.28906 7.32031C1.33594 7.11719 1.40625 6.92188 1.5 6.73438C1.65625 6.4375 1.85156 6.17188 2.08594 5.9375C2.32031 5.6875 2.59375 5.49219 2.90625 5.35156C3.09375 5.24219 3.28906 5.17188 3.49219 5.14062C3.69531 5.09375 3.90625 5.05469 4.125 5.02344C4.34375 5.00781 4.58594 5 4.85156 5C5.11719 5 5.41406 5 5.74219 5H6.11719C6.30469 5 6.42188 5 6.46875 5C6.51562 5 6.54688 4.99219 6.5625 4.97656C6.59375 4.97656 6.61719 4.97656 6.63281 4.97656C6.66406 4.96094 6.6875 4.94531 6.70312 4.92969C6.71875 4.91406 6.74219 4.89063 6.77344 4.85938C6.82031 4.82812 6.90625 4.75 7.03125 4.625L8.27344 3.38281C8.35156 3.30469 8.42969 3.23437 8.50781 3.17188C8.58594 3.10938 8.66406 3.04687 8.74219 2.98438C8.85156 2.92188 8.95312 2.875 9.04688 2.84375C9.15625 2.79688 9.26562 2.75781 9.375 2.72656C9.48438 2.69531 9.58594 2.67969 9.67969 2.67969C9.78906 2.67969 9.89844 2.67187 10.0078 2.65625H13.9922ZM12 8.42188C11.3438 8.42188 10.7266 8.54688 10.1484 8.79688C9.57031 9.04688 9.0625 9.39062 8.625 9.82812C8.20312 10.25 7.86719 10.75 7.61719 11.3281C7.36719 11.8906 7.24219 12.5 7.24219 13.1562C7.24219 13.8125 7.36719 14.4297 7.61719 15.0078C7.86719 15.5859 8.20312 16.0938 8.625 16.5312C9.0625 16.9531 9.57031 17.2891 10.1484 17.5391C10.7266 17.7891 11.3438 17.9141 12 17.9141C12.6562 17.9141 13.2734 17.7891 13.8516 17.5391C14.4297 17.2891 14.9297 16.9531 15.3516 16.5312C15.7891 16.0938 16.1328 15.5859 16.3828 15.0078C16.6328 14.4297 16.7578 13.8125 16.7578 13.1562C16.7578 12.5 16.6328 11.8906 16.3828 11.3281C16.1328 10.75 15.7891 10.25 15.3516 9.82812C14.9297 9.39062 14.4297 9.04688 13.8516 8.79688C13.2734 8.54688 12.6562 8.42188 12 8.42188ZM12 9.92188C12.8906 9.92188 13.6562 10.2422 14.2969 10.8828C14.9375 11.5078 15.2578 12.2656 15.2578 13.1562C15.2578 14.0625 14.9375 14.8359 14.2969 15.4766C13.6562 16.1016 12.8906 16.4141 12 16.4141C11.1094 16.4141 10.3438 16.1016 9.70312 15.4766C9.0625 14.8359 8.74219 14.0625 8.74219 13.1562C8.74219 12.2656 9.0625 11.5078 9.70312 10.8828C10.3438 10.2422 11.1094 9.92188 12 9.92188ZM18.8438 7.50781C18.5156 7.50781 18.2344 7.625 18 7.85938C17.7812 8.07812 17.6719 8.34375 17.6719 8.65625C17.6719 8.98438 17.7812 9.26562 18 9.5C18.2344 9.71875 18.5156 9.82812 18.8438 9.82812C19.1562 9.82812 19.4219 9.71875 19.6406 9.5C19.875 9.26562 19.9922 8.98438 19.9922 8.65625C19.9922 8.34375 19.875 8.07812 19.6406 7.85938C19.4219 7.625 19.1562 7.50781 18.8438 7.50781Z" fill="currentColor"/>
           </svg>
@@ -1387,7 +1595,7 @@ function notifStyle(i) {
   overscroll-behavior-y: contain;
   scrollbar-width: none;
   touch-action: pan-y;
-  pointer-events: auto;
+  pointer-events: none;
   will-change: clip-path;
 }
 .ls-clip::-webkit-scrollbar { display: none; }
@@ -1509,7 +1717,7 @@ function notifStyle(i) {
   cursor: pointer;
   z-index: 2;
   user-select: none;
-  touch-action: pan-y;
+  touch-action: none;
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.18s linear;
 }
 .ls-card-front.is-swiping,
