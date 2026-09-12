@@ -1009,14 +1009,14 @@ function onToggleFineTune(enabled) {
       aria-label="打开控制台"
     >
       <div class="fab-inner">
-        <!-- 微型手机（浅灰边框 + 深灰屏幕 + 黑色灵动岛 + 同色浅灰齿轮） -->
+        <!-- 微型手机（控制台深曜面板配色 + 2px 均匀钛灰边框 + 黑色灵动岛 + Zinc-400 齿轮） -->
         <div class="mini-proto-phone">
           <!-- 深灰屏幕区 -->
           <div class="mini-screen">
             <!-- 顶部黑色灵动岛胶囊 -->
             <div class="mini-island"></div>
 
-            <!-- 居中设置齿轮（与边框同色浅灰，回桌面优雅旋转彩蛋） -->
+            <!-- 居中设置齿轮（控制台 Zinc-400 灰色，回桌面优雅旋转彩蛋） -->
             <div
               class="mini-gear"
               :class="{ 'easter-egg-spin': isEasterEggSpinning }"
@@ -2153,17 +2153,17 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-/* 原型手机微型化（毛玻璃质感 + 稍深外框 + 大圆角 10.5px / 7.7px） */
+/* 原型手机微型化（控制台面板配色 + 毛玻璃质感 + 均匀 2px 边框 + 考究圆角 7.5px / 5.5px） */
 .mini-proto-phone {
   position: relative;
   width: 30px;
   height: 46px;
-  border-radius: 10.5px;
-  border: 2.8px solid rgba(130, 145, 168, 0.75);
-  background: rgba(85, 98, 118, 0.55);
+  border-radius: 7.5px;
+  border: 2px solid #3e3e4c; /* 控制台金属钛灰边框，四边严格均匀 2px */
+  background: rgba(24, 24, 28, 0.9); /* 控制台深曜面板底色 #18181c */
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), inset 0 0.5px 0.5px rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); /* 对称居中投影，无非对称偏移阴影，确保四边粗细完全一致 */
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -2171,13 +2171,13 @@ function onToggleFineTune(enabled) {
   transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 深灰毛玻璃屏幕区（稍浅深灰 + 7.7px 内圆角，严格同心平行） */
+/* 控制台深曜毛玻璃屏幕区（同心 5.5px 内圆角: 7.5px - 2px = 5.5px，严格同心平行） */
 .mini-screen {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 7.7px;
-  background: rgba(36, 44, 58, 0.72); /* 稍浅深灰透光毛玻璃屏幕 */
+  border-radius: 5.5px;
+  background: rgba(20, 20, 25, 0.85); /* 控制台卡片黑曜底色 */
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   display: flex;
@@ -2194,7 +2194,7 @@ function onToggleFineTune(enabled) {
   transform: translateX(-50%);
   width: 7px;
   height: 1.8px;
-  border-radius: 0.9px;
+  border-radius: 1px;
   background: #000000;
   z-index: 2;
 }
@@ -2212,12 +2212,12 @@ function onToggleFineTune(enabled) {
   z-index: 2;
 }
 
-/* 设置齿轮（与边框同色系浅雾灰） */
+/* 设置齿轮（控制台面板经典二级图标/文字色 Zinc-400 #a1a1aa） */
 .mini-gear {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: #a1a1aa;
   z-index: 1;
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
 }
