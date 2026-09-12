@@ -972,19 +972,13 @@ function onToggleFineTune(enabled) {
       aria-label="打开控制台"
     >
       <div class="fab-inner">
-        <svg width="34" height="48" viewBox="0 0 34 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- 手机微透深色微晶玻璃内屏（防纯白/纯色背景干扰）与白钛金属外轮廓 -->
-          <rect class="fab-phone-body" x="2" y="2" width="30" height="44" rx="7" fill="rgba(15, 18, 24, 0.45)" stroke="rgba(255, 255, 255, 0.95)" stroke-width="2.2"/>
-          <!-- 顶部微缝听筒/灵动岛 -->
-          <rect class="fab-phone-notch" x="13.5" y="5.2" width="7" height="1.8" rx="0.9" fill="rgba(255, 255, 255, 0.85)"/>
-          <!-- 底部 Home Indicator 触控横条 -->
-          <rect class="fab-phone-bar" x="12" y="40" width="10" height="1.8" rx="0.9" fill="rgba(255, 255, 255, 0.75)"/>
-          <!-- 居中设置齿轮图标 -->
-          <g class="fab-gear" transform="translate(7.5, 14.5) scale(0.79)" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </g>
-        </svg>
+        <div class="fab-phone">
+          <div class="fab-notch"></div>
+          <div class="fab-gear">
+            <LIcon name="headerSettings" :size="16" />
+          </div>
+          <div class="fab-bar"></div>
+        </div>
       </div>
     </div>
 
@@ -2070,7 +2064,7 @@ function onToggleFineTune(enabled) {
   position: fixed;
   top: 0;
   left: 0;
-  width: 42px;
+  width: 44px;
   height: 56px;
   background: transparent;
   border: none;
@@ -2084,14 +2078,16 @@ function onToggleFineTune(enabled) {
   user-select: none;
   -webkit-user-select: none;
   will-change: transform;
-  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.5)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
   transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease, opacity 0.2s ease;
 }
 
 .fab-btn:active {
   cursor: grabbing;
+}
+
+.fab-btn:active .fab-phone {
   transform: scale(0.92);
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
 }
 
 .fab-btn.is-snapping {
@@ -2102,21 +2098,6 @@ function onToggleFineTune(enabled) {
   filter: drop-shadow(0 0 14px rgba(96, 165, 250, 0.75)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
 }
 
-.fab-btn.is-open .fab-phone-body {
-  stroke: #60a5fa;
-  fill: rgba(30, 58, 138, 0.45);
-}
-
-.fab-btn.is-open .fab-phone-notch,
-.fab-btn.is-open .fab-phone-bar {
-  fill: #93c5fd;
-}
-
-.fab-btn.is-open .fab-gear {
-  stroke: #60a5fa;
-  transform: translate(7.5px, 14.5px) scale(0.79) rotate(45deg);
-}
-
 .fab-inner {
   display: flex;
   align-items: center;
@@ -2124,9 +2105,68 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
+.fab-phone {
+  position: relative;
+  width: 28px;
+  height: 48px;
+  border: 1.2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 6px;
+  background: rgba(15, 18, 24, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.15);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.fab-notch {
+  position: absolute;
+  top: 3.5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 1px;
+  border-radius: 0.5px;
+  background: rgba(255, 255, 255, 0.85);
+  transition: background 0.2s ease;
+}
+
 .fab-gear {
-  transform-origin: 12px 12px;
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.95);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+}
+
+.fab-bar {
+  position: absolute;
+  bottom: 3.5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 1px;
+  border-radius: 0.5px;
+  background: rgba(255, 255, 255, 0.75);
+  transition: background 0.2s ease;
+}
+
+.fab-btn.is-open .fab-phone {
+  border-color: #60a5fa;
+  background: rgba(30, 58, 138, 0.45);
+}
+
+.fab-btn.is-open .fab-notch,
+.fab-btn.is-open .fab-bar {
+  background: #93c5fd;
+}
+
+.fab-btn.is-open .fab-gear {
+  color: #60a5fa;
+  transform: rotate(45deg);
 }
 
 /* 弹窗遮罩 (居中容器) */
