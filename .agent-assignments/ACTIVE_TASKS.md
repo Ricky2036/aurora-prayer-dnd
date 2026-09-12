@@ -75,8 +75,9 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Optimize mobile floating console button: remove background, enlarge phone icon, and add settings gear icon | `antigravity/lane` | None (locks released) | `082d100` | `706dad2` |
 | Merged | Antigravity | Refine mobile floating console button: canonical headerSettings icon, perfect flexbox centering, and slender flagship phone frame | `antigravity/lane` | None (locks released) | `706dad2` | `b565ddf` |
 | Merged | Antigravity | Miniature prototype phone frame FAB: dark titanium bezel, 5 side keys, pure black screen, white solid gear, no shadow, and easter egg spin | `antigravity/lane` | None (locks released) | `b565ddf` | `79f2340` |
-| Merged | Antigravity | Simplify mobile FAB: solid black border, deep grey screen, 80% opacity white gear, and squat proportion | `antigravity/lane` | None (locks released) | `79f2340` | `197dfb1` |
-| Active | Codex | Correct desktop application names | `codex/lane` | `src/config/apps.js`; necessary application-name tests | `656a293` | — |
+| Merged | Codex | Correct desktop application names | `codex/lane` | None (locks released) | `656a293` | `6d1ee4c` |
 | Merged | Antigravity | Trigger mobile FAB gear spin on returning to desktop & change phone border to blue | `antigravity/lane` | None (locks released) | `0be1bcb` | `d17b18a` |
+| Merged | Antigravity | Apply DevConsole palette to mini-phone FAB, equalize border thickness, and moderate corner radius | `antigravity/lane` | None (locks released) | `884e66c` | `9fe9a79` |
+| Merged | Workbuddy | Polish iOS app switcher: chain reaction drag, continuous scaling, and gesture physics | `workbuddy/lane` | None (locks released) | `0dc5cac` | `a6c0f0b` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
