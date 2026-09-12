@@ -1009,14 +1009,14 @@ function onToggleFineTune(enabled) {
       aria-label="打开控制台"
     >
       <div class="fab-inner">
-        <!-- 纯色微型手机（黑色边框 + 矮胖比例 + 深灰屏幕） -->
+        <!-- 微型手机（浅灰边框 + 深灰屏幕 + 黑色灵动岛 + 同色浅灰齿轮） -->
         <div class="mini-proto-phone">
           <!-- 深灰屏幕区 -->
           <div class="mini-screen">
-            <!-- 顶部黑色听筒微孔 -->
+            <!-- 顶部黑色灵动岛胶囊 -->
             <div class="mini-island"></div>
 
-            <!-- 居中 80% 不透明度白色面性设置齿轮（首屏加载优雅旋转彩蛋） -->
+            <!-- 居中设置齿轮（与边框同色浅灰，回桌面优雅旋转彩蛋） -->
             <div
               class="mini-gear"
               :class="{ 'easter-egg-spin': isEasterEggSpinning }"
@@ -1027,7 +1027,7 @@ function onToggleFineTune(enabled) {
               </svg>
             </div>
 
-            <!-- 底部 Home Indicator 触控条 -->
+            <!-- 底部 Home 导航条（20% 透明度白色） -->
             <div class="mini-home-bar"></div>
           </div>
         </div>
@@ -2153,15 +2153,15 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-/* 原型手机边框纯色微型化（纯色蓝边框 + 矮胖比例 30x46） */
+/* 原型手机微型化（浅灰色边框 + 8.5px 外圆角 + 2.8px 边框） */
 .mini-proto-phone {
   position: relative;
   width: 30px;
   height: 46px;
-  border-radius: 7px;
-  border: 1.8px solid #007AFF;
-  background: #007AFF;
-  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.18);
+  border-radius: 8.5px;
+  border: 2.8px solid #c4c9d4;
+  background: #c4c9d4;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.35);
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -2169,33 +2169,33 @@ function onToggleFineTune(enabled) {
   transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 深灰屏幕区 */
+/* 深灰屏幕区（5.7px 内圆角，严格满足同心圆角公式：R_inner = 8.5 - 2.8 = 5.7） */
 .mini-screen {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 5px;
-  background: #262a34; /* 高级冷调深灰 */
+  border-radius: 5.7px;
+  background: #1f232b; /* 高级深灰屏幕 */
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 
-/* 顶部听筒微孔 */
+/* 顶部黑色灵动岛微型胶囊 */
 .mini-island {
   position: absolute;
   top: 2px;
   left: 50%;
   transform: translateX(-50%);
-  width: 6px;
-  height: 1.5px;
-  border-radius: 0.75px;
+  width: 7px;
+  height: 1.8px;
+  border-radius: 0.9px;
   background: #000000;
   z-index: 2;
 }
 
-/* 底部 Home 触控横条 */
+/* 底部 Home 导航条（20% 透明度白色） */
 .mini-home-bar {
   position: absolute;
   bottom: 2px;
@@ -2204,16 +2204,16 @@ function onToggleFineTune(enabled) {
   width: 7.5px;
   height: 0.8px;
   border-radius: 0.4px;
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.2);
   z-index: 2;
 }
 
-/* 白色面性齿轮图标（80% 不透明度，柔和护眼） */
+/* 设置齿轮（与边框完全相同的浅灰色） */
 .mini-gear {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: #c4c9d4;
   z-index: 1;
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
 }
@@ -2222,18 +2222,18 @@ function onToggleFineTune(enabled) {
 @keyframes easterEggSpin {
   0% {
     transform: rotate(0deg) scale(0.85);
-    opacity: 0.65;
+    opacity: 0.75;
   }
   45% {
     transform: rotate(220deg) scale(1.12);
-    opacity: 0.95;
+    opacity: 1;
   }
   75% {
     transform: rotate(380deg) scale(0.98);
   }
   100% {
     transform: rotate(360deg) scale(1);
-    opacity: 0.8;
+    opacity: 1;
   }
 }
 
