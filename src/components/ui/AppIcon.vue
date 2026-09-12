@@ -19,8 +19,10 @@ const props = defineProps({
   enterDelay: { type: Number, default: 0 },  // 解锁入场 stagger (ms)
   size: { type: Number, default: 60 },  // tile 边长（默认桌面 60；通知设置内 40）
   ignoreHidden: { type: Boolean, default: false }, // 是否忽略全局隐藏状态（用于过渡动画中的镜像）
-  homeAnchor: { type: Boolean, default: false }
+  homeAnchor: { type: Boolean, default: false },
+  launchOnClick: { type: Boolean, default: true }
 })
+const emit = defineEmits(['activate'])
 
 const home = useHomeStore()
 const notifications = useNotificationsStore()
@@ -55,6 +57,8 @@ const resolvedImage = computed(() => {
 
 function open() {
   if (!anchorRef.value) return
+  emit('activate', anchorRef.value)
+  if (!props.launchOnClick) return
   const screenEl = document.querySelector('.screen-view')
   if (!screenEl) return
   // 无论入口位于桌面、Dock 或资源库，Hero 都优先使用注册的桌面稳定锚点。

@@ -172,3 +172,34 @@ test('clock and calendar use one canonical vector canvas at every rendered size'
   assert.match(icon, /v-for="i in 12"/)
   assert.doesNotMatch(icon, /compactSpecial|is-compact-special/)
 })
+
+test('folder overlay launches apps from controlled anchors and animates every icon from its source rect', async () => {
+  const [home, overlay, icon, folder] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'), read('../src/components/home/HomeFolderOverlay.vue'),
+    read('../src/components/ui/AppIcon.vue'), read('../src/components/home/HomeFolder.vue')
+  ])
+  assert.match(icon, /launchOnClick/)
+  assert.match(icon, /emit\('activate', anchorRef\.value\)/)
+  assert.match(folder, /data-folder-shell/)
+  assert.match(folder, /:data-folder-app="appId"/)
+  assert.match(home, /function launchFolderApp/)
+  assert.match(home, /setLaunchRect\(appId,launchRect\)/)
+  assert.match(overlay, /phase\.value = 'opening'/)
+  assert.match(overlay, /phase\.value = 'closing'/)
+  assert.match(overlay, /rectTransform\(props\.origin\?\.iconRects\?\.\[appId\]/)
+  assert.match(overlay, /@click\.stop="launch\(appId,\$event\.currentTarget\.querySelector/)
+})
+
+test('folder operation mode exposes a resize handle with transient four-size preview', async () => {
+  const [home, grid, folder] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'), read('../src/components/system/AppGrid.vue'), read('../src/components/home/HomeFolder.vue')
+  ])
+  assert.match(home, /folderOperation = ref/)
+  assert.match(home, /folderResize = ref/)
+  assert.match(home, /mode:'folder-resize'/)
+  assert.match(home, /const hysteresis = 8/)
+  assert.match(home, /home\.resizeFolder\(pointer\.folderId,folderResize\.value\.width,folderResize\.value\.height\)/)
+  assert.match(grid, /folder-resize-pointerdown/)
+  assert.match(folder, /class="folder-resize-handle"/)
+  assert.match(folder, /width:36px;height:36px/)
+})
