@@ -196,7 +196,32 @@ test('restores valid persisted state and falls back from malformed data', () => 
   assert.ok(restored.uninstalledAppIds.includes('weather'))
 
   const fallback = loadHomeState({ getItem: () => '{broken' })
-  assert.equal(fallback.version, 1)
+  assert.equal(fallback.version, 2)
   assert.ok(fallback.pages.length >= 1)
-  assert.equal(HOME_STORAGE_KEY, 'tos.home.layout.v1')
+  assert.equal(HOME_STORAGE_KEY, 'tos.home.layout.v2')
+})
+
+test('migrates v1 pages to canonical v2 order without dock or folder duplicates', () => {
+  const legacy = createDefaultHomeState()
+  legacy.version = 1
+  legacy.pages = [['app:weather', 'widget:clock', 'app:notes']]
+  delete legacy.order
+  legacy.dock = ['app:phone', 'app:messages']
+  const storage = { getItem: (key) => key === 'tos.home.layout.v1' ? JSON.stringify(legacy) : null }
+  const restored = loadHomeState(storage)
+  assert.equal(restored.version, 2)
+  assert.deepEqual(restored.order.slice(0, 3), ['app:weather', 'widget:clock', 'app:notes'])
+  assert.equal(restored.order.includes('app:phone'), false)
+})
+
+test('viewport reflow changes page count without changing persisted order', () => {
+  setActivePinia(createPinia())
+  const store = useHomeStore()
+  store.resetLayout()
+  const order = [...store.order]
+  store.setViewport({ width: 360, height: 568 })
+  const shortPages = store.pageCount
+  store.setViewport({ width: 412, height: 915 })
+  assert.ok(shortPages >= store.pageCount)
+  assert.deepEqual(store.order, order)
 })
