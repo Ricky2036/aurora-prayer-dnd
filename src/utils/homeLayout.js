@@ -1,4 +1,4 @@
-export const HOME_LAYOUT_VERSION = 1
+export const HOME_LAYOUT_VERSION = 2
 export const HOME_COLUMNS = 4
 export const HOME_ROWS = 6
 export const HOME_PAGE_CAPACITY = HOME_COLUMNS * HOME_ROWS
@@ -95,7 +95,9 @@ export function layoutHomeOrder(order, items, folders = {}, profile = createHome
         height: fallbackHeight,
         col: resolved.col,
         spanX: metrics.spanX,
-        spanY: metrics.spanY
+        spanY: metrics.spanY,
+        w: metrics.spanX,
+        h: metrics.spanY
       }
       page.push(id)
       pageFrames[id] = frame
@@ -114,6 +116,13 @@ export function layoutHomeOrder(order, items, folders = {}, profile = createHome
 export function globalRankForPageIndex(pages, pageIndex, itemIndex) {
   const before = (pages || []).slice(0, Math.max(0, pageIndex)).reduce((sum, page) => sum + page.length, 0)
   return before + clamp(0, Number(itemIndex) || 0, pages?.[pageIndex]?.length || 0)
+}
+
+export function moveHomeOrderItem(order, itemId, targetRank) {
+  const next = (order || []).filter((id) => id !== itemId)
+  const index = clamp(0, Number(targetRank) || 0, next.length)
+  next.splice(index, 0, itemId)
+  return next
 }
 
 export function insertionIndexAtPoint(page, frames, x, y) {
