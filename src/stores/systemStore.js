@@ -123,10 +123,11 @@ export const useSystemStore = defineStore('system', {
     },
 
     /** 手势跟手进度：0 = 未进入，1 = 完全进入。
-     *  上限放到 1.35：拖到最终大小之后还可以继续过拉（卡片继续缩小变透明），
-     *  松手弹簧回到 1（Ricky 2026-09-11 四轮要求）。 */
+     *  上限放开到 1.6：手指越过满量程后位移继续有效（带橡皮筋，实际约到 1.35），
+     *  卡片据此继续无极缩小 —— 但永不淡出/消失（Ricky 2026-09-12）。
+     *  松手后弹簧回到 1（固定终点）。 */
     setSwitcherProgress(p) {
-      this.switcherProgress = Math.max(0, Math.min(1.35, p))
+      this.switcherProgress = Math.max(0, Math.min(1.6, p))
     },
 
     /** 切换器里上滑移除某个应用卡片 */
