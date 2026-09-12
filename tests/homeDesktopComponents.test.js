@@ -39,6 +39,20 @@ test('desktop grid renders adaptive pixel frames and preserves square widgets', 
   assert.doesNotMatch(grid, /\.home-item\.is-large \{ align-items:stretch; \}/)
 })
 
+test('desktop observes the unscaled viewport and derives dock and indicator geometry from its profile', async () => {
+  const [home, dock] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/system/DockBar.vue')
+  ])
+  assert.match(home, /new ResizeObserver/)
+  assert.match(home, /root\.offsetWidth/)
+  assert.match(home, /root\.offsetHeight/)
+  assert.match(home, /home\.setViewport/)
+  assert.match(home, /home\.profile\.indicatorY/)
+  assert.match(dock, /profile\.dockRect\.height/)
+  assert.match(dock, /profile\.height-profile\.dockRect\.bottom/)
+})
+
 test('folders expose all four sizes, renaming and app drag-out', async () => {
   const [home, overlay] = await Promise.all([
     read('../src/components/system/HomeScreen.vue'),
