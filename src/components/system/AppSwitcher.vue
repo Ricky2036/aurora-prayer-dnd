@@ -30,8 +30,11 @@ import {
  *   ③ 左侧边缘不出屏：最深层的左边缘 = 77.5 - 61.1 = 16.4px &gt; 0（单测守这条不变量）。
  *   ④ 底层阶梯式缩小、露出越来越少：stair(k) 几何级数 → 露出 33 / 18 / 10 px。
  *   ⑤ 同时最多四层：焦点层 + 3 层背景，第 5 张起不渲染。
- *   ⑥ 间距随滑动距离动态变化：拖动期叠加「牵连」位移（层过渡进度驱动，两端归零）。
- *   ⑦ 同样滑动距离 顶层:二:三:四 = 8:3:2:1：牵连权重 W = [0, 1, 0.6, 0.36]。
+ *   ⑥ 间距随滑动距离动态变化：层深连续推进 aEff = a + (x − u)，两端与整层深重合。
+ *   ⑦ 同样滑动距离，各层右移量逐层递减 —— 由 stair 的几何级数天然给出
+ *      （一整层净位移 = stair(d) − stair(d−1) = 33 / 18.15 / 9.98px，比例 1 : 0.55 : 0.30）。
+ *      注：第四轮曾用「牵连包络」把比例做成 8:3:2:1 并让两卡贴合，代价是必然回退
+ *      （实测 77px）—— 第五轮 Ricky 明确要求「往右滑不许卡片往左走」，牵连已删除。
  *
  * 参考实现：SoxiaLiSA/StackSwipe（MIT，Kotlin）——固定 zIndex、几何级数露边、
  * 阻尼橡皮筋、投影吸附。它没有缩放堆叠与 8:3:2:1，那两块是本项目自研。
@@ -130,7 +133,65 @@ const frontIndex = computed(() => {
   return i < 0 ? 0 : i
 })
 
-const visible = computed(() => system.appSwitcherOpen || system.switcherProgress > 0)
+/* 可见性。
+ * 第五轮新增 linger：「桌面路径取消上滑」时进度会瞬间归零，若立刻卸载会让已经升到
+ * 一半的卡片「啪」地消失。这里在归零后多留 340ms，让 CSS 收场过渡播完再卸载。 */
+const linger = ref(false)
+let lingerTimer = null
+const visible = computed(() => system.appSwitcherOpen || system.switcherProgress > 0 || linger.value)
+
+watch(
+  () => system.switcherProgress,
+  (p, prev) => {
+    if (system.activeAppId || system.appSwitcherOpen) return
+    if (p > 0.001) {
+      clearTimeout(lingerTimer)
+      linger.value = true
+      return
+    }
+    if (prev > 0.02) {
+      clearTimeout(lingerTimer)
+      lingerTimer = setTimeout(() => { linger.value = false }, 340)
+    }
+  }
+)
+
+/* ---- 桌面路径的入场反馈（第五轮）----
+   问题：桌面（无前台应用）上滑时，deck 只在 appSwitcherOpen 之后才渲染，而桌面又没有
+   跟手卡 → 屏幕上【一张卡都没有】，只剩一层黑遮罩。Ricky 的原话是「手感非常差」。
+   修法：手势期间就把 deck 渲染出来，入场进度直接跟随 switcherProgress ——
+   上滑多少、卡片就升多少（自下方 30% 处上浮 + 淡入）。 */
+const homeEntranceP = computed(() =>
+  system.activeAppId ? 0 : Math.min(1, system.switcherProgress)
+)
+/** 桌面路径 = 没有前台应用。入场自下方上浮、取消时原路下沉（方向必须一致，
+ *  否则「取消」会变成卡片往上被吸走）。注意它不依赖 appSwitcherOpen ——
+ *  手势进行中的那一段也必须是真值，退场才沉得下去。 */
+const deskPath = computed(() => !system.activeAppId)
+/** 桌面手势进行中（此时背景卡需要逐帧跟手，必须关掉 CSS 过渡） */
+const homeEntranceFollowing = computed(
+  () => deskPath.value && !system.appSwitcherOpen && system.switcherProgress > 0
+)
+/** deck 的渲染条件。
+ *  第五轮补：桌面路径不能只认「手势进行中」—— 松手取消那一瞬间进度归零，若立刻卸载，
+ *  卡片就是【瞬间消失】，既没有下沉也来不及淡出（实测 45ms 内 deck=0）。
+ *  所以桌面路径改为「只要本组件还在场（visible，含 linger 的 340ms 退场缓冲）就渲染」，
+ *  让 stackStyle 的收场分支能把「原路下沉 + 淡出」播完。 */
+const renderDeck = computed(
+  () => system.appSwitcherOpen || (deskPath.value && visible.value)
+)
+/** 桌面路径的【退场窗口】：进度已归零、靠 linger 撑着的那 340ms。
+ *  只在这个窗口里给遮罩开透明度过渡 —— 跟手期绝不能开（逐帧直写会被二次低通成滞后），
+ *  应用内上滑那条路径也绝不能开（同一原因），所以判据必须精确到「正在退场」。 */
+const homeRetreat = computed(
+  () =>
+    deskPath.value &&
+    !system.appSwitcherOpen &&
+    visible.value &&
+    system.switcherProgress <= 0.001
+)
+/* 桌面入场：卡片自下方【屏幕高度 30%】处上浮 + 淡入（e = 进度，逐帧跟手） */
+const ENTRANCE_RISE_FRAC = 0.3
 
 /* ---- 层过渡进度（第四轮）----
    顶卡退出与背景层推进共用【同一个进度】（详见 switcherDeck.js 头部「定律一」）。
@@ -191,9 +252,18 @@ watch(
     homePath.value = !system.activeAppId
     hasFollow.value = !!system.activeAppId && system.switcherProgress < 1
     if (homePath.value) {
-      // 桌面直开：无前台应用可缩放 → 进度直接到 1；卡片下一帧自下方上浮入场
+      /* 桌面路径（无前台应用可缩放）。两种来法必须分开处理：
+         ① 手势停驻激活 —— 卡片此刻【已经在屏上跟手入场中】（进度 >0），
+            直接让它就位即可；若还去播「自下方上浮」会先跳回屏幕下方再升起，很怪。
+         ② 直开（调试 / 程序化）—— 卡片尚未在场，走 60ms 后错峰上浮的入场编排。 */
+      const wasFollowing = system.switcherProgress > 0.02
       system.setSwitcherProgress(1)
       openSnap(1)
+      if (wasFollowing) {
+        neighborsIn.value = true
+        entranceDone.value = true
+        return
+      }
       dwellTimer = setTimeout(() => { neighborsIn.value = true; markEntrance() }, 60)
       return
     }
@@ -240,10 +310,21 @@ function stackStyle(i) {
   if (i === frontIndex.value && hasFollow.value) {
     // 跟手卡顶替中：堆叠前卡先隐藏，落位后再接管（同位姿，无跳变）
     opacity = settledOne.value ? 1 : 0
+  } else if (homeEntranceFollowing.value) {
+    /* 桌面手势进行中（第五轮新增）：卡片自下方 30% 处【跟手】上浮 ——
+       上滑多少就升多少、同时亮多少（e = 进度）。逐帧直写：无 delay、无过渡。
+       修的是 Ricky 的原话「先从桌面上滑的手感非常差，很难激活多任务」——
+       此前这段路上屏幕上【一张卡都没有】，只剩一层黑遮罩，等于盲滑。 */
+    const e = homeEntranceP.value
+    opacity = e
+    y += screenH.value * ENTRANCE_RISE_FRAC * (1 - e)
+    delay = '0ms'
   } else if (!neighborsIn.value) {
-    // 仅桌面路径会走到这里：先藏在下方 30% 处，邻居进场后按序上浮
+    /* 桌面路径的收场态：藏在下方 30% 处。
+       - 直开进场：由 CSS 过渡上浮（60ms 错峰）；
+       - 手势取消：进度归零后落到这里 → 卡片原路【下沉】淡出（方向与入场一致）。 */
     opacity = 0
-    if (homePath.value) y += screenH.value * 0.3
+    if (deskPath.value) y += screenH.value * ENTRANCE_RISE_FRAC
     delay = entranceDone.value ? '0ms' : `${i * 60}ms`
   }
   return {
@@ -530,7 +611,7 @@ onBeforeUnmount(() => {
     v-if="visible"
     ref="rootRef"
     class="app-switcher"
-    :class="{ 'is-dragging': !!drag, 'is-focus-moving': focusMoving, 'is-dismissing': !!dismissing || !!expanding }"
+    :class="{ 'is-dragging': !!drag, 'is-focus-moving': focusMoving, 'is-home-entrance': homeEntranceFollowing, 'is-home-retreat': homeRetreat, 'is-dismissing': !!dismissing || !!expanding }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
@@ -561,10 +642,11 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- 堆叠卡片组：切换器打开后渲染。
+      <!-- 堆叠卡片组：切换器打开后渲染；桌面路径在【手势进行中】就要渲染，
+           否则上滑期间屏幕上一张卡都没有（只剩黑遮罩）= 盲滑，手感极差。
            前卡在进场进度 <1 时由跟手卡顶替（同位姿无缝交接），其余卡片按进度淡入。
            层级由 deckZ(i) = 10000 - i 决定 —— 顶卡一直到最后飞出屏幕都在最上层。 -->
-      <template v-if="system.appSwitcherOpen">
+      <template v-if="renderDeck">
         <div
           v-for="c in renderedCards"
           :key="c.id"
@@ -632,6 +714,11 @@ onBeforeUnmount(() => {
   backdrop-filter: blur(26px) saturate(140%);
   -webkit-backdrop-filter: blur(26px) saturate(140%);
 }
+/* 桌面路径退场（上滑未激活就松手）：遮罩跟着卡片一起淡出。
+   只在 .is-home-retreat 这个精确窗口里开 —— 跟手期与应用内上滑路径都必须逐帧直写。 */
+.app-switcher.is-home-retreat .switcher-dim {
+  transition: opacity 0.28s ease;
+}
 
 .switcher-track {
   position: absolute;
@@ -653,13 +740,17 @@ onBeforeUnmount(() => {
 .switcher-card.is-deck {
   transform-origin: 0 0;
 }
-/* 非拖拽 / 非焦点弹簧推进时开过渡（重排、移除、恢复、桌面入场）。
+/* 非拖拽 / 非焦点弹簧推进 / 非桌面跟手入场时开过渡（重排、移除、恢复、桌面入场收场）。
    - .is-follow 的 transform 由手势/进场弹簧逐帧直写，挂 transition 会被二次低通，
      表现为「跟手滞后、松手后慢慢飘」→ 必须排除；
-   - .is-focus-moving 是松手后的吸附弹簧，同理必须排除。
+   - .is-focus-moving 是松手后的吸附弹簧，同理必须排除；
+   - .is-home-entrance 是桌面路径上滑【跟手】期（进度逐帧直写卡片 y/opacity）——
+     AppSwitcher 自己不持有这次拖拽（拖动发生在 HomeIndicator 上，drag 恒为 null），
+     所以 .is-dragging 挡不住它；不排除的话同样会滞后发飘。
+     手势取消后会自然退出这个类 → 过渡恢复 → 卡片顺势下沉淡出。
    - 曲线 0.32s / cubic-bezier(0.32, 1.16, 0.6, 1)：与 ios-deck 弹簧（τ≈110ms、
      过冲 6.7%）的收尾观感一致，末段带一点回弹余韵，不再是死板的 ease-out。 */
-.app-switcher:not(.is-dragging):not(.is-focus-moving) .switcher-card:not(.is-follow) {
+.app-switcher:not(.is-dragging):not(.is-focus-moving):not(.is-home-entrance) .switcher-card:not(.is-follow) {
   transition:
     transform 0.32s cubic-bezier(0.32, 1.16, 0.6, 1),
     opacity 0.22s ease,

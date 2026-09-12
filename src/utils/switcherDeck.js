@@ -12,9 +12,11 @@
  *      → 几何级数：stair(k) = base·(1-decay^k)/(1-decay)。
  *   ⑤ 「同时最多展示四层」→ MAX_DEPTH = 3（焦点层 + 3 层背景）。
  *   ⑥ 「根据滑动的距离动态调整顶卡与第二三四层的[间距]」
- *      → 拖动期叠加一个「牵连」位移，幅度随【层过渡进度】走（两端归零）。
+ *      → 间距随【层过渡进度 u】连续变化：stair(aEff)，aEff = a + (x − u)。
+ *        （第五轮删除了额外的「牵连包络」，见下方定律三。）
  *   ⑦ 「同样滑动距离顶层移动距离 8:3:2:1」
- *      → 牵连权重 CARRY_WEIGHTS = [0, 1, 0.6, 0.36] 按层递减。
+ *      → 位移递减由 stair 的几何级数天然给出：一层内各层位移 = stair(1) : stair(2)−stair(1) : …
+ *        = 0.12 : 0.066 : 0.036 卡宽 ≈ 3.3 : 1.8 : 1（顶层 : 第二层 : 第三层）。
  *
  * ── 2026-09-12 第三轮（Ricky 提交参考视频后的四条修正）──
  *   A. 「卡片整体位置太靠上了，改为在删除按钮上方居中显示」
@@ -39,26 +41,39 @@
  *   原话：「顶层卡片应该像是拉着底层卡片一起往右移动，但是现在的底层卡片先做向中间位移
  *          放大的动画，应该是一边被顶层卡片拖着向右移动一边放大，直到顶层卡片完全滑出
  *          屏幕两张卡片才完全分离。」
+ *   结论：顶卡退出与背景层推进必须【同相位】—— 共用同一个层过渡进度 u = x^TRANS_POW。
+ *   旧实现顶卡用 x^EXIT_POW（后加载）、背景层用原始 x（前加载）→ 背景层抢跑。统一后
+ *   背景层同样「后加载」。实现上即 aEff = a + (x − u)：层边界两端与原始 a 重合，零跳变。
  *
- *   逐帧实测【改前】（430×932，慢拖一整层 span=233.75px，顶卡左缘 x0 / 底卡左缘 x1）：
- *     dx=117  x0=202.5  x1= 96.4  s1=0.970  重叠 +160
- *     dx=156  x0=267.8  x1=101.9 ←峰值      重叠 +103
- *     dx=195  x0=360.6  x1= 95.1  s1=0.990  重叠   +6.7
- *     dx=199  x0=369.8  x1= 93.8            重叠   -3.5  ←提前分离（顶卡还有 60px 没出屏）
- *     dx=234  x0=455.9  x1= 77.5  s1=1.000  重叠 -103
- *   两个真实缺陷：
- *     ① 底卡左缘【先增后减】（101.9 → 77.5，回退 24px）—— 它不是被拖着走，而是
- *        「先向中间冲一下再退回原位」。根因 = 扇开用 sin 半波包络，在一层之内先推远再收回；
- *     ② 顶卡还有 60px 没出屏，两卡就分离了（重叠转负）—— 底卡把「向中间的位移+放大」
- *        提前做完，然后顶卡才慢慢飘走。
+ * ── 2026-09-12 第五轮（Ricky 指出第四轮的牵连包络【会往回走】）──
+ *   原话：「最顶部的卡片消失后，继续右滑顶部卡片会非常反直觉的先回到中心位置，也就是
+ *          往右滑的时候卡片在往左移动，导致动画断掉了。」
  *
- *   物理修正（两条定律）：
- *     定律一【同相位】顶卡退出与背景层推进必须共用【同一个层过渡进度 u】
- *       → 旧实现顶卡用 x^EXIT_POW（后加载）、背景层用原始 x（前加载）→ 背景层抢跑。
- *         统一后背景层同样「后加载」：先被拖着走，末段才收进槽位。
- *     定律二【不提前分离】顶卡左缘越过屏宽之前，第 1 层的右缘必须始终 ≥ 顶卡左缘
- *       → 牵连位移取【贴合所需的最小量】need(u) = max(0, 顶卡左缘 − 第1层右缘)，
- *         并压到 u = CARRY_RELEASE 之后才释放 → 屏幕上两卡全程贴合，绝不提前分离。
+ *   逐帧实测【改前】（慢拖 1.25 层，卡 1 左缘 x）：
+ *     峰值 156.1 → 78.7  ← 一次回退 77.4px，且随后又出现 118.7→81.3 的二次回退。
+ *   根因：第四轮为了让两卡「贴合」加了牵连量 carry(u)·release(u)，而 release 必须在
+ *   u→1 时归零（层边界处第 1 层必须已经在槽位 frontX 上），于是在 u∈[0.95,1] 出现
+ *   「牵连满量程→0」的塌缩 → 卡片向左猛退。
+ *
+ *   数学结论（为什么不能既要大牵连、又不要回退）：
+ *     第 1 层的位移 = 槽位推进 + 牵连；槽位推进在一层内总共只有 stair(1) = 33px，
+ *     而牵连从峰值 P 回落到 0 至少要「吃掉」P 的位移预算。要末端不回退，就必须
+ *     P ≤ 槽位在该段的推进量；把释放摊到整层时最多也只剩 ~15px。所以【任何有峰值的
+ *     牵连都必然带来一次回退】。→ 第五轮直接去掉牵连，背景层 = 纯槽位推进。
+ *
+ *   定律三【不得回退】（本轮新增，优先级高于「贴合」）：
+ *     背景层的位置只由 u 单调推进 —— restX = frontX − stair(aEff)，
+ *     其中 aEff = a + (x − u) 对每张卡都等价于 d − u（d = i − m 为整层深度），
+ *     随 u: 0→1 严格单调递减 → restX 严格单调递增。缩放同为 0.94^aEff 单调递增。
+ *     「边被拖着走 + 边放大」由【两者共用同一个 u】保证，不再需要额外包络。
+ *
+ *   代价（已与 Ricky 说明）：第 1 层的右移量 = stair(1)（必须落到居中槽位，所以有上界），
+ *   且顶卡快出屏时会露出一段「顶卡与底卡之间」的空隙 —— 这是居中布局的几何必然：
+ *   顶卡左缘到 430 时，居中底卡的右缘最多只能到 frontX + cardW = 352.5。
+ *
+ *   验证盲区（第四轮为什么没抓到）：当时的断言是「顶卡【还在屏内】时底卡单调右移」，
+ *   而出屏点之后正好是 release 塌缩的区间 → 断言天然测不到。本轮新增断言覆盖
+ *   【整段拖动，含顶卡出屏之后】。
  *
  * 坐标约定：
  *   a = i - focus         连续「层深」，0 = 焦点层（屏幕正中），正数 = 更早的层（往左）
@@ -90,21 +105,27 @@ export const DECK = {
   /* 层过渡进度指数：u = frac^TRANS_POW。必须与 EXIT_POW 同值 —— 顶卡退出与背景层推进
      共用同一个 u 是「不再抢跑」的关键（见头部「定律一」）。 */
   TRANS_POW: 1.6,
-  /* 牵连释放起点（u）：≥ 顶卡出屏所需。u_off = (屏宽 − frontX)/exit = 352.5/378.4 = 0.932，
-     取 0.95 留余量 → 「顶卡完全滑出屏幕」之前绝不分离（定律二）。 */
-  CARRY_RELEASE: 0.95,
-  /* 牵连基准幅度（占顶卡位移的比例）= 深度 1 那一层的份额 = 3/8。见 CARRY_WEIGHTS。 */
-  CARRY_FRAC: 0.375,
   MAX_DEPTH: 3, // 同时最多 4 层
   Z_BASE: 10000, // z(i) = Z_BASE - i（固定，永不随焦点变）
   FOCUS_SPAN_FRAC: 0.85, // 拖动 0.85 × cardW ≈ 完成一次换卡（对齐参考视频实测 0.87）
   RUBBER: 0.35 // 越界阻尼系数
 }
 
-/** 牵连权重 —— 按【整层深度】取（0 = 焦点层不牵连；1 = 被顶卡直接拖动的那一层）。
- *  相对深度 1 的倍数 = 1 : 2/3 : 1/3，乘上基准幅度 DECK.CARRY_FRAC(3/8) 后
- *  正好是 Ricky 规则⑦的 8 : 3 : 2 : 1 位移比。 */
-export const CARRY_WEIGHTS = [0, 1, 2 / 3, 1 / 3]
+/**
+ * 阶梯偏移（层深 k ≥ 0，可连续）：几何级数，保证「露出越来越少」。
+ * stair(0)=0、stair(1)=0.12·cardW、stair(2)=0.186·cardW、stair(3)=0.222·cardW
+ *
+ * 它同时决定了【一层过渡里各层的右移量】：
+ *   depth-1 卡位移 = stair(1) − stair(0) = stair(1)
+ *   depth-2 卡位移 = stair(2) − stair(1)
+ *   depth-3 卡位移 = stair(3) − stair(2)
+ * 因为 aEff = d − u 从 d 走到 d−1，位置的净变化就是相邻两级 stair 之差。
+ * 这条链是「位移递减」的唯一来源 —— 一旦再叠加会归零的包络，就会产生回退（定律三）。
+ */
+export function deckStair(k, cardW) {
+  const c = (DECK.STAIR_BASE_FRAC * cardW) / (1 - DECK.STAIR_DECAY)
+  return c * (1 - Math.pow(DECK.STAIR_DECAY, Math.max(0, k)))
+}
 
 /**
  * 屏幕尺寸 → 几何度量。
@@ -157,89 +178,19 @@ export function deckMetrics(screenW, screenH, opts = {}) {
 }
 
 /**
- * 阶梯偏移（层深 k ≥ 0，可连续）：几何级数，保证「露出越来越少」。
- * stair(0)=0、stair(1)=0.12·cardW、stair(2)=0.186·cardW、stair(3)=0.222·cardW
- */
-export function deckStair(k, cardW) {
-  const c = (DECK.STAIR_BASE_FRAC * cardW) / (1 - DECK.STAIR_DECAY)
-  return c * (1 - Math.pow(DECK.STAIR_DECAY, Math.max(0, k)))
-}
-
-/** 牵连权重按整层深度取（连续插值，避免层深跨整数时跳变） */
-export function carryWeight(k) {
-  const d = Math.min(Math.max(k, 0), DECK.MAX_DEPTH)
-  if (d <= 0) return CARRY_WEIGHTS[0]
-  const lo = Math.floor(d)
-  if (lo >= DECK.MAX_DEPTH) return CARRY_WEIGHTS[DECK.MAX_DEPTH]
-  const t = d - lo
-  return CARRY_WEIGHTS[lo] * (1 - t) + CARRY_WEIGHTS[lo + 1] * t
-}
-
-/**
- * 层过渡进度（定律一）：把焦点的【小数部分】映射成三件东西共用的进度。
+ * 层过渡进度（定律一）：把焦点的【小数部分】映射成两件东西共用的进度。
  *   m = 焦点所在整数层
  *   x = 原始小数进度（0..1）
  *   u = x^TRANS_POW —— 顶卡退出斜坡与背景层推进【共用】的进度
  *
- * 关键：背景层的连续层深要用 aEff = a + (x − u) = (i − m − u) 计算，
- * 这样在 x=0 / x=1 两端都与原始 a 重合（层边界零跳变），中途则「后加载」——
- * 背景层不再抢在顶卡前面把位移+放大做完。
+ * 背景层的连续层深用 aEff = a + (x − u) 计算。对每张卡，a = d − x（d = i − m 为整层深度），
+ * 所以 aEff 恒等于 d − u：随 u: 0→1 严格单调递减 → 位置单调右移、缩放单调变大（定律三）。
+ * 在 x=0 / x=1 两端 aEff 分别等于 d 与 d−1，与层边界的整数层深重合 → 零跳变。
  */
 export function deckPhase(focus) {
   const m = Math.floor(focus)
   const x = Math.min(Math.max(focus - m, 0), 1 - 1e-9)
   return { m, x, u: Math.pow(x, DECK.TRANS_POW) }
-}
-
-/** 顶卡左缘（与 deckPose 的负半区同源，供牵连计算复用） */
-export function deckLeadX(u, m) {
-  return m.frontX + m.exit * u
-}
-
-/**
- * 第 1 层「贴合顶卡」所需的最小牵连位移（定律二）。
- * = 顶卡左缘 − 第 1 层此刻的右缘（槽位左缘 + 卡宽）。≥ 0 才有意义。
- * u ≥ u_off 时顶卡已离开屏幕，need 继续变大但会被释放包络压回 0。
- */
-export function deckCarryNeed(u, m) {
-  const slot = m.frontX - deckStair(1 - u, m.cardW)
-  const width = m.cardW * Math.pow(DECK.SCALE_DECAY, 1 - u)
-  return Math.max(0, deckLeadX(u, m) - (slot + width))
-}
-
-/**
- * 牵连基准幅度（未乘层权重 / 未乘释放包络）：
- *   max(贴合所需的最小量 need, CARRY_FRAC · 顶卡位移) ——
- *   · 第一项保证定律二（顶卡出屏前两卡右缘/左缘始终贴合）；
- *   · 第二项就是「顶层卡片拉着底层卡片一起往右移动」：深度 k 的层被拖走
- *     CARRY_WEIGHTS[k] × 顶卡位移 —— 同一段滑动距离下，各层位移天然是 8:3:2:1，
- *     并且从过渡一开始就同步起势（不是前半程不动、后半程猛冲）。
- */
-export function deckCarryAt(u, m) {
-  /* 三条约束取交：
-     ① CARRY_FRAC·exit·u —— rule⑦ 的「顶卡位移 × 3/8」，从过渡一开始就同步起势；
-     ② min(·, 焦点卡右侧留白) —— 牵连不能把卡片推出右屏边（常数上限，保证单调）；
-     ③ max(·, need) —— 定律二的下限（顶卡出屏前必须贴合）；
-        最后再夹一次第 1 层的实时余量，保证右缘永不越过屏宽。 */
-  const roomConst = Math.max(0, m.screenW - (m.frontX + m.cardW))
-  const share = Math.min(DECK.CARRY_FRAC * m.exit * u, roomConst)
-  const slot1 = m.frontX - deckStair(1 - u, m.cardW)
-  const sc1 = Math.pow(DECK.SCALE_DECAY, 1 - u)
-  const room = Math.max(0, m.screenW - (slot1 + m.cardW * sc1))
-  return Math.min(Math.max(deckCarryNeed(u, m), share), room)
-}
-
-/** 某一层的牵连位移（已乘层权重）。层权重的顺序由 CARRY_WEIGHTS 保证递减。 */
-export function deckCarry(u, k, m) {
-  return deckCarryAt(u, m) * carryWeight(k)
-}
-
-/** 牵连释放包络：u ≤ CARRY_RELEASE 恒为 1（全程贴合），之后平滑归零（回槽位） */
-export function deckCarryRelease(u) {
-  const r = DECK.CARRY_RELEASE
-  if (u <= r) return 1
-  const t = Math.min(1, (u - r) / (1 - r))
-  return 1 - t * t * (3 - 2 * t)
 }
 
 /**
@@ -256,14 +207,15 @@ export function deckPose(a, m, xFrac = 0) {
   let scale
   let depth
   if (a >= 0) {
-    /* 背景层：先按「被顶卡拖着走」的路径（牵连），末段才收进槽位。
-       aEff = a + (x − u)：两端与原始 a 重合（层边界不跳变），中途后加载（不抢跑）。 */
+    /* 背景层（定律三：纯槽位推进，不得回退）。
+       aEff = a + (x − u) = d − u —— 随 u 单调递减，因此：
+         · restX = frontX − stair(aEff) 单调递增（一路向右，绝不回退）；
+         · scale = 0.94^aEff 单调递增（与位移【同时】发生，不是先位移后放大）。
+       缩放与位移共用同一个 u，这就是「被顶卡拖着走 + 同时放大」的全部机制；
+       旧版额外叠加的牵连包络必须在一层末尾归零，那正是「往右滑却往左走」的根因。 */
     const aEff = Math.min(Math.max(a + (x - u), 0), DECK.MAX_DEPTH)
-    const k = Math.max(0, Math.round(a + x)) // 相对当前焦点层的整层深度
-    const slotX = m.frontX - deckStair(aEff, m.cardW)
-    const sc = Math.pow(DECK.SCALE_DECAY, aEff)
-    restX = slotX + deckCarry(u, k, m) * deckCarryRelease(u)
-    scale = sc
+    restX = m.frontX - deckStair(aEff, m.cardW)
+    scale = Math.pow(DECK.SCALE_DECAY, aEff)
     depth = aEff
   } else {
     // 退出斜坡：比焦点更新的卡往右离开屏幕（幂律 → 起步跟手、末段加速）

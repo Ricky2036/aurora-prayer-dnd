@@ -4,12 +4,17 @@
  * 场景链：
  *   解锁 → 依次开 5 个应用 → 上滑停驻进切换器（含「手指微抖」用例）
  *   → 几何体检（最多四层 / 阶梯露边 / 左边缘不出屏 / 标签 / 底部按钮）
- *   → 8:3:2:1 差异位移实测 → 横滑方向 → 层级恒定逐帧不变量
+ *   → 背景层差异位移实测（第五轮：stair 几何级数，不再是 8:3:2:1）
+ *   → 横滑方向 → 层级恒定逐帧不变量 → 桌面路径跟手入场（第五轮）
  *   → 点卡片恢复 → 上滑移除 → 快滑回桌面
  *
  * 用法：node scripts/verify-app-switcher.mjs [port]
  */
 import { chromium } from 'playwright'
+import { DECK } from '../src/utils/switcherDeck.js'
+
+/* 层间位移的比例契约来自纯函数模块，避免脚本里再抄一份魔数（第五轮：0.55）。 */
+const STAIR_DECAY = DECK.STAIR_DECAY
 
 const PORT = process.argv[2] || '5555'
 const CHROME =
@@ -353,9 +358,19 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
   )
 }
 
-/* ---- 规则⑥⑦ 8:3:2:1 差异位移实测 ----
+/* ---- 规则⑥⑦ 背景层差异位移实测（第五轮：比例改为 stair 的几何级数）----
    从静止（焦点=calculator）按住横拖半层（0.5 × SPAN），逐卡量位移：
-   顶层 : 第二层 : 第三层 : 第四层 应接近 8 : 3 : 2 : 1（顶层走的最多、逐层递减）。 */
+     · 各层【同向】（都右移）、逐层递减 —— 成立；
+     · 层间比例 = STAIR_DECAY（0.55），不再是第四轮的 8:3:2:1。
+
+   为什么必须放弃 8:3:2:1（Ricky 第四轮写的比例）：
+     「一整层的净位移」= stair(d) − stair(d−1)。而静止态的露出宽度
+     （33 / 18 / 10px —— 来自参考视频实测定标，本脚本上面已断言）把 stair(1)
+     钉死在 33 → 层 1 一整层最多只能走 33px。要让它走 142px（= 0.375 × 顶卡 378px，
+     即 8:3:2:1 要求的值）就必须叠加「牵连」位移，而牵连必须在 u→1 时归零
+     （层 1 得落到居中槽位 frontX）→ 数学上必然产生回退。
+     第四轮实测回退 77px，正是 Ricky 第五轮反馈的「往右滑、卡片却在往左移动」。
+     ⇒ 第五轮取「不得回退」为最高优先，层间比例随之变成 stair 的幂（0.55^k）。 */
 {
   const rest = await deck()
   const restX = Object.fromEntries(rest.map((r) => [r.id, r.x]))
@@ -384,18 +399,20 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
     .sort((a, b) => a.idx - b.idx)
   check(
     '拖动期各层同向位移且逐层递减',
-    moved.length >= 3 && moved.every((m, i) => (i === 0 ? m.d > 40 : m.d < moved[i - 1].d - 3)),
+    moved.length >= 3 && moved.every((m, i) => (i === 0 ? m.d > 40 : m.d > 0 && m.d < moved[i - 1].d)),
     moved.map((m) => `L${m.idx}:${m.d.toFixed(1)}`).join(' ')
   )
   if (moved.length >= 3) {
-    const rel = moved.map((m) => m.d / moved[moved.length - 1].d)
-    // 4 张卡按 8:3:2:1 归一；只有 3 张时去掉最深层 → 8:3:2
-    const target = (moved.length >= 4 ? [8, 3, 2, 1] : [8, 3, 2]).slice(0, rel.length)
-    const worst = Math.max(...rel.map((v, i) => Math.abs(v - target[i]) / target[i]))
+    /* 只比【背景层】（L1 起）之间的比例：L0 是正在离场的顶卡，走的是幂律斜坡
+       （378 × a^1.6），与背景层的 stair 推进不是同一个函数，不该混在一个比例里。 */
+    const bg = moved.slice(1).map((m) => m.d)
+    const ratios = []
+    for (let k = 1; k < bg.length; k++) ratios.push(bg[k] / bg[k - 1])
+    const worst = ratios.length ? Math.max(...ratios.map((v) => Math.abs(v - STAIR_DECAY) / STAIR_DECAY)) : 1
     check(
-      `水平位移比例 ≈ ${target.join(':')}（实测 ${rel.map((v) => v.toFixed(2)).join(':')}）`,
-      worst <= 0.45,
-      `最大偏差 ${(worst * 100).toFixed(0)}%`
+      `背景层位移比例 ≈ stair 衰减 0.55（实测 ${bg.map((v) => v.toFixed(1)).join(' : ')}，比例 ${ratios.map((v) => v.toFixed(3)).join(' : ')}）`,
+      ratios.length >= 1 && worst <= 0.25,
+      `最大偏差 ${(worst * 100).toFixed(0)}%（目标 ${STAIR_DECAY}；8:3:2:1 已证明与「不得回退」互斥，见上方注释）`
     )
   }
   check('半层拖动松手后回到原焦点（calculator 居中）', (await centeredId()) === 'calculator', `centered=${await centeredId()}`)
@@ -574,7 +591,61 @@ await flickSwipe()
 s = await S()
 check('快速上滑 = 回桌面（不进切换器）', s.switcher === false && s.base === 'home', JSON.stringify(s))
 
-// ---- 桌面路径：从桌面直接上滑停驻开切换器（卡片自下方错峰上浮）----
+/* ---- 第五轮·问题②：桌面上滑期必须有【可见反馈】（跟手升起）----
+   Ricky 第五轮原话：「先从桌面上滑的手感非常差，很难激活多任务。」
+   根因 A：deck 被 `v-if="system.appSwitcherOpen"` 门控，而桌面路径没有跟手卡
+   → 上滑全程屏幕上一张卡都没有，只剩一层黑遮罩 = 盲滑（修复前实测 p≈0.58 时 deckCount=0）。
+   现在手势期间就渲染 deck，入场进度直接跟随 switcherProgress。
+   判据：上滑过程中卡片必须在屏上，且随进度【单调升起 + 单调变亮】。 */
+{
+  const trace = []
+  await page.mouse.move(215, 925)
+  await page.mouse.down()
+  for (let i = 1; i <= 10; i++) {
+    await page.mouse.move(215, 925 - i * 14, { steps: 1 })
+    await page.waitForTimeout(45)
+    trace.push(
+      await page.evaluate(() => {
+        const cards = [...document.querySelectorAll('.switcher-card.is-deck')].map((c) => ({
+          i: +c.dataset.index,
+          y: +c.getBoundingClientRect().y.toFixed(1),
+          op: +getComputedStyle(c).opacity
+        }))
+        const dim = document.querySelector('.switcher-dim')
+        return {
+          p: +window.__system.switcherProgress.toFixed(3),
+          n: cards.length,
+          c0: cards.find((c) => c.i === 0) || null,
+          dim: dim ? +getComputedStyle(dim).opacity : null
+        }
+      })
+    )
+  }
+  const seen = trace.filter((t) => t.n > 0 && t.c0)
+  const rises = seen.every((t, k) => k === 0 || t.c0.y <= seen[k - 1].c0.y + 1)
+  const brightens = seen.every((t, k) => k === 0 || t.c0.op >= seen[k - 1].c0.op - 0.02)
+  const dimSync = seen.every((t) => Math.abs(t.dim - t.p) < 0.02)
+  const mid = trace[Math.floor(trace.length / 2)]
+  check(
+    '第五轮·问题②：桌面上滑过程中屏幕上有卡片（不再是盲滑）',
+    seen.length === trace.length && mid.n >= 3,
+    `${trace.length} 个采样点全部有卡；中途卡数=${mid.n}；进度 ${trace[0].p} → ${trace[trace.length - 1].p}`
+  )
+  check(
+    '第五轮·问题②：卡片随上滑【单调升起 + 单调变亮】，遮罩同步（跟手）',
+    seen.length >= 8 && rises && brightens && dimSync,
+    `y: ${seen[0]?.c0?.y} → ${seen[seen.length - 1]?.c0?.y}；` +
+      `opacity: ${seen[0]?.c0?.op} → ${seen[seen.length - 1]?.c0?.op}；遮罩与进度同步=${dimSync}`
+  )
+  await page.mouse.up()
+  await page.waitForTimeout(700)
+  await page.evaluate(() => {
+    if (window.__system.appSwitcherOpen) window.__system.closeSwitcher()
+  })
+  await page.waitForTimeout(500)
+}
+
+// ---- 桌面路径：从桌面直接上滑停驻开切换器（卡片下场后就位）----
 await fastPauseSwipe()
 s = await S()
 check('桌面直接上滑停驻 → 开切换器（无前台应用可缩放）', s.switcher === true && s.base === 'home', JSON.stringify(s))
@@ -662,10 +733,42 @@ await page.waitForTimeout(1000)
   }
   const mid = trace[Math.floor(trace.length * 0.4)]
   const peakGap = mid ? gapsOf(mid).get(0) : null
+
+  /* 第五轮换判据：原判据是「任意相邻帧的层间距变化 < 10px」，它把【弹簧正常的加速段】
+     也算成跳变 —— 松手后 focus 从 0.42 弹回 0，顶卡要回走 378×0.42^1.6 ≈ 94px，
+     由 ios-deck（τ≈110ms）推进，最快一帧本来就有 12.8px。那不是硬跳变（位置连续），
+     只是速度高。真正要守的不变量是【连续性 / 无瞬变】，判据应该与尺度无关：
+       单帧位移 ÷ 该卡整段总位移 —— 硬跳变（旧版把牵连硬置零）会一次吃掉 ~100%，
+       弹簧推进则均匀摊在十几帧上。这里要求 < 20%。 */
+  const byCard = new Map()
+  for (const sample of trace) {
+    for (const r of sample) {
+      if (!byCard.has(r.i)) byCard.set(r.i, [])
+      byCard.get(r.i).push(r.x)
+    }
+  }
+  let worstShare = 0
+  let worstCard = -1
+  let worstStep = 0
+  for (const [i, xs] of byCard) {
+    if (xs.length < trace.length * 0.6) continue // 只看全程在 DOM 里的卡
+    const travel = Math.max(...xs) - Math.min(...xs)
+    if (travel < 20) continue
+    let step = 0
+    for (let k = 1; k < xs.length; k++) step = Math.max(step, Math.abs(xs[k] - xs[k - 1]))
+    const share = step / travel
+    if (share > worstShare) {
+      worstShare = share
+      worstCard = i
+      worstStep = step
+    }
+  }
   check(
-    '修正 D①：松手无硬跳变（牵连交给弹簧连续推进，不再硬置零）',
-    maxJump < 10,
-    `拖动中最大层间距=${peakGap != null ? peakGap.toFixed(1) : '?'}px 最大单帧间距跳变=${maxJump.toFixed(1)}px（第 ${jumpAt}/${trace.length} 帧）`
+    '修正 D① / 第五轮：松手无硬跳变（位移连续，单帧最多占整段位移的 20%）',
+    worstCard >= 0 && worstShare < 0.2,
+    `最大单帧位移占比=${(worstShare * 100).toFixed(0)}%（卡 ${worstCard}，单帧 ${worstStep.toFixed(1)}px）` +
+      ` · 层间距最大单帧变化=${maxJump.toFixed(1)}px（第 ${jumpAt}/${trace.length} 帧，属弹簧加速段）` +
+      ` · 拖动中最大层间距=${peakGap != null ? peakGap.toFixed(1) : '?'}px`
   )
 
   // ---- ② 快甩 0.62 层 → 采样第 2 张卡的 x，看是否越过终点再回落 ----
@@ -703,17 +806,25 @@ await page.waitForTimeout(1000)
   }
 }
 
-/* ---- 修正 E（2026-09-12 第四轮）：卡片之间的【相对运动】规律 ----
-   Ricky 原话：「顶层卡片应该像是拉着底层卡片一起往右移动，但是现在的底层卡片先做向中间
-   位移放大的动画，应该是一边被顶层卡片拖着向右移动一边放大，直到顶层卡片完全滑出屏幕
-   两张卡片才完全分离。」
+/* ---- 第五轮·定律三（2026-09-12）：卡片之间的【相对运动】----
+   Ricky 第五轮原话：「最顶部的卡片消失后，继续右滑顶部卡片会非常反直觉的先回到中心位置，
+   也就是往右滑的时候卡片在往左移动，导致动画断掉了。」
 
-   改前逐帧实测（慢拖一整层）：底卡左缘 52.7 → 101.9（峰值）→ 77.5，回退 24px；
-   顶卡还有 60px 没出屏（dx=199）两卡就分离了。两条定律：
-     ① 同相位：顶卡退出与背景层推进共用同一个层过渡进度 → 底卡单调右移、不再「先冲后回」；
-     ② 不提前分离：顶卡左缘越过屏宽之前，被拖卡的右缘始终 ≥ 顶卡左缘。 */
+   第四轮用「牵连包络」去满足 8:3:2:1 与「两卡贴合」，代价就是回退：底卡左缘
+   52.7 → 101.9（峰值）→ 77.5，回退 24px；顶卡出屏点附近还有一次 77px 的二次回退。
+   根因（数学）：层位置 = frontX − stair(aEff)，而牵连必须在 u→1 时归零
+   （第 1 层要落到居中槽位 frontX）→ 任何「有峰值」的牵连都必然回退。
+   第五轮直接把牵连删掉，位置只剩槽位推进 → 严格单调。
+
+   现在守的定律（优先级高于第四轮的「贴合」）：
+     ③ 不得回退 —— 拖动全程任何一张卡的位置与缩放都随手指严格单调；
+   代价（几何必然，已在上面第 2 条断言里量化）：层 1 一整层只走 stair(1) = 33px，
+     且顶卡出屏前两卡最多留出 ≈ 77px 的空隙 —— 顶卡左缘到 430 时，居中底卡
+     （scale 1）的右缘最多 frontX + cardW = 352.5，必然留 77px。
+   本块拖 1.25 层，是为了让采样覆盖【顶卡完全出屏之后】那一段 ——
+   第四轮的验证盲区（断言只看到「顶卡还在屏内」）恰好就在那里。 */
 {
-  const dragPx = Math.round(SPAN * 0.98) // 走满一层（顶卡必然完全出屏）
+  const dragPx = Math.round(SPAN * 1.25) // 覆盖「顶卡完全出屏之后」的拖动段
   await page.evaluate(() => {
     window.__e5 = []
     window.__e5Stop = false
@@ -767,6 +878,7 @@ await page.waitForTimeout(1000)
   let base = null
   let maxNextX = -Infinity
   let frames = 0
+  let exitedAt = null // 顶卡完全出屏的第一帧（记下此刻底卡已经走了多少）
   for (const sample of trace) {
     const top = sample.find((c) => c.i === TOP_I)
     const next = sample.find((c) => c.i === NEXT_I)
@@ -777,34 +889,34 @@ await page.waitForTimeout(1000)
     if (onScreen && gap < minGap) minGap = gap
     if (gap < -1.5 && !sepAt) sepAt = { topX: top.x }
     if (!base) base = { x: next.x, s: next.s }
-    if (onScreen && next.x < maxNextX - 0.6) mono = false
+    /* 第五轮：去掉原来的 `onScreen &&` 前提 —— 第四轮就是靠这个前提「看不到」出屏点
+       之后的回退（断言区间与缺陷区间不相交）。现在整段拖动都必须单调。 */
+    if (next.x < maxNextX - 0.6) mono = false
+    if (!onScreen && exitedAt === null) exitedAt = next.x - base.x
     maxNextX = Math.max(maxNextX, next.x)
     if (next.s < base.s - 1e-6) scaleMono = false
     peakDrift = Math.max(peakDrift, next.x - base.x)
     if (next.x - base.x >= 25 && next.s - base.s >= 0.005) growthWhileDragged = true
   }
   check(
-    '第四轮·定律二：顶卡完全出屏之前，两卡始终贴合（重叠 ≥ -1.5px）',
-    frames >= 20 && minGap >= -1.5,
-    `采样 ${frames} 帧，顶卡在屏内时最小重叠=${minGap.toFixed(1)}px`
+    '第五轮·定律三：背景层【全程】单调右移，绝不回退（含顶卡完全出屏之后）',
+    frames >= 20 && mono,
+    `最大右移 ${peakDrift.toFixed(1)}px；顶卡出屏那一刻底卡已走 ${exitedAt != null ? exitedAt.toFixed(1) : '?'}px` +
+      `（改前：峰值 57px 后回退 24px，出屏点附近还有一次 77px 二次回退）`
   )
   check(
-    '第四轮·定律二：分离时刻不早于顶卡完全滑出屏幕',
-    !sepAt || sepAt.topX >= screenBox.width - 1,
-    sepAt ? `分离时顶卡左缘=${sepAt.topX.toFixed(1)}px（屏宽 ${screenBox.width}）` : '全程未分离'
+    '第五轮·几何必然：顶卡出屏前两卡会留空隙（≤85px），分离点由纯几何给出',
+    frames >= 20 && minGap > -85 && minGap < 0 && (!sepAt || sepAt.topX >= 250),
+    `顶卡在屏内时最小重叠=${minGap.toFixed(1)}px（第四轮靠「牵连」强行贴合 → 代价就是回退）；` +
+      `分离时顶卡左缘=${sepAt ? sepAt.topX.toFixed(1) : '—'}px（屏宽 ${screenBox.width}）`
   )
   check(
-    '第四轮·定律一：被拖卡在顶卡出屏前单调右移（不再「先向中间冲一下再退回」）',
-    mono,
-    `最大右移 ${peakDrift.toFixed(1)}px（改前峰值 57px 后回退 24px）`
+    '第五轮：背景层一整层净位移 = stair(1) ≈ 33px（与第四轮的【净】位移相当，但没有回退）',
+    peakDrift >= 28 && peakDrift <= 38,
+    `实测 ${peakDrift.toFixed(1)}px（第四轮：峰值 57.3px 回退 24px → 净 ≈ 33px）`
   )
   check(
-    '第四轮：底卡确实被「拖着走」（右移 ≥ 60px，改前仅 ~57px 且随后回退）',
-    peakDrift >= 60,
-    `实测 ${peakDrift.toFixed(1)}px`
-  )
-  check(
-    '第四轮：位移与放大同时发生（不是先位移再放大）',
+    '第五轮：位移与放大同时发生（不是先位移再放大）',
     growthWhileDragged && scaleMono,
     `scale 全程单调=${scaleMono} 位移≥25px 时已同步放大=${growthWhileDragged}`
   )

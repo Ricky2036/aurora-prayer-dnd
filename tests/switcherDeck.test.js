@@ -1,12 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  CARRY_WEIGHTS,
   DECK,
-  carryWeight,
-  deckCarryAt,
-  deckCarryNeed,
-  deckCarryRelease,
   deckClampFocus,
   deckExposure,
   deckMetrics,
@@ -119,14 +114,8 @@ test('规则② 下层缩小后藏在上层下方（左边缘钉住 + 居中缩�
   assert.ok(right(p1) < right(p0) && right(p2) < right(p1))
 })
 
-test('规则⑥⑦ 层间牵连：权重 8:3:2:1、两端归零、位移按层递减', () => {
-  // 权重字面值（0 = 焦点层不牵连；1 = 被顶卡直接拖动的那一层）
-  assert.deepEqual(CARRY_WEIGHTS, [0, 1, 2 / 3, 1 / 3])
-  assert.equal(carryWeight(0), 0)
-  assert.equal(carryWeight(1), 1)
-  assert.ok(Math.abs(carryWeight(3) - 1 / 3) < 1e-12)
-
-  // 两端归零 → 层边界零跳变（整层进度处必须回到纯阶梯槽位）
+test('规则⑥⑦ 层间位移按层递减（由 stair 的几何级数天然给出，不再叠加任何包络）', () => {
+  // 两端 = 纯阶梯槽位 → 层边界零跳变（拖满整层时必须正好落进槽位）
   for (const x of [0, 1e-9]) {
     for (const k of [0, 1, 2, 3]) {
       const p = deckPose(k, m, x)
@@ -135,21 +124,26 @@ test('规则⑥⑦ 层间牵连：权重 8:3:2:1、两端归零、位移按层�
     }
   }
 
-  // 半边进度（x=0.5）处：各层相对「自己槽位」的位移必须按层递减
-  const travel = [0, 1, 2, 3].map((k) => deckPose(k - 0.5, m, 0.5).x - deckPose(k, m, 0).x)
+  /* 一整层的净位移：
+       travel[0] = 顶卡退出（frontX → frontX + exit，量级 ~378px）
+       travel[d] = 第 d 层被推进一级槽位 = stair(d) − stair(d−1)  */
+  const travel = [0, 1, 2, 3].map((d) => deckPose(d - 1, m, 1 - 1e-9).x - deckPose(d, m, 0).x)
+
   for (let k = 1; k < travel.length; k++) {
     assert.ok(travel[k] < travel[k - 1], `位移未按层递减：${travel.map((v) => v.toFixed(1))}`)
   }
+  assert.ok(travel[3] > 0, '最深层也必须真的往右走')
 
-  /* 规则⑦ 8:3:2:1 的实测口径：同一次滑动（半边进度）下，各层位移 / 顶卡位移。
-     牵连 = CARRY_WEIGHTS[k] × (3/8 × 顶卡位移)，槽位推进按 rule④ 叠加。 */
-  const lead = travel[0]
-  const rel = [1, 2, 3].map((k) => travel[k] / lead)
-  assert.ok(rel[0] > rel[1] && rel[1] > rel[2], `层间位移比未递减：${rel.map((v) => v.toFixed(3))}`)
-  assert.ok(rel[0] > 0.3 && rel[0] < 0.5, `第二层相对位移 ${rel[0].toFixed(3)}（目标 0.375）`)
-  assert.ok(rel[1] > 0.2 && rel[1] < 0.38, `第三层相对位移 ${rel[1].toFixed(3)}（目标 0.25）`)
-  assert.ok(rel[2] > 0.1 && rel[2] < 0.2, `第四层相对位移 ${rel[2].toFixed(3)}（目标 0.125）`)
-  assert.ok(rel[0] > 2.4 * rel[2], `二层 / 四层 = ${(rel[0] / rel[2]).toFixed(2)}（8:1 量级）`)
+  /* 层间比例 = STAIR_DECAY 的幂：第二层 : 第三层 : 第四层 = 1 : 0.55 : 0.30。
+     这是 stair 的几何级数决定的，改 STAIR_DECAY 就会同步变。 */
+  assert.ok(Math.abs(travel[2] / travel[1] - DECK.STAIR_DECAY) < 1e-9, `第三层/第二层 = ${(travel[2] / travel[1]).toFixed(4)}`)
+  assert.ok(
+    Math.abs(travel[3] / travel[1] - DECK.STAIR_DECAY ** 2) < 1e-9,
+    `第四层/第二层 = ${(travel[3] / travel[1]).toFixed(4)}`
+  )
+  /* 顶卡与第二层的量级差（如实记录：≈11.5:1）。
+     第四轮曾用牵连包络把第二层顶到 3/8，但那必然带来回退（见定律三）。 */
+  assert.ok(travel[0] / travel[1] > 10, `顶卡/第二层 = ${(travel[0] / travel[1]).toFixed(2)}`)
 })
 
 test('第四轮·定律一 同相位：背景层不再抢在顶卡前面把位移+放大做完', () => {
@@ -171,55 +165,108 @@ test('第四轮·定律一 同相位：背景层不再抢在顶卡前面把位�
   assert.ok(Math.abs(arriving.scale - settled.scale) < 0.01, `层边界缩放跳变 ${arriving.scale - settled.scale}`)
 })
 
-test('第四轮·定律二 不提前分离：顶卡完全出屏前，两卡右缘/左缘始终贴合', () => {
-  const right = (p) => p.x + m.cardW * p.scale
-  let worst = Infinity
-  let worstU = 0
-  for (let i = 0; i <= 500; i++) {
-    const u = i / 500
-    const x = Math.pow(u, 1 / DECK.TRANS_POW) // 反解 x：u = x^TRANS_POW
-    const top = deckPose(-x, m, x) // 顶卡（正在退出）
-    const below = deckPose(1 - x, m, x) // 第 1 层（被拖着走）
-    const gap = right(below) - top.x // ≥ 0 = 两卡仍贴合
-    if (top.x < m.screenW && gap < worst) {
-      worst = gap
-      worstU = u
+test('第五轮·定律三 不得回退：整段拖动（含顶卡出屏之后）背景层只许向右', () => {
+  /* 改前实测：慢拖 1.25 层，卡 1 左缘 峰值 156.1 → 78.7，单次回退 77.4px，
+     且随后还有 118.7 → 81.3 的二次回退 —— 就发生在顶卡出屏之后。
+     根因是牵连释放包络必须在一层末尾归零。本轮直接去掉牵连。 */
+  for (const d of [1, 2, 3]) {
+    let prevX = -Infinity
+    let prevS = -Infinity
+    for (let i = 0; i <= 2000; i++) {
+      const x = i / 2000
+      const p = deckPose(d - x, m, x)
+      assert.ok(
+        p.x >= prevX - 1e-9,
+        `depth${d} 位置回退：x=${x.toFixed(4)} ${prevX.toFixed(2)} → ${p.x.toFixed(2)}`
+      )
+      assert.ok(p.scale >= prevS - 1e-12, `depth${d} 缩放回退：x=${x.toFixed(4)}`)
+      prevX = p.x
+      prevS = p.scale
     }
   }
-  assert.ok(worst >= -0.5, `顶卡未出屏前出现分离：u=${worstU.toFixed(3)} gap=${worst.toFixed(2)}px`)
-  /* 释放点在顶卡出屏之后 —— 这是「不提前分离」的充分条件 */
-  assert.ok(DECK.CARRY_RELEASE > U_OFF, `释放点 ${DECK.CARRY_RELEASE} 必须晚于顶卡出屏点 ${U_OFF.toFixed(3)}`)
-  assert.equal(deckCarryRelease(U_OFF), 1, '顶卡出屏那一刻牵连必须还是满量程')
+
+  /* 断言盲区修复：第四轮只检查「顶卡还在屏内」那一段单调，而出屏点之后
+     恰好是 release 塌缩的区间。这里显式覆盖出屏之后的半层。
+     注意这段的自然位移只有 ~2.9px —— 正因为如此，改前那 77px 的回退才会
+     显得像「啪地跳回去」：整层最后 4% 的自然行程根本撑不起 77px 的回退。 */
+  const xOff = Math.pow(U_OFF, 1 / DECK.TRANS_POW)
+  const atOff = deckPose(1 - xOff, m, xOff).x
+  const atEnd = deckPose(0, m, 1 - 1e-9).x
+  assert.ok(atEnd > atOff, `顶卡出屏后底卡仍回退：${atOff.toFixed(2)} → ${atEnd.toFixed(2)}`)
+  assert.ok(atEnd - atOff > 1, `出屏后底卡只走了 ${(atEnd - atOff).toFixed(2)}px`)
+  assert.ok(atEnd - atOff < 6, `出屏后底卡走太多（${(atEnd - atOff).toFixed(2)}px）→ 说明又出现了额外包络`)
 })
 
-test('第四轮·牵连单调：底卡不再「先向中间冲一下再退回原位」', () => {
-  /* 改前实测：底卡左缘 52.7 → 101.9（峰值）→ 77.5，回退 24px。
-     改后：在释放点之前必须单调不减。 */
-  let prev = -Infinity
-  for (let i = 0; i <= 400; i++) {
-    const u = (i / 400) * DECK.CARRY_RELEASE
-    const x = Math.pow(u, 1 / DECK.TRANS_POW)
-    const xs = deckPose(1 - x, m, x).x
-    assert.ok(xs >= prev - 0.25, `u=${u.toFixed(3)} 底卡左缘回退 ${prev.toFixed(1)} → ${xs.toFixed(1)}`)
-    prev = xs
+test('第五轮·几何必然：居中布局下两卡的「贴合」只可能维持到 x≈0.72', () => {
+  /* 这不是缺陷，是几何：顶卡左缘到屏宽 430 时，居中底卡（scale 1）的右缘最多
+     frontX + cardW = 352.5px —— 必然留下 ~77px 空隙。要全程贴合只有两条路：
+       ① 让底卡在拖动中放大到 ≈1.28 倍（参考机那种更深的堆叠）；
+       ② 允许底卡先冲过头再退回（Ricky 第五轮已否决）。
+     所以这里断言的是「重叠窗口足够长」，并把几何上限固定在测试里。 */
+  const right = (p) => p.x + m.cardW * p.scale
+  let lastOverlapX = 0
+  let minGapOnScreen = Infinity
+  for (let i = 0; i <= 500; i++) {
+    const x = i / 500
+    const top = deckPose(-x, m, x)
+    const below = deckPose(1 - x, m, x)
+    const gap = right(below) - top.x
+    if (gap >= 0) lastOverlapX = x
+    if (top.x < m.screenW) minGapOnScreen = Math.min(minGapOnScreen, gap)
   }
-  /* 早段就从 0 起势（不是前半程不动、后半程猛冲） */
-  assert.ok(deckCarryAt(0, m) === 0)
-  assert.ok(deckCarryAt(0.2, m) > 20, `u=0.2 牵连 ${deckCarryAt(0.2, m).toFixed(2)}px 起势太晚`)
-  assert.ok(deckCarryAt(0.4, m) > deckCarryAt(0.2, m) && deckCarryAt(0.6, m) > deckCarryAt(0.4, m))
-  /* 牵连量有上限，且释放后归零（新焦点卡必须回到屏幕正中） */
-  const needMax = deckCarryAt(U_OFF, m)
-  assert.ok(needMax > 0 && needMax < m.cardW * 0.6, `最大牵连 ${needMax.toFixed(1)}px`)
-  assert.equal(deckCarryRelease(1), 0)
+  assert.ok(lastOverlapX > 0.6, `两卡过早分离：最后重叠于 x=${lastOverlapX.toFixed(3)}`)
+  /* 如实记录：顶卡在屏内时确实会出现空隙，最深到 -81px（就是「顶卡快出屏」那段）。
+     本轮接受它，换取「绝不在拖动中往左走」。 */
+  assert.ok(minGapOnScreen < 0 && minGapOnScreen > -85, `屏内最小贴合差 ${minGapOnScreen.toFixed(1)}px`)
+  const maxReach = m.frontX + m.cardW
+  assert.ok(maxReach < m.screenW - 70, `底卡满尺寸居中时的右缘上限 ${maxReach} 距屏宽不足 70px`)
+})
+
+test('第五轮：位移与放大「同时」发生（同相位，不是先位移后放大）', () => {
+  /* depth1 在整层内位置与缩放都严格单调，且推进节奏一致 ——
+     这是「一边被拖着走、一边放大」的量化判据。 */
+  const pts = [0, 0.2, 0.4, 0.6, 0.8, 1].map((v) => {
+    const x = Math.min(v, 1 - 1e-9)
+    return deckPose(1 - x, m, x)
+  })
+  for (let k = 1; k < pts.length; k++) {
+    assert.ok(pts[k].x > pts[k - 1].x, `位置未推进：x=${k}`)
+    assert.ok(pts[k].scale > pts[k - 1].scale, `缩放未推进：x=${k}`)
+  }
+  const totalX = pts[5].x - pts[0].x
+  const totalS = pts[5].scale - pts[0].scale
+  /* 「同时」的严格判据：找出「位移刚好走到 25%」的那个 x，此刻缩放也必须
+     已经走过 ≥20%。如果是「先位移、后放大」，这里会接近 0。 */
+  const frac = (p) => ({ x: (p.x - pts[0].x) / totalX, s: (p.scale - pts[0].scale) / totalS })
+  let syncAt = null
+  for (let i = 1; i <= 400; i++) {
+    const v = (i / 400) * 0.9
+    const p = deckPose(1 - v, m, v)
+    const f = frac(p)
+    if (f.x >= 0.25) {
+      syncAt = { v, f }
+      break
+    }
+  }
+  assert.ok(syncAt, '位移在整层内没走到 25%？')
+  assert.ok(
+    syncAt.f.s >= 0.2,
+    `位移走到 25% 时缩放只走了 ${(syncAt.f.s * 100).toFixed(0)}% → 两者不同步（先位移后放大）`
+  )
+  assert.ok(syncAt.f.x < 0.35, `位移跳太快：${(syncAt.f.x * 100).toFixed(0)}%`)
+  /* 反过来：缩放不许领先位移太多（否则就是「先放大后位移」） */
+  assert.ok(syncAt.f.s - syncAt.f.x < 0.15, `缩放比位移超前 ${((syncAt.f.s - syncAt.f.x) * 100).toFixed(0)}%`)
+
+  // 松手落点：新焦点卡回到屏幕正中、满尺寸
   assert.ok(Math.abs(deckPose(0, m, 1).x - m.frontX) < 1e-3, `松手落点 ${deckPose(0, m, 1).x}`)
   assert.ok(Math.abs(deckPose(0, m, 1).scale - 1) < 1e-6)
-  /* 牵连不许把背景层推出右屏边 */
+
+  // 背景层右缘永不越出屏幕
   let maxRight = -Infinity
   for (let i = 0; i <= 400; i++) {
-    const u = i / 400
-    const x = Math.pow(u, 1 / DECK.TRANS_POW)
-    for (const k of [1, 2, 3]) {
-      const p = deckPose(k - x, m, x)
+    const x = i / 400
+    for (const d of [1, 2, 3]) {
+      const p = deckPose(d - x, m, x)
       maxRight = Math.max(maxRight, p.x + m.cardW * p.scale)
     }
   }
