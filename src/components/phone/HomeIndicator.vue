@@ -52,12 +52,25 @@ function doAction() {
   }
 }
 
-/* 悬停计时器：上滑超过 5% 且停住 0.2s → 激活切换器（Ricky 2026-09-11 三轮）。
-   拖动全程把进度写给 switcherProgress（跟手缩放连续，滑得越远缩得越小），
-   hero 预览在这条路径不启动（避免双重渲染）。 */
+/* 悬停计时器：上滑超过 5% 后【手指停住】→ 激活切换器。
+ *
+ * 历史问题（Ricky 2026-09-12）：旧实现每次 pointermove 都 clearTimeout 重计 0.2s，
+ * 而真实触摸屏上手指永远有 1~2px 微抖 → 计时器几乎永远凑不满 0.2s →
+ * 「停留很久也进不了 Recent」，激活手感极差。
+ * 两处修正：
+ *   ① 4px 容差：位移变化 <4px 视为「停住」，【不重置】计时，让时间继续累积；
+ *   ② 时长 200ms → 120ms（iOS 观感：稍作停顿即进入）。
+ *
+ * 拖动全程把进度写给 switcherProgress（跟手缩放连续，滑得越远缩得越小），
+ * hero 预览在这条路径不启动（避免双重渲染）。 */
+const DWELL_MS = 120
+const DWELL_SLOP = 4 // 手指微抖容差（px）
 let dwellArm = null
+let dwellAnchor = 0
+
 function clearDwellArm() {
   if (dwellArm) { clearTimeout(dwellArm); dwellArm = null }
+  dwellAnchor = 0
 }
 
 const gesture = useSwipeGesture(rootRef, {
@@ -90,15 +103,22 @@ const gesture = useSwipeGesture(rootRef, {
          已截断到 0..1 的 p —— 这样越过满量程（GESTURE_SPAN）之后手指继续上滑，
          卡片还会继续无极变小（Ricky 2026-09-12：上滑越远缩得越小，但不许缩到不见）。
          d 本身带橡皮筋（越界后增速放缓），所以不会失控。 */
-      system.setSwitcherProgress(Math.max(0, (typeof d === 'number' ? d : p * GESTURE_SPAN) / GESTURE_SPAN))
-      // 「悬停」= 手指停住不动：每次移动都重计 0.2s，
-      // 只有 0.2s 无移动才算 dwell（持续快滑绝不会误触发）
-      clearDwellArm()
+      const raw = typeof d === 'number' ? d : p * GESTURE_SPAN
+      system.setSwitcherProgress(Math.max(0, raw / GESTURE_SPAN))
+      /* 「停住」判定：只有位移变化超过 4px 才重新计时（微抖不算动），
+         否则保持计时继续累积 —— 这是「停留一小会儿就能进 Recent」的关键。 */
       if (p >= 0.05 && !system.switcherDwell) {
-        dwellArm = setTimeout(() => {
-          dwellArm = null
-          system.switcherDwell = true
-        }, 200)
+        if (dwellArm === null || Math.abs(raw - dwellAnchor) > DWELL_SLOP) {
+          clearDwellArm()
+          dwellAnchor = raw
+          dwellArm = setTimeout(() => {
+            dwellArm = null
+            system.switcherDwell = true
+          }, DWELL_MS)
+        }
+      } else if (p < 0.05) {
+        // 上滑量不足 → 撤销待激活状态，避免浅滑也被判成停驻
+        clearDwellArm()
       }
     } else {
       snapTo(p) // 无最近任务：保持原 hero 预览
@@ -106,13 +126,13 @@ const gesture = useSwipeGesture(rootRef, {
   },
   onRelease(p, velocity) {
     clearDwellArm()
-    /* 激活条件（2026-09-11 三轮 Ricky 定）：
-     *   上滑 >5% 且悬停 ≥0.2s（switcherDwell 已由计时器置位）→ 打开切换器。
-     *   同时要求松手速度低 —— 否则松手前的协议/生理延迟也会让快甩误触发悬停，
-     *   快甩（|velocity| > 0.4）永远走回桌面，与 iOS 一致。 */
+    /* 激活条件（Ricky 2026-09-12 放宽）：
+     *   上滑 >5% 且停住 ≥120ms（switcherDwell 已由计时器置位）→ 打开切换器。
+     *   速度门槛 0.4 → 0.8（≈208px/s）：带一点点余速的「上滑—停一下」也应当激活，
+     *   但真正的快甩（无停顿，dwell 计时器根本来不及触发）依旧走回桌面，与 iOS 一致。 */
     const canDwellOpen =
       system.switcherDwell &&
-      Math.abs(velocity) <= 0.4 &&
+      Math.abs(velocity) <= 0.8 &&
       system.recentApps.length > 0 &&
       !system.anyOverlayOpen() &&
       system.baseLayer !== 'lock'

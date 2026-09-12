@@ -1,9 +1,13 @@
-/* 弹簧物理：半隐式欧拉积分 + 三档 iOS 预设 */
+/* 弹簧物理：半隐式欧拉积分 + 四档 iOS 预设 */
 
 export const SPRING_PRESETS = {
   'ios-snappy': { stiffness: 500, damping: 38, mass: 1 },
   'ios-bouncy': { stiffness: 320, damping: 28, mass: 1 },
-  'ios-gentle': { stiffness: 180, damping: 24, mass: 1 }
+  'ios-gentle': { stiffness: 180, damping: 24, mass: 1 },
+  /* 堆叠翻卡专用（参考 SoxiaLiSA/StackSwipe：stiffness 80、dampingRatio 1.0）。
+     质量 1 时临界阻尼 = 2√80 ≈ 17.9 → 整卡吸附无过冲、收尾干脆，
+     也不会像 ios-gentle 那样在长位移（跨屏飞出）时拖出尾巴。 */
+  'ios-deck': { stiffness: 80, damping: 17.9, mass: 1 }
 }
 
 /**

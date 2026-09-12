@@ -50,7 +50,7 @@ await page.mouse.up()
 await page.waitForTimeout(900)
 await shot('72-nc-fab')
 const fabCheck = await page.evaluate(() => {
-  const fab = document.querySelector('.nc-clear-fab')
+  const fab = document.querySelector('.nc-clear-fab-slot')
   const cards = [...document.querySelectorAll('.nc-item-wrapper')]
   if (!fab || !cards.length) return null
   return {
