@@ -336,12 +336,36 @@ function initFabPosition() {
   }
 }
 
-// 彩蛋动效：页面加载首次显示控制台时设置齿轮优雅旋转
+// 彩蛋动效：页面加载首次显示及每次回桌面时设置齿轮优雅旋转
 const isEasterEggSpinning = ref(false)
+let easterEggTimer = null
+
+function triggerEasterEggSpin(delay = 180) {
+  if (easterEggTimer) clearTimeout(easterEggTimer)
+  isEasterEggSpinning.value = false
+  easterEggTimer = setTimeout(() => {
+    isEasterEggSpinning.value = true
+  }, delay)
+}
 
 function onEasterEggEnd() {
   isEasterEggSpinning.value = false
 }
+
+// 监听是否回桌面：当回到桌面状态（baseLayer === 'home' 且无全屏覆盖物/切换器）时触发一次动效
+const isAtHome = computed(() => {
+  return system.baseLayer === 'home' &&
+    !system.appSwitcherOpen &&
+    system.overlays?.notificationCenter?.status === 'closed' &&
+    system.overlays?.controlCenter?.status === 'closed' &&
+    system.overlays?.appLibrary?.status === 'closed'
+})
+
+watch(isAtHome, (nowAtHome, prevAtHome) => {
+  if (nowAtHome && !prevAtHome) {
+    triggerEasterEggSpin(220)
+  }
+})
 
 onMounted(() => {
   initFabPosition()
@@ -351,12 +375,11 @@ onMounted(() => {
   document.addEventListener('webkitfullscreenchange', updateFullscreenState)
 
   // 页面加载完成后优雅旋转一次作为彩蛋
-  setTimeout(() => {
-    isEasterEggSpinning.value = true
-  }, 400)
+  triggerEasterEggSpin(400)
 })
 
 onBeforeUnmount(() => {
+  if (easterEggTimer) clearTimeout(easterEggTimer)
   window.removeEventListener('resize', handleWindowResize)
   document.removeEventListener('fullscreenchange', updateFullscreenState)
   document.removeEventListener('webkitfullscreenchange', updateFullscreenState)
@@ -421,6 +444,8 @@ function onFabPointerUp(e) {
 function onFabClick(e) {
   e.stopPropagation()
   if (!hasMoved) {
+    if (easterEggTimer) clearTimeout(easterEggTimer)
+    isEasterEggSpinning.value = false
     toggleModal()
   }
 }
@@ -2128,20 +2153,20 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-/* 原型手机边框纯色微型化（纯黑边框 + 矮胖比例 30x46） */
+/* 原型手机边框纯色微型化（纯色蓝边框 + 矮胖比例 30x46） */
 .mini-proto-phone {
   position: relative;
   width: 30px;
   height: 46px;
   border-radius: 7px;
-  border: 1.8px solid #000000;
-  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14); /* 极细微高透轮廓，防纯黑夜间壁纸融化 */
-  background: #000000;
+  border: 1.8px solid #007AFF;
+  background: #007AFF;
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.18);
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease, border-color 0.2s ease;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* 深灰屏幕区 */
@@ -2193,7 +2218,7 @@ function onToggleFineTune(enabled) {
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
 }
 
-/* 彩蛋动效：首屏加载完成后的优雅旋转动效 */
+/* 彩蛋动效：首屏加载及回桌面时的优雅旋转动效 */
 @keyframes easterEggSpin {
   0% {
     transform: rotate(0deg) scale(0.85);
@@ -2218,12 +2243,12 @@ function onToggleFineTune(enabled) {
 
 /* 控制台打开状态 */
 .fab-btn.is-open .mini-proto-phone {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px #3b82f6;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1.5px rgba(96, 165, 250, 0.5);
 }
 
 .fab-btn.is-open .mini-gear {
-  color: #60a5fa;
+  color: #ffffff;
   transform: rotate(45deg);
 }
 
