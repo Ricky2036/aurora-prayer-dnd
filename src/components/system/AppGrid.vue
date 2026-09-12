@@ -10,6 +10,7 @@ const props = defineProps({
   pageIndex: { type: Number, required: true }, itemIds: { type: Array, default: () => [] },
   items: { type: Object, required: true }, positions: { type: Object, default: () => ({}) },
   folders: { type: Object, default: () => ({}) }, editing: { type: Boolean, default: false },
+  profile: { type: Object, required: true },
   selectedIds: { type: Array, default: () => [] }, draggingId: { type: String, default: null },
   folderTargetId: { type: String, default: null }, removingIds: { type: Array, default: () => [] }
 })
@@ -27,15 +28,21 @@ onUpdated(() => {
       const before = previousRects.get(id), after = el.getBoundingClientRect()
       if (!before) continue
       const x = before.left - after.left, y = before.top - after.top
-      if (Math.abs(x) > .5 || Math.abs(y) > .5) el.animate([{transform:`translate3d(${x}px,${y}px,0)`},{transform:'translate3d(0,0,0)'}],{duration:220,easing:'cubic-bezier(.22,.8,.26,1)'})
+      if (Math.abs(x) > .5 || Math.abs(y) > .5) {
+        const frame = props.positions[id]
+        if (frame) el.animate([
+          {transform:`translate3d(${frame.x + x}px,${frame.y + y}px,0)`},
+          {transform:`translate3d(${frame.x}px,${frame.y}px,0)`}
+        ],{duration:220,easing:'cubic-bezier(.22,.8,.26,1)'})
+      }
     }
   })
 })
 const appFor = (item) => item?.type === 'app' ? getApp(item.appId) : null
 const folderFor = (item) => item?.type === 'folder' ? props.folders[item.folderId] : null
 function itemStyle(id) {
-  const p = props.positions[id] || { row: 0, col: 0, w: 1, h: 1 }
-  return { gridColumn: `${p.col + 1} / span ${p.w}`, gridRow: `${p.row + 1} / span ${p.h}` }
+  const p = props.positions[id] || { x: 0, y: 0, width: props.profile.iconSize, height: props.profile.iconSize }
+  return { width: `${p.width}px`, height: `${p.height}px`, transform: `translate3d(${p.x}px,${p.y}px,0)` }
 }
 function activate(event, id, item) {
   if (props.editing) {
@@ -55,7 +62,7 @@ function activate(event, id, item) {
       @click.capture="activate($event, id, items[id])">
       <ClockWidget v-if="items[id]?.type === 'widget' && items[id].widgetId === 'clock'" />
       <SmartSuggestionWidget v-else-if="items[id]?.type === 'widget'" />
-      <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :enter-delay="120 + index * 28" home-anchor />
+      <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" home-anchor />
       <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" @open="emit('open-folder',items[id].folderId,$event)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
     </div>
@@ -63,10 +70,10 @@ function activate(event, id, item) {
 </template>
 
 <style scoped>
-.app-grid { width:100%; height:100%; padding:calc(var(--safe-top,54px) + 12px) 24px 0; box-sizing:border-box; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); grid-template-rows:65.5px 65.5px repeat(4,79px); column-gap:var(--grid-gap-x,24px); row-gap:20px; align-content:start; }
+.app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
 .app-grid.is-editing { transform:translate3d(0,32px,0) scale(.76); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
-.home-item { position:relative; min-width:0; min-height:79px; display:flex; align-items:flex-start; justify-content:center; transition:transform 220ms cubic-bezier(.22,.8,.26,1),opacity 160ms ease; touch-action:none; }
-.home-item.is-widget { min-height:0; aspect-ratio:1/1; align-self:start; }
+.home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:opacity 160ms ease;touch-action:none;will-change:transform; }
+.home-item.is-widget { min-height:0;aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),
 .home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
 .home-item.is-dragging-source { opacity:.16; }

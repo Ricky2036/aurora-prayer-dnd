@@ -1,9 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getApp } from '../../config/apps'
 import { useHomeStore } from '../../stores/homeStore'
 import { useSystemStore } from '../../stores/systemStore'
-import { moveHomeItem, reflowHomePages, resolveDesktopPage } from '../../utils/homeLayout.js'
+import { layoutHomeOrder, moveHomeItem, resolveDesktopPage } from '../../utils/homeLayout.js'
 import AppGrid from './AppGrid.vue'
 import DockBar from './DockBar.vue'
 import PageIndicator from '../ui/PageIndicator.vue'
@@ -28,7 +28,7 @@ const toast = ref('')
 const removingIds = ref([])
 const displayPages = computed(() => previewPages.value || home.pages)
 const displayPositions = computed(() => previewPages.value
-  ? reflowHomePages(previewPages.value, home.items, home.folders).positions
+  ? layoutHomeOrder(previewPages.value.flat(), home.items, home.folders, home.profile).frames
   : home.positions)
 const stripStyle = computed(() => ({
   transform: `translate3d(calc(${-home.currentPage * 100}% + ${pageDragX.value}px),0,0)`,
@@ -204,7 +204,7 @@ function updatePreview(x, y) {
   if (pointer.folderCandidate) return
   const index = targetIndexAt(x, y)
   const next = moveHomeItem(previewPages.value, dragging.value.id, home.currentPage, index)
-  previewPages.value = reflowHomePages(next, home.items, home.folders).pages
+  previewPages.value = layoutHomeOrder(next.flat(), home.items, home.folders, home.profile).pages
   dragging.value.page = home.currentPage; dragging.value.index = index
   const rect = rootRef.value.getBoundingClientRect()
   const direction = x < rect.left + 34 ? -1 : x > rect.right - 34 ? 1 : 0
@@ -399,14 +399,36 @@ function layoutPresetActive(index) {
   const size = folderSizes[index]
   return Boolean(size && selectedFolder.value.width === size[0] && selectedFolder.value.height === size[1])
 }
-onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimers(); unbindWindow() })
+let resizeObserver = null
+let resizeFrame = null
+function measureViewport() {
+  const root = rootRef.value
+  if (!root) return
+  if (pointer) cleanup(true)
+  const style = getComputedStyle(root)
+  home.setViewport({
+    width: root.offsetWidth,
+    height: root.offsetHeight,
+    safeTop: parseFloat(style.getPropertyValue('--safe-top')) || 54,
+    safeBottom: parseFloat(style.getPropertyValue('--safe-bottom')) || 34
+  })
+}
+onMounted(() => {
+  measureViewport()
+  resizeObserver = new ResizeObserver(() => {
+    cancelAnimationFrame(resizeFrame)
+    resizeFrame = requestAnimationFrame(measureViewport)
+  })
+  resizeObserver.observe(rootRef.value)
+})
+onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimers(); unbindWindow() })
 </script>
 
 <template>
   <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown="onEmptyPointerDown" @dragstart.prevent>
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
-        <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]"
+        <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]" :profile="home.profile"
           :folders="home.folders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :removing-ids="removingIds"
           @item-pointerdown="onItemPointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove" />
       </section>
