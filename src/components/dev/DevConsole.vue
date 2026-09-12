@@ -984,21 +984,14 @@ function onToggleFineTune(enabled) {
       aria-label="打开控制台"
     >
       <div class="fab-inner">
-        <!-- 微型原型机身外框（复刻 PhoneFrame 深黑钛外廓与实体按键） -->
+        <!-- 纯色微型手机（黑色边框 + 矮胖比例 + 深灰屏幕） -->
         <div class="mini-proto-phone">
-          <!-- 侧边实体金属按键：动作键、音量+、音量-、侧边电源键、相机控制键 -->
-          <div class="mini-side-key mini-key-action"></div>
-          <div class="mini-side-key mini-key-vol-up"></div>
-          <div class="mini-side-key mini-key-vol-down"></div>
-          <div class="mini-side-key mini-key-power"></div>
-          <div class="mini-side-key mini-key-camera"></div>
-
-          <!-- 纯黑屏幕区 -->
+          <!-- 深灰屏幕区 -->
           <div class="mini-screen">
-            <!-- 顶部微孔灵动岛 -->
+            <!-- 顶部黑色听筒微孔 -->
             <div class="mini-island"></div>
 
-            <!-- 居中白色面性设置齿轮图标（首屏加载优雅旋转彩蛋） -->
+            <!-- 居中 80% 不透明度白色面性设置齿轮（首屏加载优雅旋转彩蛋） -->
             <div
               class="mini-gear"
               :class="{ 'easter-egg-spin': isEasterEggSpinning }"
@@ -2135,62 +2128,45 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-/* 原型手机边框微型化（深黑钛机身 + CNC微倒角高光） */
+/* 原型手机边框纯色微型化（纯黑边框 + 矮胖比例 30x46） */
 .mini-proto-phone {
   position: relative;
-  width: 27px;
-  height: 53px;
-  border-radius: 6.5px;
-  background: #2a2d36;
+  width: 30px;
+  height: 46px;
+  border-radius: 7px;
+  border: 1.8px solid #000000;
+  box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.14); /* 极细微高透轮廓，防纯黑夜间壁纸融化 */
+  background: #000000;
   box-sizing: border-box;
-  padding: 1.5px;
-  box-shadow: 
-    0 0 0 0.8px #525866,
-    0 0 0 1.2px #181a20,
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35);
   display: flex;
-  flex-direction: column;
-  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, border-color 0.2s ease;
 }
 
-/* 侧边微型实体金属按键 */
-.mini-side-key {
-  position: absolute;
-  background: #5a6170;
-  box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.6);
-  border-radius: 0.5px;
-  pointer-events: none;
-}
-.mini-key-action { left: -1.2px; top: 7.5px; width: 1.2px; height: 3px; }
-.mini-key-vol-up { left: -1.2px; top: 13.5px; width: 1.2px; height: 5px; }
-.mini-key-vol-down { left: -1.2px; top: 20.5px; width: 1.2px; height: 5px; }
-.mini-key-power { right: -1.2px; top: 13.5px; width: 1.2px; height: 6.8px; }
-.mini-key-camera { right: -1.2px; top: 24.5px; width: 1.2px; height: 4.2px; }
-
-/* 纯黑屏幕 */
+/* 深灰屏幕区 */
 .mini-screen {
   position: relative;
   width: 100%;
   height: 100%;
   border-radius: 5px;
-  background: #000000;
+  background: #262a34; /* 高级冷调深灰 */
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
 }
 
-/* 顶部灵动岛微孔 */
+/* 顶部听筒微孔 */
 .mini-island {
   position: absolute;
   top: 2px;
   left: 50%;
   transform: translateX(-50%);
   width: 6px;
-  height: 1.6px;
-  border-radius: 0.8px;
-  background: #000;
-  box-shadow: 0 0 0 0.5px #181a20;
+  height: 1.5px;
+  border-radius: 0.75px;
+  background: #000000;
   z-index: 2;
 }
 
@@ -2203,16 +2179,16 @@ function onToggleFineTune(enabled) {
   width: 7.5px;
   height: 0.8px;
   border-radius: 0.4px;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.35);
   z-index: 2;
 }
 
-/* 白色面性齿轮图标 */
+/* 白色面性齿轮图标（80% 不透明度，柔和护眼） */
 .mini-gear {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: rgba(255, 255, 255, 0.8);
   z-index: 1;
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
 }
@@ -2221,18 +2197,18 @@ function onToggleFineTune(enabled) {
 @keyframes easterEggSpin {
   0% {
     transform: rotate(0deg) scale(0.85);
-    opacity: 0.8;
+    opacity: 0.65;
   }
   45% {
     transform: rotate(220deg) scale(1.12);
-    opacity: 1;
+    opacity: 0.95;
   }
   75% {
     transform: rotate(380deg) scale(0.98);
   }
   100% {
     transform: rotate(360deg) scale(1);
-    opacity: 1;
+    opacity: 0.8;
   }
 }
 
@@ -2242,10 +2218,8 @@ function onToggleFineTune(enabled) {
 
 /* 控制台打开状态 */
 .fab-btn.is-open .mini-proto-phone {
-  box-shadow: 
-    0 0 0 0.8px #60a5fa,
-    0 0 0 1.5px rgba(96, 165, 250, 0.5),
-    inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
 }
 
 .fab-btn.is-open .mini-gear {
