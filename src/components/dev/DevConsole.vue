@@ -336,12 +336,24 @@ function initFabPosition() {
   }
 }
 
+// 彩蛋动效：页面加载首次显示控制台时设置齿轮优雅旋转
+const isEasterEggSpinning = ref(false)
+
+function onEasterEggEnd() {
+  isEasterEggSpinning.value = false
+}
+
 onMounted(() => {
   initFabPosition()
   updateFullscreenState()
   window.addEventListener('resize', handleWindowResize)
   document.addEventListener('fullscreenchange', updateFullscreenState)
   document.addEventListener('webkitfullscreenchange', updateFullscreenState)
+
+  // 页面加载完成后优雅旋转一次作为彩蛋
+  setTimeout(() => {
+    isEasterEggSpinning.value = true
+  }, 400)
 })
 
 onBeforeUnmount(() => {
@@ -972,12 +984,34 @@ function onToggleFineTune(enabled) {
       aria-label="打开控制台"
     >
       <div class="fab-inner">
-        <div class="fab-phone">
-          <div class="fab-notch"></div>
-          <div class="fab-gear">
-            <LIcon name="headerSettings" :size="16" />
+        <!-- 微型原型机身外框（复刻 PhoneFrame 深黑钛外廓与实体按键） -->
+        <div class="mini-proto-phone">
+          <!-- 侧边实体金属按键：动作键、音量+、音量-、侧边电源键、相机控制键 -->
+          <div class="mini-side-key mini-key-action"></div>
+          <div class="mini-side-key mini-key-vol-up"></div>
+          <div class="mini-side-key mini-key-vol-down"></div>
+          <div class="mini-side-key mini-key-power"></div>
+          <div class="mini-side-key mini-key-camera"></div>
+
+          <!-- 纯黑屏幕区 -->
+          <div class="mini-screen">
+            <!-- 顶部微孔灵动岛 -->
+            <div class="mini-island"></div>
+
+            <!-- 居中白色面性设置齿轮图标（首屏加载优雅旋转彩蛋） -->
+            <div
+              class="mini-gear"
+              :class="{ 'easter-egg-spin': isEasterEggSpinning }"
+              @animationend="onEasterEggEnd"
+            >
+              <svg width="15" height="15" viewBox="0 0.5 24 24" fill="currentColor">
+                <path d="M13.0547 1.83594C13.3984 1.83594 13.6953 1.94531 13.9453 2.16406C14.1953 2.38281 14.3438 2.64844 14.3906 2.96094V3.03125L14.5312 4.55469C14.7656 4.63281 14.9844 4.71875 15.1875 4.8125C15.4062 4.89063 15.6172 4.98438 15.8203 5.09375L16.9922 4.10938C17.2578 3.89062 17.5625 3.79687 17.9062 3.82812C18.25 3.84375 18.5469 3.96875 18.7969 4.20312L20.2969 5.70312C20.5312 5.9375 20.6562 6.21875 20.6719 6.54688C20.7031 6.875 20.6172 7.17187 20.4141 7.4375L20.3906 7.50781L19.4062 8.67969C19.5156 8.88281 19.6094 9.09375 19.6875 9.3125C19.7812 9.51562 19.8672 9.72656 19.9453 9.94531L21.4688 10.1094C21.8125 10.1406 22.0938 10.2891 22.3125 10.5547C22.5469 10.8047 22.6641 11.1016 22.6641 11.4453V13.5547C22.6641 13.8984 22.5469 14.2031 22.3125 14.4688C22.0938 14.7188 21.8125 14.8594 21.4688 14.8906L19.9453 15.0312C19.8672 15.2656 19.7812 15.4922 19.6875 15.7109C19.6094 15.9141 19.5156 16.1172 19.4062 16.3203L20.3906 17.4922C20.6094 17.7578 20.7031 18.0625 20.6719 18.4062C20.6562 18.75 20.5312 19.0469 20.2969 19.2969L18.7969 20.7969C18.5469 21.0312 18.25 21.1641 17.9062 21.1953C17.5625 21.2109 17.2578 21.1094 16.9922 20.8906L15.8203 19.9062C15.6172 20.0156 15.4062 20.1172 15.1875 20.2109C14.9844 20.2891 14.7656 20.3672 14.5312 20.4453L14.3906 21.9688C14.3594 22.3125 14.2109 22.6016 13.9453 22.8359C13.6953 23.0547 13.3984 23.1641 13.0547 23.1641H10.9453C10.6016 23.1641 10.2969 23.0547 10.0312 22.8359C9.78125 22.6016 9.64062 22.3125 9.60938 21.9688L9.44531 20.4453C9.22656 20.3672 9.00781 20.2891 8.78906 20.2109C8.58594 20.1172 8.38281 20.0156 8.17969 19.9062L7.00781 20.8906C6.74219 21.1094 6.4375 21.2109 6.09375 21.1953C5.75 21.1641 5.45312 21.0312 5.20312 20.7969L3.70312 19.2969C3.46875 19.0469 3.33594 18.75 3.30469 18.4062C3.28906 18.0625 3.39062 17.7578 3.60938 17.4922L4.59375 16.3203C4.48438 16.1172 4.38281 15.9141 4.28906 15.7109C4.21094 15.4922 4.13281 15.2656 4.05469 15.0312L2.53125 14.8906C2.1875 14.8594 1.89844 14.7188 1.66406 14.4688C1.44531 14.2031 1.33594 13.8984 1.33594 13.5547V11.4453V11.375C1.35156 11.0469 1.46875 10.7656 1.6875 10.5312C1.92188 10.2812 2.20312 10.1406 2.53125 10.1094L4.05469 9.94531C4.13281 9.72656 4.21094 9.51562 4.28906 9.3125C4.38281 9.09375 4.48438 8.88281 4.59375 8.67969L3.60938 7.50781C3.39062 7.24219 3.28906 6.9375 3.30469 6.59375C3.33594 6.25 3.46875 5.95312 3.70312 5.70312L5.20312 4.20312L5.25 4.15625C5.5 3.9375 5.78906 3.82812 6.11719 3.82812C6.44531 3.8125 6.74219 3.90625 7.00781 4.10938L8.17969 5.09375C8.38281 4.98438 8.58594 4.89063 8.78906 4.8125C9.00781 4.71875 9.22656 4.63281 9.44531 4.55469L9.60938 3.03125V2.96094C9.65625 2.64844 9.80469 2.38281 10.0547 2.16406C10.3047 1.94531 10.6016 1.83594 10.9453 1.83594H13.0547ZM12 9.5C11.1719 9.5 10.4609 9.79688 9.86719 10.3906C9.28906 10.9688 9 11.6719 9 12.5C9 13.3281 9.28906 14.0391 9.86719 14.6328C10.4609 15.2109 11.1719 15.5 12 15.5C12.8281 15.5 13.5312 15.2109 14.1094 14.6328C14.7031 14.0391 15 13.3281 15 12.5C15 11.6719 14.7031 10.9688 14.1094 10.3906C13.5312 9.79688 12.8281 9.5 12 9.5Z" />
+              </svg>
+            </div>
+
+            <!-- 底部 Home Indicator 触控条 -->
+            <div class="mini-home-bar"></div>
           </div>
-          <div class="fab-bar"></div>
         </div>
       </div>
     </div>
@@ -2065,10 +2099,11 @@ function onToggleFineTune(enabled) {
   top: 0;
   left: 0;
   width: 44px;
-  height: 56px;
+  height: 60px;
   background: transparent;
   border: none;
   box-shadow: none;
+  filter: none; /* 去除阴影，质感纯粹通透 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2078,24 +2113,19 @@ function onToggleFineTune(enabled) {
   user-select: none;
   -webkit-user-select: none;
   will-change: transform;
-  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.5)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
 }
 
 .fab-btn:active {
   cursor: grabbing;
 }
 
-.fab-btn:active .fab-phone {
+.fab-btn:active .mini-proto-phone {
   transform: scale(0.92);
 }
 
 .fab-btn.is-snapping {
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.fab-btn.is-open {
-  filter: drop-shadow(0 0 14px rgba(96, 165, 250, 0.75)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
 }
 
 .fab-inner {
@@ -2105,66 +2135,120 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-.fab-phone {
+/* 原型手机边框微型化（深黑钛机身 + CNC微倒角高光） */
+.mini-proto-phone {
   position: relative;
-  width: 28px;
-  height: 48px;
-  border: 1.2px solid rgba(255, 255, 255, 0.92);
-  border-radius: 6px;
-  background: rgba(15, 18, 24, 0.42);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  width: 27px;
+  height: 53px;
+  border-radius: 6.5px;
+  background: #2a2d36;
+  box-sizing: border-box;
+  padding: 1.5px;
+  box-shadow: 
+    0 0 0 0.8px #525866,
+    0 0 0 1.2px #181a20,
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* 侧边微型实体金属按键 */
+.mini-side-key {
+  position: absolute;
+  background: #5a6170;
+  box-shadow: inset 0 0.5px 0.5px rgba(255, 255, 255, 0.6);
+  border-radius: 0.5px;
+  pointer-events: none;
+}
+.mini-key-action { left: -1.2px; top: 7.5px; width: 1.2px; height: 3px; }
+.mini-key-vol-up { left: -1.2px; top: 13.5px; width: 1.2px; height: 5px; }
+.mini-key-vol-down { left: -1.2px; top: 20.5px; width: 1.2px; height: 5px; }
+.mini-key-power { right: -1.2px; top: 13.5px; width: 1.2px; height: 6.8px; }
+.mini-key-camera { right: -1.2px; top: 24.5px; width: 1.2px; height: 4.2px; }
+
+/* 纯黑屏幕 */
+.mini-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 5px;
+  background: #000000;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
-  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.15);
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  overflow: hidden;
 }
 
-.fab-notch {
+/* 顶部灵动岛微孔 */
+.mini-island {
   position: absolute;
-  top: 3.5px;
+  top: 2px;
   left: 50%;
   transform: translateX(-50%);
   width: 6px;
-  height: 1px;
-  border-radius: 0.5px;
-  background: rgba(255, 255, 255, 0.85);
-  transition: background 0.2s ease;
+  height: 1.6px;
+  border-radius: 0.8px;
+  background: #000;
+  box-shadow: 0 0 0 0.5px #181a20;
+  z-index: 2;
 }
 
-.fab-gear {
+/* 底部 Home 触控横条 */
+.mini-home-bar {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7.5px;
+  height: 0.8px;
+  border-radius: 0.4px;
+  background: rgba(255, 255, 255, 0.5);
+  z-index: 2;
+}
+
+/* 白色面性齿轮图标 */
+.mini-gear {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.95);
+  color: #ffffff;
+  z-index: 1;
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
 }
 
-.fab-bar {
-  position: absolute;
-  bottom: 3.5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8px;
-  height: 1px;
-  border-radius: 0.5px;
-  background: rgba(255, 255, 255, 0.75);
-  transition: background 0.2s ease;
+/* 彩蛋动效：首屏加载完成后的优雅旋转动效 */
+@keyframes easterEggSpin {
+  0% {
+    transform: rotate(0deg) scale(0.85);
+    opacity: 0.8;
+  }
+  45% {
+    transform: rotate(220deg) scale(1.12);
+    opacity: 1;
+  }
+  75% {
+    transform: rotate(380deg) scale(0.98);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 1;
+  }
 }
 
-.fab-btn.is-open .fab-phone {
-  border-color: #60a5fa;
-  background: rgba(30, 58, 138, 0.45);
+.mini-gear.easter-egg-spin {
+  animation: easterEggSpin 1.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.fab-btn.is-open .fab-notch,
-.fab-btn.is-open .fab-bar {
-  background: #93c5fd;
+/* 控制台打开状态 */
+.fab-btn.is-open .mini-proto-phone {
+  box-shadow: 
+    0 0 0 0.8px #60a5fa,
+    0 0 0 1.5px rgba(96, 165, 250, 0.5),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.5);
 }
 
-.fab-btn.is-open .fab-gear {
+.fab-btn.is-open .mini-gear {
   color: #60a5fa;
   transform: rotate(45deg);
 }
