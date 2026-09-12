@@ -77,5 +77,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Miniature prototype phone frame FAB: dark titanium bezel, 5 side keys, pure black screen, white solid gear, no shadow, and easter egg spin | `antigravity/lane` | None (locks released) | `b565ddf` | `79f2340` |
 | Merged | Antigravity | Simplify mobile FAB: solid black border, deep grey screen, 80% opacity white gear, and squat proportion | `antigravity/lane` | None (locks released) | `79f2340` | `197dfb1` |
 | Active | Codex | Correct desktop application names | `codex/lane` | `src/config/apps.js`; necessary application-name tests | `656a293` | — |
+| Active | Antigravity | Trigger mobile FAB gear spin on returning to desktop & change phone border to blue | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `0be1bcb` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
