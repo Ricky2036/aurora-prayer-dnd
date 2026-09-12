@@ -73,6 +73,8 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | DevConsole record button unhighlight default style and text refinement | `antigravity/lane` | None (locks released) | `8cecb67` | `37682ee` |
 | Merged | Antigravity | Premium natural titanium phone frame redesign with ultra-thin bezel, 50px radius, and authentic buttons | `antigravity/lane` | None (locks released) | `07e85f4` | `f2adc92` |
 | Merged | Antigravity | Pixel-perfect titanium phone frame and bezel proportions matching reference design | `antigravity/lane` | None (locks released) | `1e2de26` | `59fe8f6` |
+| Active | Antigravity | Black titanium phone frame redesign matching dark titanium reference | `antigravity/lane` | `src/components/phone/PhoneFrame.vue`; `tests/phoneFrame.test.js` | `4c52b39` | — |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
+
 
