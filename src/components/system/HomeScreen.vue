@@ -1,9 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getApp } from '../../config/apps'
 import { useHomeStore } from '../../stores/homeStore'
 import { useSystemStore } from '../../stores/systemStore'
-import { moveHomeItem, reflowHomePages, resolveDesktopPage } from '../../utils/homeLayout.js'
+import { globalRankForPageIndex, insertionIndexAtPoint, layoutHomeOrder, moveHomeOrderItem, resolveDesktopPage } from '../../utils/homeLayout.js'
 import AppGrid from './AppGrid.vue'
 import DockBar from './DockBar.vue'
 import PageIndicator from '../ui/PageIndicator.vue'
@@ -14,7 +14,7 @@ const emit = defineEmits(['open-library'])
 const system = useSystemStore()
 const home = useHomeStore()
 const rootRef = ref(null)
-const previewPages = ref(null)
+const previewOrder = ref(null)
 const pageDragX = ref(0)
 const showPageDots = ref(false)
 const dragging = ref(null)
@@ -26,10 +26,9 @@ const dockTargetIndex = ref(null)
 const pendingRemoval = ref([])
 const toast = ref('')
 const removingIds = ref([])
-const displayPages = computed(() => previewPages.value || home.pages)
-const displayPositions = computed(() => previewPages.value
-  ? reflowHomePages(previewPages.value, home.items, home.folders).positions
-  : home.positions)
+const previewLayout = computed(() => previewOrder.value ? layoutHomeOrder(previewOrder.value, home.items, home.folders, home.profile) : null)
+const displayPages = computed(() => previewLayout.value?.pages || home.pages)
+const displayPositions = computed(() => previewLayout.value?.frames || home.positions)
 const stripStyle = computed(() => ({
   transform: `translate3d(calc(${-home.currentPage * 100}% + ${pageDragX.value}px),0,0)`,
   transition: pageDragX.value || dragging.value ? 'none' : 'transform 420ms cubic-bezier(.22,.8,.26,1)'
@@ -37,6 +36,7 @@ const stripStyle = computed(() => ({
 const homeStyle = computed(() => system.unlockProgress <= 0 ? {} : ({
   transform: `scale(${1.12 - system.unlockProgress * .12})`, opacity: .3 + system.unlockProgress * .7
 }))
+const indicatorStyle = computed(() => ({ bottom: home.editing ? '194px' : `${home.profile.height - home.profile.indicatorY - 4}px` }))
 const ghostApp = computed(() => {
   const item = ghost.value && home.items[ghost.value.id]
   return item?.type === 'app' ? getApp(item.appId) : null
@@ -45,6 +45,9 @@ const ghostApp = computed(() => {
 const justUnlocked = ref(false)
 let unlockTimer = null
 let pageIndicatorTimer = null
+let wheelResetTimer = null
+let wheelDeltaX = 0
+let wheelLocked = false
 watch(() => system.baseLayer, (layer, previous) => {
   if (layer === 'home' && previous === 'lock') {
     justUnlocked.value = true
@@ -69,6 +72,24 @@ function restoreSearchAfterPaging() {
     showPageDots.value = false
     pageIndicatorTimer = null
   }, 5000)
+}
+function onWheel(event) {
+  if (home.editing || openFolderId.value || Math.abs(event.deltaX) <= Math.abs(event.deltaY) || Math.abs(event.deltaX) < 2) return
+  event.preventDefault()
+  if (wheelLocked) return
+  wheelDeltaX += event.deltaX
+  clearTimeout(wheelResetTimer)
+  wheelResetTimer = setTimeout(() => { wheelDeltaX = 0 }, 140)
+  if (Math.abs(wheelDeltaX) < 42) return
+  const direction = wheelDeltaX > 0 ? 1 : -1
+  wheelDeltaX = 0
+  wheelLocked = true
+  setTimeout(() => { wheelLocked = false }, 420)
+  revealPageDots()
+  const requested = home.currentPage + direction
+  if (requested >= home.pageCount) emit('open-library')
+  else home.setPage(Math.max(0, requested))
+  restoreSearchAfterPaging()
 }
 function bindWindow() {
   window.addEventListener('pointermove', onPointerMove, { passive: false })
@@ -137,7 +158,7 @@ function startItemDrag(x, y) {
     try { pointer.captureTarget.setPointerCapture?.(pointer.id); pointer.captureEl = pointer.captureTarget } catch {}
   }
   pointer.mode = 'item-drag'
-  previewPages.value = home.pages.map((page) => [...page])
+  previewOrder.value = [...home.order]
   dragging.value = { id:pointer.itemId, page:pointer.page, index:pointer.index }
   pointer.didMove = false
   setGhostPosition(pointer.itemId, x, y)
@@ -169,42 +190,24 @@ function trackDockTarget(x, y) {
 function targetIndexAt(x, y) {
   const grid = rootRef.value.querySelector(`[data-page="${home.currentPage}"]`)
   const rect = grid?.getBoundingClientRect()
-  if (!grid || !rect?.width || !rect?.height) return previewPages.value[home.currentPage].length
-  const style = getComputedStyle(grid)
+  const page = displayPages.value[home.currentPage] || []
+  if (!grid || !rect?.width || !rect?.height) return page.length
   const scaleX = rect.width / grid.offsetWidth
   const scaleY = rect.height / grid.offsetHeight
-  const paddingLeft = parseFloat(style.paddingLeft) || 0
-  const paddingTop = parseFloat(style.paddingTop) || 0
-  const columnGap = parseFloat(style.columnGap) || 0
-  const rowGap = parseFloat(style.rowGap) || 0
-  const innerWidth = grid.offsetWidth - paddingLeft - (parseFloat(style.paddingRight) || 0)
-  const columnWidth = (innerWidth - columnGap * 3) / 4
-  const localX = (x - rect.left) / scaleX - paddingLeft
+  const localX = (x - rect.left) / scaleX
   const localY = (y - rect.top) / scaleY
-  const col = Math.max(0, Math.min(3, Math.floor((localX + columnGap / 2) / (columnWidth + columnGap))))
-  const rowHeights = style.gridTemplateRows.split(' ').map(parseFloat).filter(Number.isFinite)
-  const rowCenters = []
-  let rowTop = paddingTop
-  for (const height of rowHeights) {
-    rowCenters.push(rowTop + height / 2)
-    rowTop += height + rowGap
-  }
-  let row = 0
-  for (let index = 1; index < rowCenters.length; index += 1) {
-    if (Math.abs(localY - rowCenters[index]) < Math.abs(localY - rowCenters[row])) row = index
-  }
-  return Math.max(0, Math.min(row * 4 + col, previewPages.value[home.currentPage].length))
+  return insertionIndexAtPoint(page, displayPositions.value[home.currentPage], localX, localY)
 }
 function updatePreview(x, y) {
-  if (!dragging.value || !previewPages.value) return
+  if (!dragging.value || !previewOrder.value) return
   trackDockTarget(x, y)
   if (dockTargetIndex.value != null) return
   trackFolderTarget(x, y)
   // 命中文件夹候选时保持原网格不动，让 420ms 停留计时不会因实时让位而丢失目标。
   if (pointer.folderCandidate) return
   const index = targetIndexAt(x, y)
-  const next = moveHomeItem(previewPages.value, dragging.value.id, home.currentPage, index)
-  previewPages.value = reflowHomePages(next, home.items, home.folders).pages
+  const rank = globalRankForPageIndex(displayPages.value, home.currentPage, index)
+  previewOrder.value = moveHomeOrderItem(previewOrder.value, dragging.value.id, rank)
   dragging.value.page = home.currentPage; dragging.value.index = index
   const rect = rootRef.value.getBoundingClientRect()
   const direction = x < rect.left + 34 ? -1 : x > rect.right - 34 ? 1 : 0
@@ -215,11 +218,10 @@ function updatePreview(x, y) {
     if (!dragging.value) return
     const requested = home.currentPage + direction
     if (requested < 0) return
-    if (requested >= previewPages.value.length) previewPages.value.push([])
     revealPageDots()
-    home.currentPage = Math.min(requested, previewPages.value.length - 1)
+    home.currentPage = Math.min(requested, displayPages.value.length - 1)
     dragging.value.page = home.currentPage
-    dragging.value.index = previewPages.value[home.currentPage].length
+    dragging.value.index = displayPages.value[home.currentPage].length
     updatePreview(x, y)
   }, 400)
 }
@@ -255,7 +257,7 @@ function onPointerMove(event) {
 }
 function finishItem(cancelled) {
   if (!pointer.didMove) {
-    previewPages.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null
+    previewOrder.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null
     return
   }
   if (!cancelled && dragging.value && dockTargetIndex.value != null) {
@@ -270,7 +272,7 @@ function finishItem(cancelled) {
   } else if (!cancelled && dragging.value && pointer.sourceDock) {
     home.moveFromDock(dragging.value.id,dragging.value.page,dragging.value.index)
   } else if (!cancelled && dragging.value) home.moveItem(dragging.value.id, dragging.value.page, dragging.value.index)
-  previewPages.value = null; dragging.value = null; ghost.value = null
+  previewOrder.value = null; dragging.value = null; ghost.value = null
   folderTargetId.value = null
   dockTargetIndex.value = null
   if (cancelled) home.currentPage = Math.min(pointer.startPage,home.pages.length - 1)
@@ -399,14 +401,36 @@ function layoutPresetActive(index) {
   const size = folderSizes[index]
   return Boolean(size && selectedFolder.value.width === size[0] && selectedFolder.value.height === size[1])
 }
-onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimers(); unbindWindow() })
+let resizeObserver = null
+let resizeFrame = null
+function measureViewport() {
+  const root = rootRef.value
+  if (!root) return
+  if (pointer) cleanup(true)
+  const style = getComputedStyle(root)
+  home.setViewport({
+    width: root.offsetWidth,
+    height: root.offsetHeight,
+    safeTop: parseFloat(style.getPropertyValue('--safe-top')) || 54,
+    safeBottom: parseFloat(style.getPropertyValue('--safe-bottom')) || 34
+  })
+}
+onMounted(() => {
+  measureViewport()
+  resizeObserver = new ResizeObserver(() => {
+    cancelAnimationFrame(resizeFrame)
+    resizeFrame = requestAnimationFrame(measureViewport)
+  })
+  resizeObserver.observe(rootRef.value)
+})
+onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimeout(wheelResetTimer); clearTimers(); unbindWindow() })
 </script>
 
 <template>
-  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown="onEmptyPointerDown" @dragstart.prevent>
+  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown="onEmptyPointerDown" @wheel="onWheel" @dragstart.prevent>
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
-        <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]"
+        <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]" :profile="home.profile"
           :folders="home.folders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :removing-ids="removingIds"
           @item-pointerdown="onItemPointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove" />
       </section>
@@ -425,8 +449,8 @@ onBeforeUnmount(() => { clearTimeout(unlockTimer); clearTimeout(pageIndicatorTim
         <span>卸载</span>
       </button>
     </div>
-    <div class="indicator-wrap"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
-    <DockBar v-if="!home.editing" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
+    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
+    <DockBar v-if="!home.editing" :profile="home.profile" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
     <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin"
       @close="openFolderId=null" @rename="home.renameFolder(openFolderId,$event)" @app-pointerdown="onFolderAppPointerDown" />

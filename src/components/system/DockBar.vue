@@ -4,7 +4,7 @@ import { getApp } from '../../config/apps'
 import { useHomeStore } from '../../stores/homeStore'
 import AppIcon from '../ui/AppIcon.vue'
 
-const props = defineProps({ draggingId:{type:String,default:null}, dockTargetIndex:{type:Number,default:null}, removingIds:{type:Array,default:()=>[]} })
+const props = defineProps({ profile:{type:Object,required:true}, draggingId:{type:String,default:null}, dockTargetIndex:{type:Number,default:null}, removingIds:{type:Array,default:()=>[]} })
 const emit = defineEmits(['item-pointerdown','toggle-select','request-remove'])
 const home = useHomeStore()
 const selected = computed(() => new Set(home.selectedItemIds))
@@ -15,12 +15,12 @@ function activate(event,id) {
 </script>
 
 <template>
-  <div class="dock-bar" :class="{ 'has-target':dockTargetIndex != null }">
+  <div class="dock-bar" :class="{ 'has-target':dockTargetIndex != null }" :style="{height:`${profile.dockRect.height}px`,bottom:`${profile.height-profile.dockRect.bottom}px`}">
     <div v-for="(id,index) in home.dock" :key="id" class="dock-item"
       :class="{ 'is-editing':home.editing, 'is-selected':selected.has(id), 'is-dragging-source':draggingId === id, 'is-drop-target':dockTargetIndex === index, 'is-removing':removingIds.includes(id) }"
       :data-dock-item="id" :data-dock-index="index"
       @pointerdown="emit('item-pointerdown',$event,id,index)" @click.capture="activate($event,id)">
-      <AppIcon :app="getApp(home.items[id]?.appId)" :show-label="false" :enter-delay="260 + index * 40" home-anchor />
+      <AppIcon :app="getApp(home.items[id]?.appId)" :size="profile.iconSize" :show-label="false" :enter-delay="260 + index * 40" home-anchor />
       <button v-if="home.editing" class="remove-badge" type="button" aria-label="移除应用" @click.stop="emit('request-remove',id)">−</button>
       <span v-if="home.editing" class="dock-select">{{ selected.has(id) ? '✓' : '' }}</span>
     </div>

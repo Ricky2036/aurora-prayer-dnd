@@ -20,10 +20,14 @@ function close() {
   closing.value = true
   setTimeout(() => emit('close'),320)
 }
+function onOverlayClick(event) {
+  if (event.target.closest('.folder-panel-app,.folder-title')) return
+  close()
+}
 </script>
 
 <template>
-  <div class="folder-overlay" :class="{ closing }" @click.self="close">
+  <div class="folder-overlay" :class="{ closing }" @pointerdown.stop @click="onOverlayClick">
     <div class="folder-panel" :style="panelStyle">
       <input class="folder-title" :value="folder.name" maxlength="24" aria-label="文件夹名称"
         @change="emit('rename',$event.target.value)" />

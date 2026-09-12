@@ -11,7 +11,8 @@ test('desktop uses pointer events, dwell paging and gesture cancellation cleanup
   assert.match(source, /onWindowBlur/)
   assert.match(source, /setTimeout\(\(\) =>[\s\S]*400/)
   assert.match(source, /resolveDesktopPage/)
-  assert.match(source, /previewPages/)
+  assert.match(source, /previewOrder/)
+  assert.match(source, /insertionIndexAtPoint/)
   assert.match(source, /clientPointToHome/)
   assert.match(source, /root\.offsetWidth \/ rect\.width/)
   assert.match(source, /\.drag-ghost\{position:absolute/)
@@ -29,12 +30,27 @@ test('motion polish includes FLIP, removal animation and reduced-motion support'
   assert.match(dock, /is-removing/)
 })
 
-test('desktop grid preserves square widgets and keeps the following app row close', async () => {
+test('desktop grid renders adaptive pixel frames and preserves square widgets', async () => {
   const grid = await read('../src/components/system/AppGrid.vue')
-  assert.match(grid, /grid-template-rows:65\.5px 65\.5px repeat\(4,79px\)/)
-  assert.match(grid, /row-gap:20px/)
+  assert.match(grid, /position:absolute/)
+  assert.match(grid, /translate3d\(\$\{p\.x\}px,\$\{p\.y\}px,0\)/)
+  assert.match(grid, /profile\.iconSize \* profile\.compactScale/)
   assert.match(grid, /\.home-item\.is-widget \{[^}]*aspect-ratio:1\/1/)
   assert.doesNotMatch(grid, /\.home-item\.is-large \{ align-items:stretch; \}/)
+})
+
+test('desktop observes the unscaled viewport and derives dock and indicator geometry from its profile', async () => {
+  const [home, dock] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/system/DockBar.vue')
+  ])
+  assert.match(home, /new ResizeObserver/)
+  assert.match(home, /root\.offsetWidth/)
+  assert.match(home, /root\.offsetHeight/)
+  assert.match(home, /home\.setViewport/)
+  assert.match(home, /home\.profile\.indicatorY/)
+  assert.match(dock, /profile\.dockRect\.height/)
+  assert.match(dock, /profile\.height-profile\.dockRect\.bottom/)
 })
 
 test('folders expose all four sizes, renaming and app drag-out', async () => {
@@ -98,4 +114,24 @@ test('dock editing, protected uninstall and library filtering are wired to home 
   assert.match(home, /壁纸与个性化：开发中/)
   assert.match(dock, /repeat\(4,1fr\)/)
   assert.match(library, /home\.appInstalled/)
+})
+
+test('folders close from blank glass and render special app icons through AppIcon', async () => {
+  const [overlay, folder] = await Promise.all([
+    read('../src/components/home/HomeFolderOverlay.vue'),
+    read('../src/components/home/HomeFolder.vue')
+  ])
+  assert.match(overlay, /onOverlayClick/)
+  assert.match(overlay, /folder-panel-app,.folder-title/)
+  assert.match(overlay, /@pointerdown\.stop/)
+  assert.doesNotMatch(folder, /getApp\(appId\)\?\.image/)
+  assert.match(folder, /<AppIcon :app="getApp\(appId\)"/)
+})
+
+test('desktop accepts dominant horizontal trackpad wheel gestures for paging', async () => {
+  const source = await read('../src/components/system/HomeScreen.vue')
+  assert.match(source, /function onWheel/)
+  assert.match(source, /Math\.abs\(event\.deltaX\) <= Math\.abs\(event\.deltaY\)/)
+  assert.match(source, /wheelDeltaX/)
+  assert.match(source, /@wheel="onWheel"/)
 })
