@@ -12,9 +12,10 @@ const props = defineProps({
   folders: { type: Object, default: () => ({}) }, editing: { type: Boolean, default: false },
   profile: { type: Object, required: true },
   selectedIds: { type: Array, default: () => [] }, draggingId: { type: String, default: null },
-  folderTargetId: { type: String, default: null }, removingIds: { type: Array, default: () => [] }
+  folderTargetId: { type: String, default: null }, folderCandidateId:{type:String,default:null}, folderCandidateArmed:{type:Boolean,default:false}, mergingFolderItemId:{type:String,default:null}, removingIds: { type: Array, default: () => [] },
+  suppressClickId: { type: String, default: null }, openFolderId: { type: String, default: null }, folderOperationId: { type: String, default: null }
 })
-const emit = defineEmits(['item-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
+const emit = defineEmits(['item-pointerdown', 'folder-resize-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
 const selected = computed(() => new Set(props.selectedIds))
 const removing = computed(() => new Set(props.removingIds))
 const itemElements = new Map()
@@ -42,9 +43,12 @@ const appFor = (item) => item?.type === 'app' ? getApp(item.appId) : null
 const folderFor = (item) => item?.type === 'folder' ? props.folders[item.folderId] : null
 function itemStyle(id) {
   const p = props.positions[id] || { x: 0, y: 0, width: props.profile.iconSize, height: props.profile.iconSize }
-  return { width: `${p.width}px`, height: `${p.height}px`, transform: `translate3d(${p.x}px,${p.y}px,0)` }
+  return { width: `${p.width}px`, height: `${p.height}px`, '--icon-size':`${props.profile.iconSize*props.profile.compactScale}px`, transform: `translate3d(${p.x}px,${p.y}px,0)` }
 }
 function activate(event, id, item) {
+  if (props.suppressClickId === id) {
+    event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); return
+  }
   if (props.editing) {
     event.preventDefault(); event.stopPropagation(); emit('toggle-select', id)
   } else if (item.type === 'folder') {
@@ -56,14 +60,15 @@ function activate(event, id, item) {
 <template>
   <div class="app-grid" :class="{ 'is-editing': editing }" :data-page="pageIndex">
     <div v-for="(id, index) in itemIds" :key="id" :ref="el => setItemRef(id,el)" class="home-item"
-      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-target': folderTargetId === id, 'is-removing': removing.has(id) }"
+      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-candidate': folderCandidateId === id, 'is-folder-armed': folderCandidateArmed && folderCandidateId === id, 'is-folder-target': folderTargetId === id, 'is-folder-open': items[id]?.folderId === openFolderId, 'is-removing': removing.has(id) }"
       :data-home-item="id" :data-page-index="pageIndex" :data-item-index="index" :style="itemStyle(id)"
       @pointerdown="emit('item-pointerdown', $event, id, pageIndex, index)"
       @click.capture="activate($event, id, items[id])">
       <ClockWidget v-if="items[id]?.type === 'widget' && items[id].widgetId === 'clock'" />
       <SmartSuggestionWidget v-else-if="items[id]?.type === 'widget'" />
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" home-anchor />
-      <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" @open="emit('open-folder',items[id].folderId,$event)" />
+      <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" :operation-active="folderOperationId === items[id].folderId" :merging="mergingFolderItemId === id"
+        @open="emit('open-folder',items[id].folderId,$event)" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
     </div>
   </div>
@@ -72,12 +77,14 @@ function activate(event, id, item) {
 <style scoped>
 .app-grid { position:relative;width:100%;height:100%;box-sizing:border-box; }
 .app-grid.is-editing { transform:translate3d(0,32px,0) scale(.76); transform-origin:50% 50%; transition:transform 320ms cubic-bezier(.22,.8,.26,1); }
-.home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:opacity 160ms ease;touch-action:none;will-change:transform; }
+.home-item { position:absolute;left:0;top:0;min-width:0;display:flex;align-items:flex-start;justify-content:center;transition:width 240ms cubic-bezier(.22,.8,.24,1),height 240ms cubic-bezier(.22,.8,.24,1),opacity 160ms ease;touch-action:none;will-change:transform; }
 .home-item.is-widget { min-height:0;aspect-ratio:1/1; }
 .home-item.is-widget :deep(.widget),
 .home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
 .home-item.is-dragging-source { opacity:.16; }
+.home-item.is-folder-open { opacity:0; }
 .home-item.is-folder-target > :not(.selection-mark) { transform:scale(1.1);filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
+.home-item.is-folder-candidate{z-index:3}.home-item.is-folder-candidate::before{content:"";position:absolute;z-index:0;top:-4px;left:50%;width:calc(var(--icon-size) * 1.14);height:calc(var(--icon-size) * 1.14);border-radius:calc(var(--icon-size) * .31);background:rgba(255,255,255,.28);border:1px solid rgba(255,255,255,.34);backdrop-filter:blur(18px) saturate(170%);opacity:1;transform:translateX(-50%) scale(1);animation:folder-candidate-in 140ms cubic-bezier(.22,.8,.24,1) both;box-shadow:inset 0 1px 1px rgba(255,255,255,.34)}.home-item.is-folder-candidate> :not(.selection-mark){position:relative;z-index:1;transition:transform 280ms cubic-bezier(.22,.8,.24,1)}.home-item.is-folder-armed> :not(.selection-mark){transform:scale(.94);filter:drop-shadow(0 0 12px rgba(255,255,255,.58))}@keyframes folder-candidate-in{from{opacity:0;transform:translateX(-50%) scale(.88)}to{opacity:1;transform:translateX(-50%) scale(1)}}
 .home-item.is-removing{opacity:0;transition:opacity 180ms ease}
 .home-item.is-removing > :not(.selection-mark){transform:scale(.2);transition:transform 180ms ease}
 .home-item.is-editing:not(.is-dragging-source) > :not(.selection-mark) { animation:home-wiggle 170ms ease-in-out infinite alternate; }

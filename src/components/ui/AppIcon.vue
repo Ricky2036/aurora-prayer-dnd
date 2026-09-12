@@ -19,8 +19,10 @@ const props = defineProps({
   enterDelay: { type: Number, default: 0 },  // 解锁入场 stagger (ms)
   size: { type: Number, default: 60 },  // tile 边长（默认桌面 60；通知设置内 40）
   ignoreHidden: { type: Boolean, default: false }, // 是否忽略全局隐藏状态（用于过渡动画中的镜像）
-  homeAnchor: { type: Boolean, default: false }
+  homeAnchor: { type: Boolean, default: false },
+  launchOnClick: { type: Boolean, default: true }
 })
+const emit = defineEmits(['activate'])
 
 const home = useHomeStore()
 const notifications = useNotificationsStore()
@@ -55,6 +57,8 @@ const resolvedImage = computed(() => {
 
 function open() {
   if (!anchorRef.value) return
+  emit('activate', anchorRef.value)
+  if (!props.launchOnClick) return
   const screenEl = document.querySelector('.screen-view')
   if (!screenEl) return
   // 无论入口位于桌面、Dock 或资源库，Hero 都优先使用注册的桌面稳定锚点。
@@ -92,10 +96,10 @@ onBeforeUnmount(() => {
         </svg>
 
         <!-- 日历：星期 + 日期 -->
-        <template v-else-if="app.special === 'calendar'">
-          <span class="cal-weekday">{{ weekday }}</span>
-          <span class="cal-date">{{ today.date }}</span>
-        </template>
+        <svg v-else-if="app.special === 'calendar'" class="calendar-face" width="100%" height="100%" viewBox="0 0 60 60" preserveAspectRatio="xMidYMid meet">
+          <text class="calendar-weekday" x="30" y="13" text-anchor="middle" dominant-baseline="middle">{{ weekday }}</text>
+          <text class="calendar-date" x="30" y="37" text-anchor="middle" dominant-baseline="middle">{{ today.date }}</text>
+        </svg>
 
         <!-- 照片：彩色风车 -->
         <svg v-else-if="app.special === 'photos'" width="40" height="40" viewBox="0 0 40 40" :style="{ transform: `scale(${size / 60})` }">
@@ -107,20 +111,19 @@ onBeforeUnmount(() => {
         </svg>
 
         <!-- 时钟：实时指针 -->
-        <svg v-else-if="app.special === 'clock'" width="46" height="46" viewBox="0 0 46 46" :style="{ transform: `scale(${size / 60})` }">
-          <circle cx="23" cy="23" r="21" fill="#1c1c1e"/>
-          <circle cx="23" cy="23" r="19.5" fill="#fff"/>
+        <svg v-else-if="app.special === 'clock'" class="clock-face" width="100%" height="100%" viewBox="0 0 60 60" preserveAspectRatio="xMidYMid meet">
+          <circle cx="30" cy="30" r="21" fill="#fff"/>
           <g stroke="#3a3a3c" stroke-width="1.4">
-            <line v-for="i in 12" :key="i" x1="23" y1="5" x2="23" y2="8"
-              :transform="`rotate(${(i - 1) * 30} 23 23)`" />
+            <line v-for="i in 12" :key="i" x1="30" y1="10" x2="30" y2="13"
+              :transform="`rotate(${(i - 1) * 30} 30 30)`" />
           </g>
-          <line x1="23" y1="23" x2="23" y2="13" stroke="#1c1c1e" stroke-width="3" stroke-linecap="round"
-            :transform="`rotate(${hourDeg} 23 23)`" />
-          <line x1="23" y1="23" x2="23" y2="8" stroke="#1c1c1e" stroke-width="2" stroke-linecap="round"
-            :transform="`rotate(${minuteDeg} 23 23)`" />
-          <line x1="23" y1="25" x2="23" y2="7" stroke="#FF9500" stroke-width="1" stroke-linecap="round"
-            :transform="`rotate(${secondDeg} 23 23)`" />
-          <circle cx="23" cy="23" r="1.6" fill="#1c1c1e"/>
+          <line x1="30" y1="30" x2="30" y2="20" stroke="#1c1c1e" stroke-width="3" stroke-linecap="round"
+            :transform="`rotate(${hourDeg} 30 30)`" />
+          <line x1="30" y1="30" x2="30" y2="15" stroke="#1c1c1e" stroke-width="2" stroke-linecap="round"
+            :transform="`rotate(${minuteDeg} 30 30)`" />
+          <line x1="30" y1="32" x2="30" y2="14" stroke="#FF9500" stroke-width="1" stroke-linecap="round"
+            :transform="`rotate(${secondDeg} 30 30)`" />
+          <circle cx="30" cy="30" r="1.6" fill="#1c1c1e"/>
         </svg>
       </span>
     </span>
@@ -201,18 +204,10 @@ onBeforeUnmount(() => {
 }
 
 /* 日历图标 */
-.tile-calendar { background: linear-gradient(180deg, #ffffff 0%, #f6f6f8 100%); flex-direction: column; gap: 0; }
-.cal-weekday {
-  font: 600 calc(10px * var(--scale, 1))/1 var(--font-stack);
-  color: var(--ios-red);
-  letter-spacing: 0.5px;
-  margin-top: calc(7px * var(--scale, 1));
-}
-.cal-date {
-  font: 300 calc(30px * var(--scale, 1))/1.1 var(--font-stack);
-  color: #1c1c1e;
-  font-variant-numeric: tabular-nums;
-}
+.tile-calendar { background: linear-gradient(180deg, #ffffff 0%, #f6f6f8 100%); }
+.calendar-face,.clock-face{display:block;width:100%;height:100%;transform:none}
+.calendar-weekday{fill:var(--ios-red);font:600 9px var(--font-stack);letter-spacing:.35px}
+.calendar-date{fill:#1c1c1e;font:300 30px var(--font-stack);font-variant-numeric:tabular-nums}
 
 /* 照片图标：iOS 风格白底彩色风车 */
 .tile-photos { background: linear-gradient(180deg, #ffffff 0%, #f2f2f7 100%); }
