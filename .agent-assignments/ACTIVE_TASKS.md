@@ -74,6 +74,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Premium natural titanium phone frame redesign with ultra-thin bezel, 50px radius, and authentic buttons | `antigravity/lane` | None (locks released) | `07e85f4` | `f2adc92` |
 | Merged | Antigravity | Optimize mobile floating console button: remove background, enlarge phone icon, and add settings gear icon | `antigravity/lane` | None (locks released) | `082d100` | `706dad2` |
 | Merged | Antigravity | Refine mobile floating console button: canonical headerSettings icon, perfect flexbox centering, and slender flagship phone frame | `antigravity/lane` | None (locks released) | `706dad2` | `b565ddf` |
+| Merged | Antigravity | Miniature prototype phone frame FAB: dark titanium bezel, 5 side keys, pure black screen, white solid gear, no shadow, and easter egg spin | `antigravity/lane` | None (locks released) | `b565ddf` | `79f2340` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
