@@ -4,6 +4,11 @@ import { createPinia, setActivePinia } from 'pinia'
 import {
   HOME_COLUMNS,
   HOME_ROWS,
+  createHomeGridProfile,
+  globalRankForPageIndex,
+  homeItemMetrics,
+  insertionIndexAtPoint,
+  layoutHomeOrder,
   moveHomeItem,
   packHomePage,
   reflowHomePages,
@@ -30,6 +35,70 @@ function assertNoOverlap(result) {
     }
   }
 }
+
+function assertFramesValid(layout, profile) {
+  for (const pageFrames of Object.values(layout.frames)) {
+    const frames = Object.values(pageFrames)
+    for (const frame of frames) {
+      assert.ok(frame.x >= profile.workspaceRect.left - .01)
+      assert.ok(frame.y >= profile.workspaceRect.top - .01)
+      assert.ok(frame.x + frame.width <= profile.workspaceRect.right + .01)
+      assert.ok(frame.y + frame.height <= profile.workspaceRect.bottom + .01)
+    }
+    for (let i = 0; i < frames.length; i += 1) {
+      for (let j = i + 1; j < frames.length; j += 1) {
+        const a = frames[i], b = frames[j]
+        const overlaps = a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+        assert.equal(overlaps, false, `frames ${i} and ${j} overlap`)
+      }
+    }
+  }
+}
+
+test('builds four-column profiles across supported portrait phone sizes', () => {
+  for (const [width, height] of [[280,568],[320,640],[360,788],[393,852],[412,915],[480,960]]) {
+    const profile = createHomeGridProfile({ width, height })
+    assert.equal(profile.columns, 4)
+    assert.ok(profile.iconSize >= 48 && profile.iconSize <= 60)
+    assert.ok(profile.gapX >= 12 && profile.gapX <= 32)
+    assert.ok(profile.gapY >= 14 && profile.gapY <= 20)
+    assert.ok(profile.workspaceRect.bottom < profile.dockRect.top)
+  }
+})
+
+test('adaptive skyline keeps mixed visual frames in bounds without overlap', () => {
+  const items = {
+    widget: { id:'widget', type:'widget', w:2, h:2 },
+    folder: { id:'folder', type:'folder', folderId:'f', w:2, h:2 },
+    ...Object.fromEntries(Array.from({length:24},(_,i)=>[`app:${i}`,{id:`app:${i}`,type:'app',w:1,h:1}]))
+  }
+  const folders = { f:{ id:'f', width:2, height:2, appIds:[] } }
+  for (const [width,height] of [[280,568],[320,640],[360,788],[393,852],[412,915],[480,960]]) {
+    const profile = createHomeGridProfile({width,height})
+    const layout = layoutHomeOrder(Object.keys(items),items,folders,profile)
+    assertFramesValid(layout,profile)
+    const widget = layout.frames[0].widget
+    assert.equal(Math.round(widget.width),Math.round(widget.height))
+  }
+})
+
+test('short screens create more pages while preserving canonical order', () => {
+  const items = Object.fromEntries(Array.from({length:30},(_,i)=>[`app:${i}`,{id:`app:${i}`,type:'app',w:1,h:1}]))
+  const order = Object.keys(items)
+  const short = layoutHomeOrder(order,items,{},createHomeGridProfile({width:360,height:568}))
+  const tall = layoutHomeOrder(order,items,{},createHomeGridProfile({width:360,height:915}))
+  assert.ok(short.pages.length > tall.pages.length)
+  assert.deepEqual(short.pages.flat(),order)
+  assert.deepEqual(tall.pages.flat(),order)
+})
+
+test('adaptive hit testing maps a page location back to global rank', () => {
+  const items = Object.fromEntries(Array.from({length:20},(_,i)=>[`app:${i}`,{id:`app:${i}`,type:'app',w:1,h:1}]))
+  const layout = layoutHomeOrder(Object.keys(items),items,{},createHomeGridProfile())
+  const first = layout.frames[0]['app:0']
+  const localIndex = insertionIndexAtPoint(layout.pages[0],layout.frames[0],first.x + first.width,first.y + first.height / 2)
+  assert.equal(globalRankForPageIndex(layout.pages,0,localIndex),1)
+})
 
 test('packs mixed app and widget sizes without overlap', () => {
   const items = {
