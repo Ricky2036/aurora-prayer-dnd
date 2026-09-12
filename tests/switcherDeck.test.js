@@ -16,15 +16,17 @@ import {
 // 430 × 932（本项目基准机型）
 const m = deckMetrics(430, 932)
 /** 一次换卡的松手落点（第 1 层恰好成为焦点） */
-const U_OFF = (m.screenW - m.frontX) / m.exit // 顶卡左缘越过屏宽所需进度 ≈ 0.932
+const U_OFF = (m.screenW - m.frontX) / m.exit // 顶卡左缘越过屏宽所需进度 ≈ 1.51（第六轮）
 
 test('几何度量：卡宽 275、焦点层水平居中', () => {
   assert.equal(m.cardW, 275)
   assert.equal(m.cardH, 596)
   assert.equal(m.frontX, 77.5)
   assert.equal(m.radius, 29)
-  assert.equal(m.exit, 378.4)
+  assert.ok(Math.abs(m.exit - 233.92) < 1e-9) // = 屏宽 × 0.544 = 卡宽 × 0.85 = 一张卡的手指行程（第六轮）
   assert.equal(m.span, 233.75) // = 卡宽 × 0.85（对齐参考视频实测 0.87 卡宽/张）
+  /* 第六轮核心契约：离场槽距 ≡ 一次换卡的手指行程 → 离场卡 1:1 跟手 */
+  assert.ok(Math.abs(m.exit - m.span) < 0.5, `exit=${m.exit} span=${m.span}`)
 })
 
 test('修正 A：卡片整体在删除按钮上方居中（图标行 + 卡片作为整体）', () => {
@@ -60,11 +62,13 @@ test('规则④ 阶梯式缩小 + 露出越来越少', () => {
   const exp = [1, 2, 3].map((k) => deckExposure(k, m.cardW))
   // 严格递减，且首层露出明显大于末层
   assert.ok(exp[0] > exp[1] && exp[1] > exp[2], `露出序列 ${exp.join('/')}`)
-  assert.ok(exp[0] > 2.5 * exp[2], `首/末 = ${(exp[0] / exp[2]).toFixed(2)}`)
-  // 露出宽度 33 / 18 / 10（±1px）
-  assert.ok(Math.abs(exp[0] - 33) <= 1, `exp1=${exp[0]}`)
-  assert.ok(Math.abs(exp[1] - 18.15) <= 1.2, `exp2=${exp[1]}`)
-  assert.ok(Math.abs(exp[2] - 9.98) <= 1.2, `exp3=${exp[2]}`)
+  assert.ok(exp[0] > 8 * exp[2], `首/末 = ${(exp[0] / exp[2]).toFixed(2)}`)
+  /* 第六轮：逐帧量测参考视频 → 新来卡每滑一张右移 51~56px（444 屏 / 293 卡宽 = 0.17~0.21）。
+     本项目卡宽 275 → exp1 = stair(1) 应落在 47~57px。旧值 33px 被判「一次只能滑走一张」。 */
+  assert.ok(exp[0] >= 47 && exp[0] <= 57, `exp1=${exp[0]}（期望 52 = 0.19 卡宽）`)
+  assert.ok(Math.abs(exp[0] - 52.25) <= 1, `exp1=${exp[0]}`)
+  assert.ok(Math.abs(exp[1] - 16.72) <= 1.2, `exp2=${exp[1]}`)
+  assert.ok(Math.abs(exp[2] - 5.34) <= 1.2, `exp3=${exp[2]}`)
   // 缩放按层等比递减
   const scales = [0, 1, 2, 3].map((k) => deckPose(k, m, 0).scale)
   for (let k = 1; k < scales.length; k++) assert.ok(scales[k] < scales[k - 1], `scale ${scales}`)
@@ -91,13 +95,17 @@ test('规则① 层级只由索引决定，永不随焦点变化', () => {
   for (let i = 1; i < 4; i++) assert.ok(deckZ(i) < deckZ(i - 1))
 })
 
-test('规则⑤ 最多四层：4 个槽位 + 1 张正在离场的卡，第 5 层起不渲染', () => {
+test('规则⑤ 最多四层：4 个槽位 + 正在离场的卡，第 5 层起不渲染', () => {
   assert.equal(DECK.MAX_DEPTH, 3)
   assert.ok(deckVisible(3), '第 4 层（最深槽位）必须渲染')
   assert.ok(!deckVisible(3.01), '超过第 4 个槽位即剔除')
   assert.ok(!deckVisible(4), '第 5 张在层深 4 处必须剔除')
-  assert.ok(deckVisible(-1), '正在离场的那张要留到完全出屏')
-  assert.ok(!deckVisible(-1.02 - 1e-6))
+  /* 第六轮：离场卡到 a ≈ -1.51 才越过右屏边（frontX + 233.92×1.51 ≈ 431），
+     所以剔除界从 -1.02 放宽到 -1.56，保证出屏全程有 DOM 可画。 */
+  assert.ok(deckVisible(-1), '刚换出去的那张要留在屏内露出（参考视频实测露出 ≈96px）')
+  assert.ok(deckVisible(-1.5), '还没完全出屏的离场卡不能提前剔除')
+  assert.ok(!deckVisible(-1.56 - 1e-6), '越过右屏边后剔除')
+  assert.ok(!deckVisible(-2), '再往外一层必须剔除')
 })
 
 test('规则② 下层缩小后藏在上层下方（左边缘钉住 + 居中缩放 + 变暗）', () => {
@@ -141,22 +149,36 @@ test('规则⑥⑦ 层间位移按层递减（由 stair 的几何级数天然给
     Math.abs(travel[3] / travel[1] - DECK.STAIR_DECAY ** 2) < 1e-9,
     `第四层/第二层 = ${(travel[3] / travel[1]).toFixed(4)}`
   )
-  /* 顶卡与第二层的量级差（如实记录：≈11.5:1）。
-     第四轮曾用牵连包络把第二层顶到 3/8，但那必然带来回退（见定律三）。 */
-  assert.ok(travel[0] / travel[1] > 10, `顶卡/第二层 = ${(travel[0] / travel[1]).toFixed(2)}`)
+  /* 顶卡（离场卡）与第二层的量级差：第六轮逐帧实测参考视频 = 272 : 55 ≈ 4.9 : 1。
+     本项目 = exit : stair(1) = 233.92 : 52.25 ≈ 4.5 : 1。
+     第五轮是 378.4 : 33 ≈ 11.5 : 1 —— 正是 Ricky 口中的「一次只能滑走一张」。 */
+  {
+    const ratio = travel[0] / travel[1]
+    assert.ok(ratio > 4 && ratio < 5.5, `顶卡/第二层 = ${ratio.toFixed(2)}（参考实测 4.9）`)
+  }
 })
 
-test('第四轮·定律一 同相位：背景层不再抢在顶卡前面把位移+放大做完', () => {
-  for (const x of [0.1, 0.25, 0.5, 0.75, 0.9]) {
+test('第六轮·连锁：整条链从第一帧起与手指同速推进（u = x，不再后加载）', () => {
+  /* 第五轮 u = x^1.6 ⇒ 前 1/3 段背景层几乎不动（x=0.2 时只走了 4%），
+     叠加 stair(1)=33px，观感就是「只有顶卡在动」。
+     第六轮 u = x：离场卡位移 = span·x（1:1 跟手），背景层也从第一帧就动。 */
+  assert.equal(DECK.TRANS_POW, 1)
+  assert.equal(DECK.EXIT_POW, 1)
+  for (const x of [0.02, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]) {
     const { u } = deckPhase(x)
-    const raw = 1 - x // 旧实现（背景层用原始 x）时第 1 层的层深
-    const now = 1 - u // 新实现的等效层深 = a + (x − u)
-    assert.ok(now >= raw - 1e-12, `x=${x} 背景层抢跑：层深 ${now} < ${raw}`)
-    /* 严格「后加载」：中途确实比原始进度慢（否则 x 与 u 白分了两个变量） */
-    if (x > 0 && x < 1) assert.ok(now > raw, `x=${x} 未生效（${now} vs ${raw}）`)
-    // 背景层坡度（越深越小）不能比顶卡退出还快
-    assert.ok(deckPose(1 - x, m, x).x - deckPose(1, m, 0).x >= -1e-9)
+    assert.ok(Math.abs(u - x) < 1e-12, `u ≠ x：${u}`)
+    // 背景层从第一帧就在推进（旧实现 x=0.02 时推进量 ≈ 0）
+    const moved = deckPose(1 - x, m, x).x - deckPose(1, m, 0).x
+    assert.ok(moved > 0, `x=${x} 背景层未动`)
+    /* 「不抢跑」：归一化进度上，背景层 (stair(1) − stair(1−x))/stair(1)
+       永远不超过离场卡的进度 x（因为 stair 是凹/凸单调的几何级数）。 */
+    const bgProgress = moved / deckExposure(1, m.cardW)
+    assert.ok(bgProgress <= x + 1e-9, `x=${x} 背景层抢跑：${(bgProgress * 100).toFixed(1)}% > ${(x * 100).toFixed(0)}%`)
   }
+  /* 1:1 跟手：离场卡一整层的位移 ≡ 一次换卡的手指行程 */
+  const exitTravel = deckPose(-(1 - 1e-9), m, 1 - 1e-9).x - m.frontX
+  assert.ok(Math.abs(exitTravel - m.span) < 0.5, `离场位移 ${exitTravel.toFixed(2)} ≟ 手指行程 ${m.span}`)
+
   /* 层边界零跳变：x→1⁻ 时第 1 层正好落进槽位；下一层的 x=0 就是同一个位姿 */
   const eps = 1e-6
   const arriving = deckPose(eps, m, 1 - eps) // 第 1 层即将成为焦点
@@ -185,41 +207,53 @@ test('第五轮·定律三 不得回退：整段拖动（含顶卡出屏之后�
     }
   }
 
-  /* 断言盲区修复：第四轮只检查「顶卡还在屏内」那一段单调，而出屏点之后
-     恰好是 release 塌缩的区间。这里显式覆盖出屏之后的半层。
-     注意这段的自然位移只有 ~2.9px —— 正因为如此，改前那 77px 的回退才会
-     显得像「啪地跳回去」：整层最后 4% 的自然行程根本撑不起 77px 的回退。 */
-  const xOff = Math.pow(U_OFF, 1 / DECK.TRANS_POW)
-  const atOff = deckPose(1 - xOff, m, xOff).x
-  const atEnd = deckPose(0, m, 1 - 1e-9).x
-  assert.ok(atEnd > atOff, `顶卡出屏后底卡仍回退：${atOff.toFixed(2)} → ${atEnd.toFixed(2)}`)
-  assert.ok(atEnd - atOff > 1, `出屏后底卡只走了 ${(atEnd - atOff).toFixed(2)}px`)
-  assert.ok(atEnd - atOff < 6, `出屏后底卡走太多（${(atEnd - atOff).toFixed(2)}px）→ 说明又出现了额外包络`)
+  /* 断言盲区修复（第六轮改写）：第五轮的那段断言以「顶卡出屏点」为锚，
+     但第六轮把离场卡改成「一次换卡只走到右屏边内侧」（a = -1，仍在屏内），
+     出屏要等第二次换卡（a = -2）。所以这里改成直接断言两件事：
+       ① 离场卡在整层里（a: 0 → -1）严格单调右移，一帧不回退；
+       ② 一次换卡后它仍在屏内露出，第二次换卡才真正出屏。 */
+  let prevExit = -Infinity
+  for (let i = 0; i <= 2000; i++) {
+    const x = i / 2000
+    const p = deckPose(-x, m, x)
+    assert.ok(
+      p.x >= prevExit - 1e-9,
+      `离场卡回退：x=${x.toFixed(4)} ${prevExit.toFixed(2)} → ${p.x.toFixed(2)}`
+    )
+    prevExit = p.x
+  }
+  const parked = deckPose(-1, m, 0)
+  const peek = m.screenW - parked.x
+  assert.ok(peek > 60 && peek < 170, `换一张后离场卡露出 ${peek.toFixed(1)}px（参考实测 ≈96px）`)
+  assert.ok(deckPose(-2, m, 0).x >= m.screenW, `换两张后仍未出屏：${deckPose(-2, m, 0).x.toFixed(1)}`)
 })
 
-test('第五轮·几何必然：居中布局下两卡的「贴合」只可能维持到 x≈0.72', () => {
-  /* 这不是缺陷，是几何：顶卡左缘到屏宽 430 时，居中底卡（scale 1）的右缘最多
-     frontX + cardW = 352.5px —— 必然留下 ~77px 空隙。要全程贴合只有两条路：
-       ① 让底卡在拖动中放大到 ≈1.28 倍（参考机那种更深的堆叠）；
-       ② 允许底卡先冲过头再退回（Ricky 第五轮已否决）。
-     所以这里断言的是「重叠窗口足够长」，并把几何上限固定在测试里。 */
+test('第六轮·连锁：整段拖动里两卡始终重叠（第五轮的 ≈77px 空隙消失）', () => {
+  /* 第五轮的「几何必然」：顶卡一次飞出 378px，而居中底卡的右缘最多只能到
+     frontX + cardW = 352.5px ⇒ 顶卡还在屏内时就已经裂开 ≈81px 空隙 —— 这正是
+     Ricky 看到的「顶卡独自飞走、底下的卡没跟上」。
+     第六轮把离场卡的一层行程压到 233.9px（= 一次换卡的手指行程，1:1 跟手），
+     于是顶卡左缘最多到 frontX + exit = 311.4px，恒小于底卡右缘 352.5px
+     ⇒ **全程重叠，永不出现空隙**（= 用户要的「粘连在一起被拉走」）。
+
+     注意：重叠只是「不分离」，不是「反向运动」—— 两卡的位置在整个 x∈[0,1]
+     里都各自严格单调右移（由「定律三」用例守护）。 */
   const right = (p) => p.x + m.cardW * p.scale
-  let lastOverlapX = 0
-  let minGapOnScreen = Infinity
+  let minGap = Infinity
+  let maxGap = -Infinity
   for (let i = 0; i <= 500; i++) {
     const x = i / 500
-    const top = deckPose(-x, m, x)
-    const below = deckPose(1 - x, m, x)
+    const top = deckPose(-x, m, x) // 正在离场的那张
+    const below = deckPose(1 - x, m, x) // 顶上来的那张
     const gap = right(below) - top.x
-    if (gap >= 0) lastOverlapX = x
-    if (top.x < m.screenW) minGapOnScreen = Math.min(minGapOnScreen, gap)
+    minGap = Math.min(minGap, gap)
+    maxGap = Math.max(maxGap, gap)
   }
-  assert.ok(lastOverlapX > 0.6, `两卡过早分离：最后重叠于 x=${lastOverlapX.toFixed(3)}`)
-  /* 如实记录：顶卡在屏内时确实会出现空隙，最深到 -81px（就是「顶卡快出屏」那段）。
-     本轮接受它，换取「绝不在拖动中往左走」。 */
-  assert.ok(minGapOnScreen < 0 && minGapOnScreen > -85, `屏内最小贴合差 ${minGapOnScreen.toFixed(1)}px`)
-  const maxReach = m.frontX + m.cardW
-  assert.ok(maxReach < m.screenW - 70, `底卡满尺寸居中时的右缘上限 ${maxReach} 距屏宽不足 70px`)
+  assert.ok(minGap > 0, `拖动中两卡出现空隙 ${minGap.toFixed(1)}px（第六轮应为恒重叠）`)
+  assert.ok(minGap < 60, `末尾重叠过多 ${minGap.toFixed(1)}px → 离场卡几乎没走`)
+  assert.ok(maxGap < m.cardW, `起始重叠超过一张卡宽 ${maxGap.toFixed(1)}px → 布局异常`)
+  /* 副产物：静止态离场卡仍在屏内（旧值 455.9 > 430），这也是「连锁感」的来源之一 */
+  assert.ok(deckPose(-1, m, 0).x < m.screenW, `静止态离场卡左缘 ${deckPose(-1, m, 0).x.toFixed(1)} 已出屏`)
 })
 
 test('第五轮：位移与放大「同时」发生（同相位，不是先位移后放大）', () => {
@@ -288,21 +322,22 @@ test('背景层任意时刻都不重叠（层间间距恒 > 2px）', () => {
 })
 
 test('交接零跳变：整层拖动后新焦点卡正好落在屏幕正中', () => {
-  // focus = 1（拖满一整层、扇开已归零）
-  const exit = deckPose(0, m, 0) // 旧焦点卡：a = 1 - 1 = 0 → 但用 a=-1 表示它已退出
-  void exit
   const leaving = deckPose(-1, m, 0)
   const incoming = deckPose(0, m, 0)
   assert.equal(incoming.x, m.frontX)
   assert.equal(incoming.scale, 1)
-  // 退出卡完全离开屏幕（右边缘之外）
-  assert.ok(leaving.x >= m.screenW, `退出卡左边缘 ${leaving.x} 应 ≥ ${m.screenW}`)
+  /* 第六轮：退出卡在换一张后【仍停在右屏边内侧】（对齐参考视频实测露出 ≈96px），
+     换第二张才真正出屏 —— 旧契约「一张就出屏」是 Ricky 否掉的「独自飞走」。 */
+  assert.ok(leaving.x < m.screenW, `退出卡左边缘 ${leaving.x.toFixed(1)} 应仍 < 屏宽 ${m.screenW}`)
+  assert.ok(m.screenW - leaving.x > 60, `退出卡露出只有 ${(m.screenW - leaving.x).toFixed(1)}px`)
+  assert.ok(deckPose(-2, m, 0).x > m.screenW, '换第二张后应已出屏')
   // 退出卡保持满尺寸满亮度（规则①：走到屏幕外一直是「顶层那张」）
   assert.equal(leaving.scale, 1)
   assert.equal(leaving.bright, 1)
-  // 幂律斜坡起步接近 1:1 跟手（0.25 层只走满量程的 ~11%）
+  /* 第六轮：线性斜坡 ⇒ 严格 1:1 跟手（0.25 层 = 满量程的 25%；旧 1.6 次幂只有 ~11%） */
   const q = deckPose(-0.25, m, 0)
-  assert.ok(q.x - m.frontX < 50, `0.25 层位移 ${(q.x - m.frontX).toFixed(1)}px`)
+  const quarter = (q.x - m.frontX) / (leaving.x - m.frontX)
+  assert.ok(Math.abs(quarter - 0.25) < 1e-9, `0.25 层只走了 ${(quarter * 100).toFixed(1)}%（应 25%）`)
 })
 
 test('越界阻尼：两端都压扁且不失控', () => {
