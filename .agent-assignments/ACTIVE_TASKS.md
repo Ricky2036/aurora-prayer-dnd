@@ -44,6 +44,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Set Music and Prayer dynamic island default state to closed | `antigravity/lane` | `src/stores/controlStore.js`; `src/stores/prayerStore.js` | `f9e66d0` | `d80856a` |
 | Merged | Antigravity | Refactor DevConsole with top-corner icons, combined capture card, dropdown module switcher, dashed big card, and migrate language/navigation to Settings | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `src/components/apps/settings/SettingsApp.vue`; `tests/alarmDynamicIsland.test.js`; `tests/prayerAlarmLinkage.test.js` | `34693f0` | `c27ebd9` |
 | Merged | Antigravity | Move frame toggle to capture card header as common option and simplify capture/record buttons | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `982831d` | `dae7b0b` |
+<<<<<<< HEAD
 | Merged | Antigravity | Unify Live Activity interactions across LockScreen, NotificationCenter, and DynamicIsland (swipe delete & settings jump, align alarm icon) | `antigravity/lane` | `src/components/system/DynamicIsland.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `tests/alarmDynamicIsland.test.js` | `7aae047` | `ac4b1b0` |
 | Merged | Antigravity | LockScreen Live Activity screen-edge clipping and DynamicIsland expanded swipe without black background | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/DynamicIsland.vue`; `tests/alarmDynamicIsland.test.js` | `9e1c4d2` | `22fbb21` |
 | Merged | Antigravity | Restore LockScreen default stacked notifications and sink Live Activity cards when collapsed | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/alarmDynamicIsland.test.js` | `48014f5` | `cf30c87` |
@@ -57,7 +58,14 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Fix lockscreen swipe collapse flickering, remove pill shadow, hide covered cards, and separate notification swipe actions | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `src/components/apps/settings/SettingsNotifications.vue`; `src/stores/notificationsStore.js`; `tests/alarmDynamicIsland.test.js` | `299a4ee` | `82bd75d` |
 | Merged | Antigravity | Restore status bar clock during background voice recording | `antigravity/lane` | `src/components/phone/StatusBar.vue`; `tests/statusBar.test.js` | `9c0896d` | `07c103c` |
 | Merged | Antigravity | Synchronize dynamic island switch off when notification master switch is turned off | `antigravity/lane` | `src/stores/notificationsStore.js`; `src/components/apps/settings/SettingsNotifications.vue`; `tests/notificationsLinkage.test.js` | `069bdb6` | `01604af` |
-| Active | Codex | Desktop foundation capabilities | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/stores/homeStore.js`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/system/AppLibrary.vue`; `src/components/ui/AppIcon.vue`; new desktop components, layout utilities, and tests | `00c594f` | — |
+| Merged | Antigravity | Adjust status bar horizontal inset to pull icons inward from screen edge | `antigravity/lane` | `src/components/phone/StatusBar.vue`; `tests/statusBar.test.js` | `fe10deb` | `3a315c8` |
+| Merged | Antigravity | Fix Spotify notification settings jump and direct MP4 unframed screen recording | `antigravity/lane` | `src/components/apps/settings/SettingsNotifications.vue`; `src/App.vue`; `src/composables/useCapture.js`; `tests/notificationsLinkage.test.js` | `5474bfe` | `e4ff671` |
+| Merged | Codex | Desktop foundation capabilities | `codex/lane` | None (desktop file locks released) | `00c594f` | `d6a6d43..20174e4` |
+| Merged | Antigravity | Fix mobile LockScreen notification swipe flickering and refine Dynamic Island compact capsule & icon size | `antigravity/lane` | None (locks released) | `2bb765b` | `e83ccb6` |
+| Merged | Antigravity | Eliminate lockscreen notification scroll lag and add desktop mouse drag scrolling | `antigravity/lane` | None (locks released) | `f2d052f` | `e94b54d` |
+| Merged | Antigravity | Voice Memos launch notification authorization modal & permission linkage | `antigravity/lane` | None (locks released) | `aef175f` | `675f68e` |
+| Merged | Antigravity | Refine notification authorization modal to record click trigger & Control Center bell icon | `antigravity/lane` | None (locks released) | d91f06d | `4e8a6e9` |
+| Merged | Codex | Restore app taps after desktop editing | `codex/lane` | None (locks released) | `20174e4` | `4b2d285` |
+| Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `763378f` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
-

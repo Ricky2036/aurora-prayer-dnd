@@ -399,7 +399,6 @@ async function startRecording(opts = {}) {
 
 async function onRecorderStop() {
   isRecording.value = false
-  isTranscoding.value = true
   stopElapsed()
   teardownStream()
   // 还原屏幕圆角（采集态只在录制期间生效）
@@ -415,6 +414,7 @@ async function onRecorderStop() {
 
   // 演示素材路径：转 Apple ProRes 4444 with Alpha（仅 dev server 提供该接口）
   if (cfg.transcode) {
+    isTranscoding.value = true
     try {
       const res = await fetch(`/__transcode_mov?radiusRatio=${cfg.captureRadiusRatio}`, {
         method: 'POST',

@@ -128,3 +128,82 @@ test('turning off only island switch preserves app notification permission, and 
   assert.equal(store.isAppNotificationEnabled('recorder'), true, 'Parent app notification auto-restored to ON')
   assert.equal(store.isIslandEnabled('recorder'), true)
 })
+
+test('setAppTarget correctly directs to target application notification settings', () => {
+  const store = initStore()
+
+  store.setAppTarget('spotify')
+  assert.equal(store.targetView, 'notifications')
+  assert.equal(store.targetSubView, 'appDetail')
+  assert.equal(store.targetAppId, 'spotify')
+  assert.equal(store.targetIslandKey, null)
+
+  store.setAppTarget('whatsapp')
+  assert.equal(store.targetAppId, 'whatsapp')
+})
+
+test('screen recording options conform to frame specification', () => {
+  function getRecordOptions(isMobile, recordWithFrame) {
+    const withFrame = !isMobile && recordWithFrame
+    return {
+      withFrame,
+      rounded: withFrame,
+      transcode: withFrame,
+      preferMp4: !withFrame
+    }
+  }
+
+  // When recording without frame (desktop or mobile)
+  const unframed = getRecordOptions(false, false)
+  assert.equal(unframed.withFrame, false)
+  assert.equal(unframed.rounded, false, 'Unframed recording must not clip rounded corners')
+  assert.equal(unframed.transcode, false, 'Unframed recording must not transcode')
+  assert.equal(unframed.preferMp4, true, 'Unframed recording must output direct MP4')
+
+  const mobileUnframed = getRecordOptions(true, true)
+  assert.equal(mobileUnframed.withFrame, false)
+  assert.equal(mobileUnframed.rounded, false)
+  assert.equal(mobileUnframed.transcode, false)
+  assert.equal(mobileUnframed.preferMp4, true)
+
+  // When recording with frame (desktop only)
+  const framed = getRecordOptions(false, true)
+  assert.equal(framed.withFrame, true)
+  assert.equal(framed.rounded, true)
+  assert.equal(framed.transcode, true)
+  assert.equal(framed.preferMp4, false)
+})
+
+test('notification permission authorization modal flow and deny default off behavior', () => {
+  const store = initStore()
+
+  // Initially unprompted
+  assert.equal(store.hasPromptedPermission('voicememos'), false)
+  assert.equal(store.hasPromptedPermission('recorder'), false)
+
+  // 1. If user chooses "不允许" (Don't Allow)
+  store.setAppNotificationEnabled('voicememos', false)
+  store.markPermissionPrompted('voicememos')
+
+  assert.equal(store.hasPromptedPermission('voicememos'), true)
+  assert.equal(store.isAppNotificationEnabled('voicememos'), false)
+  assert.equal(store.isAppNotificationEnabled('recorder'), false)
+  assert.equal(store.islandSettings.recorder, false, 'Dynamic island must default to OFF when permission is denied')
+  assert.equal(store.isIslandEnabled('recorder'), false)
+
+  // 2. Reset permission prompt
+  store.resetPermissionPrompt('voicememos')
+  assert.equal(store.hasPromptedPermission('voicememos'), false)
+
+  // 3. If user chooses "允许" (Allow)
+  store.setAppNotificationEnabled('voicememos', true)
+  store.markPermissionPrompted('voicememos')
+
+  assert.equal(store.hasPromptedPermission('voicememos'), true)
+  assert.equal(store.isAppNotificationEnabled('voicememos'), true)
+  assert.equal(store.isAppNotificationEnabled('recorder'), true)
+  assert.equal(store.islandSettings.recorder, true)
+  assert.equal(store.isIslandEnabled('recorder'), true)
+})
+
+

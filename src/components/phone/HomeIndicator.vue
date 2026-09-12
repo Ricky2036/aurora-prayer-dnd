@@ -25,6 +25,11 @@ watch(springVal, (v) => system.setHomeGestureProgress(v))
 
 /** 当前应该执行的「回退/前进」动作 */
 function doAction() {
+  // 切换器打开时：点击手势条 = 关闭切换器（回到之前所在层）
+  if (system.appSwitcherOpen) {
+    system.closeSwitcher()
+    return
+  }
   const o = system.overlays
   if (o.appLibrary.status !== 'closed') {
     system.requestCloseOverlay('appLibrary')
@@ -47,6 +52,14 @@ function doAction() {
   }
 }
 
+/* 悬停计时器：上滑超过 5% 且停住 0.2s → 激活切换器（Ricky 2026-09-11 三轮）。
+   拖动全程把进度写给 switcherProgress（跟手缩放连续，滑得越远缩得越小），
+   hero 预览在这条路径不启动（避免双重渲染）。 */
+let dwellArm = null
+function clearDwellArm() {
+  if (dwellArm) { clearTimeout(dwellArm); dwellArm = null }
+}
+
 const gesture = useSwipeGesture(rootRef, {
   axis: 'y',
   direction: -1,
@@ -55,14 +68,62 @@ const gesture = useSwipeGesture(rootRef, {
   canStart: () =>
     system.baseLayer === 'app' ||
     system.baseLayer === 'lock' ||
-    system.anyOverlayOpen(),
+    system.appSwitcherOpen ||
+    system.anyOverlayOpen() ||
+    // 桌面上也允许：有最近任务时，上滑停驻 = 打开切换器（iOS 同样支持）
+    (system.baseLayer === 'home' && system.recentApps.length > 0),
   onStart() {
     snapTo(system.homeGestureProgress)
+    clearDwellArm()
   },
   onProgress(p) {
-    snapTo(p)
+    const switcherCandidate =
+      system.recentApps.length > 0 &&
+      system.baseLayer !== 'lock' &&
+      !system.anyOverlayOpen() &&
+      !system.appSwitcherOpen // 切换器已打开时不再驱动跟手进度（否则会在堆叠上再叠跟手卡）
+    if (switcherCandidate) {
+      // 跟手缩放：进度全程直写（AppSwitcher 的跟手卡据此从全屏连续缩到卡位）
+      system.setSwitcherProgress(p)
+      // 「悬停」= 手指停住不动：每次移动都重计 0.2s，
+      // 只有 0.2s 无移动才算 dwell（持续快滑绝不会误触发）
+      clearDwellArm()
+      if (p >= 0.05 && !system.switcherDwell) {
+        dwellArm = setTimeout(() => {
+          dwellArm = null
+          system.switcherDwell = true
+        }, 200)
+      }
+    } else {
+      snapTo(p) // 无最近任务：保持原 hero 预览
+    }
   },
   onRelease(p, velocity) {
+    clearDwellArm()
+    /* 激活条件（2026-09-11 三轮 Ricky 定）：
+     *   上滑 >5% 且悬停 ≥0.2s（switcherDwell 已由计时器置位）→ 打开切换器。
+     *   同时要求松手速度低 —— 否则松手前的协议/生理延迟也会让快甩误触发悬停，
+     *   快甩（|velocity| > 0.4）永远走回桌面，与 iOS 一致。 */
+    const canDwellOpen =
+      system.switcherDwell &&
+      Math.abs(velocity) <= 0.4 &&
+      system.recentApps.length > 0 &&
+      !system.anyOverlayOpen() &&
+      system.baseLayer !== 'lock'
+
+    if (canDwellOpen) {
+      system.openSwitcher()
+      return 0
+    }
+
+    // 未激活：跟手进度归零，走原逻辑（回桌面 / 回弹）
+    system.setSwitcherProgress(0)
+
+    if (system.baseLayer === 'home') {
+      animateTo(0, { initialVelocity: velocity })
+      return 0
+    }
+
     const goHome = p > 0.16 || velocity > 0.4
     if (goHome) {
       // AppWindow 必须先捕获当前跟手矩形；动画接管后再清空进度。

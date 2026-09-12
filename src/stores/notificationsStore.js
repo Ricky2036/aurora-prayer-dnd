@@ -47,6 +47,7 @@ export const useNotificationsStore = defineStore('notifications', {
     targetIslandKey: null, // 'recorder' | 'alarm' | 'timer' | 'stopwatch' | 'prayer' | 'media' | null
     targetAppId: null, // 'whatsapp' | 'gmail' | 'spotify' ... | null
     appSettings: {}, // appId -> boolean (true: 允许通知, false: 关闭通知)
+    permissionPrompted: {}, // appId -> boolean (是否已弹出过通知权限授权弹窗)
     islandSettings: {
       master: true,
       alarm: true,
@@ -165,6 +166,50 @@ export const useNotificationsStore = defineStore('notifications', {
             }
           }
         }
+      }
+    },
+
+    /**
+     * 检查指定应用是否已提示过通知授权弹窗。
+     * 若应用在设置中已有明确配置，则视为已授权/拒绝（不重复提示）。
+     */
+    hasPromptedPermission(appId) {
+      if (!appId) return false
+      if (this.permissionPrompted[appId] !== undefined) return this.permissionPrompted[appId]
+      if (appId === 'voicememos' && this.permissionPrompted['recorder'] !== undefined) {
+        return this.permissionPrompted['recorder']
+      }
+      if (appId === 'recorder' && this.permissionPrompted['voicememos'] !== undefined) {
+        return this.permissionPrompted['voicememos']
+      }
+      if (this.appSettings[appId] !== undefined) return true
+      if (appId === 'voicememos' && this.appSettings['recorder'] !== undefined) return true
+      if (appId === 'recorder' && this.appSettings['voicememos'] !== undefined) return true
+      return false
+    },
+
+    /**
+     * 标记应用已完成通知授权弹窗提示
+     */
+    markPermissionPrompted(appId, prompted = true) {
+      if (!appId) return
+      this.permissionPrompted[appId] = prompted
+      if (appId === 'voicememos') this.permissionPrompted['recorder'] = prompted
+      if (appId === 'recorder') this.permissionPrompted['voicememos'] = prompted
+    },
+
+    /**
+     * 重置应用的通知授权状态（方便开发者在 DevConsole 重复体验授权弹窗）
+     */
+    resetPermissionPrompt(appId) {
+      if (!appId) return
+      delete this.permissionPrompted[appId]
+      delete this.appSettings[appId]
+      if (appId === 'voicememos' || appId === 'recorder') {
+        delete this.permissionPrompted['voicememos']
+        delete this.permissionPrompted['recorder']
+        delete this.appSettings['voicememos']
+        delete this.appSettings['recorder']
       }
     }
   }

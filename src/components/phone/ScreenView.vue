@@ -15,6 +15,7 @@ import AppWindow from '../system/AppWindow.vue'
 import NotificationCenter from '../system/NotificationCenter.vue'
 import ControlCenter from '../system/ControlCenter.vue'
 import AppLibrary from '../system/AppLibrary.vue'
+import AppSwitcher from '../system/AppSwitcher.vue'
 import { registerDriver } from '../../composables/driverRegistry'
 import { runBackHandler } from '../../composables/backRegistry'
 import wallpaper from '../../assets/img/wallpaper-lock.jpg'
@@ -279,9 +280,10 @@ useSwipeGesture(sideEdgeRef, {
       :style="heroBackdropStyle"
     ></div>
 
-    <!-- 打开中的应用窗口 -->
+    <!-- 打开中的应用窗口（切换器跟手/打开期间让位给 AppSwitcher 的跟手卡，避免双重渲染） -->
     <AppWindow
       v-if="system.activeAppId"
+      v-show="system.switcherProgress <= 0.01"
       :key="system.activeAppId"
       :app-id="system.activeAppId"
       @hero-frame="onHeroFrame"
@@ -294,6 +296,9 @@ useSwipeGesture(sideEdgeRef, {
     <NotificationCenter />
     <ControlCenter />
     <AppLibrary />
+
+    <!-- 最近任务切换器（App Switcher / Recent） -->
+    <AppSwitcher />
 
     <!-- 顶部边缘手势热区：左/中 = 通知中心，右 1/4 = 控制中心 (当叠层打开时禁用热区避免遮挡头部按钮) -->
     <div
