@@ -46,6 +46,9 @@ function itemStyle(id) {
   return { width: `${p.width}px`, height: `${p.height}px`, '--icon-size':`${props.profile.iconSize*props.profile.compactScale}px`, transform: `translate3d(${p.x}px,${p.y}px,0)` }
 }
 function activate(event, id, item) {
+  if (props.suppressClickId === id) {
+    event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); return
+  }
   if (props.editing) {
     event.preventDefault(); event.stopPropagation(); emit('toggle-select', id)
   } else if (item.type === 'folder') {

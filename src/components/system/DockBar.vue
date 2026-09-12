@@ -4,11 +4,12 @@ import { getApp } from '../../config/apps'
 import { useHomeStore } from '../../stores/homeStore'
 import AppIcon from '../ui/AppIcon.vue'
 
-const props = defineProps({ profile:{type:Object,required:true}, draggingId:{type:String,default:null}, dockTargetIndex:{type:Number,default:null}, removingIds:{type:Array,default:()=>[]} })
+const props = defineProps({ profile:{type:Object,required:true}, draggingId:{type:String,default:null}, dockTargetIndex:{type:Number,default:null}, removingIds:{type:Array,default:()=>[]}, suppressClickId:{type:String,default:null} })
 const emit = defineEmits(['item-pointerdown','toggle-select','request-remove'])
 const home = useHomeStore()
 const selected = computed(() => new Set(home.selectedItemIds))
 function activate(event,id) {
+  if (props.suppressClickId === id) { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); return }
   if (!home.editing) return
   event.preventDefault(); event.stopPropagation(); emit('toggle-select',id)
 }
