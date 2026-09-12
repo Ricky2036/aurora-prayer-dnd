@@ -115,3 +115,23 @@ test('dock editing, protected uninstall and library filtering are wired to home 
   assert.match(dock, /repeat\(4,1fr\)/)
   assert.match(library, /home\.appInstalled/)
 })
+
+test('folders close from blank glass and render special app icons through AppIcon', async () => {
+  const [overlay, folder] = await Promise.all([
+    read('../src/components/home/HomeFolderOverlay.vue'),
+    read('../src/components/home/HomeFolder.vue')
+  ])
+  assert.match(overlay, /onOverlayClick/)
+  assert.match(overlay, /folder-panel-app,.folder-title/)
+  assert.match(overlay, /@pointerdown\.stop/)
+  assert.doesNotMatch(folder, /getApp\(appId\)\?\.image/)
+  assert.match(folder, /<AppIcon :app="getApp\(appId\)"/)
+})
+
+test('desktop accepts dominant horizontal trackpad wheel gestures for paging', async () => {
+  const source = await read('../src/components/system/HomeScreen.vue')
+  assert.match(source, /function onWheel/)
+  assert.match(source, /Math\.abs\(event\.deltaX\) <= Math\.abs\(event\.deltaY\)/)
+  assert.match(source, /wheelDeltaX/)
+  assert.match(source, /@wheel="onWheel"/)
+})
