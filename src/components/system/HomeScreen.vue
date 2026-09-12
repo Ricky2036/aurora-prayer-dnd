@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { getApp } from '../../config/apps'
 import { useHomeStore } from '../../stores/homeStore'
 import { useSystemStore } from '../../stores/systemStore'
-import { layoutHomeOrder, moveHomeItem, resolveDesktopPage } from '../../utils/homeLayout.js'
+import { globalRankForPageIndex, insertionIndexAtPoint, layoutHomeOrder, moveHomeOrderItem, resolveDesktopPage } from '../../utils/homeLayout.js'
 import AppGrid from './AppGrid.vue'
 import DockBar from './DockBar.vue'
 import PageIndicator from '../ui/PageIndicator.vue'
@@ -14,7 +14,7 @@ const emit = defineEmits(['open-library'])
 const system = useSystemStore()
 const home = useHomeStore()
 const rootRef = ref(null)
-const previewPages = ref(null)
+const previewOrder = ref(null)
 const pageDragX = ref(0)
 const showPageDots = ref(false)
 const dragging = ref(null)
@@ -26,10 +26,9 @@ const dockTargetIndex = ref(null)
 const pendingRemoval = ref([])
 const toast = ref('')
 const removingIds = ref([])
-const displayPages = computed(() => previewPages.value || home.pages)
-const displayPositions = computed(() => previewPages.value
-  ? layoutHomeOrder(previewPages.value.flat(), home.items, home.folders, home.profile).frames
-  : home.positions)
+const previewLayout = computed(() => previewOrder.value ? layoutHomeOrder(previewOrder.value, home.items, home.folders, home.profile) : null)
+const displayPages = computed(() => previewLayout.value?.pages || home.pages)
+const displayPositions = computed(() => previewLayout.value?.frames || home.positions)
 const stripStyle = computed(() => ({
   transform: `translate3d(calc(${-home.currentPage * 100}% + ${pageDragX.value}px),0,0)`,
   transition: pageDragX.value || dragging.value ? 'none' : 'transform 420ms cubic-bezier(.22,.8,.26,1)'
@@ -137,7 +136,7 @@ function startItemDrag(x, y) {
     try { pointer.captureTarget.setPointerCapture?.(pointer.id); pointer.captureEl = pointer.captureTarget } catch {}
   }
   pointer.mode = 'item-drag'
-  previewPages.value = home.pages.map((page) => [...page])
+  previewOrder.value = [...home.order]
   dragging.value = { id:pointer.itemId, page:pointer.page, index:pointer.index }
   pointer.didMove = false
   setGhostPosition(pointer.itemId, x, y)
@@ -169,42 +168,24 @@ function trackDockTarget(x, y) {
 function targetIndexAt(x, y) {
   const grid = rootRef.value.querySelector(`[data-page="${home.currentPage}"]`)
   const rect = grid?.getBoundingClientRect()
-  if (!grid || !rect?.width || !rect?.height) return previewPages.value[home.currentPage].length
-  const style = getComputedStyle(grid)
+  const page = displayPages.value[home.currentPage] || []
+  if (!grid || !rect?.width || !rect?.height) return page.length
   const scaleX = rect.width / grid.offsetWidth
   const scaleY = rect.height / grid.offsetHeight
-  const paddingLeft = parseFloat(style.paddingLeft) || 0
-  const paddingTop = parseFloat(style.paddingTop) || 0
-  const columnGap = parseFloat(style.columnGap) || 0
-  const rowGap = parseFloat(style.rowGap) || 0
-  const innerWidth = grid.offsetWidth - paddingLeft - (parseFloat(style.paddingRight) || 0)
-  const columnWidth = (innerWidth - columnGap * 3) / 4
-  const localX = (x - rect.left) / scaleX - paddingLeft
+  const localX = (x - rect.left) / scaleX
   const localY = (y - rect.top) / scaleY
-  const col = Math.max(0, Math.min(3, Math.floor((localX + columnGap / 2) / (columnWidth + columnGap))))
-  const rowHeights = style.gridTemplateRows.split(' ').map(parseFloat).filter(Number.isFinite)
-  const rowCenters = []
-  let rowTop = paddingTop
-  for (const height of rowHeights) {
-    rowCenters.push(rowTop + height / 2)
-    rowTop += height + rowGap
-  }
-  let row = 0
-  for (let index = 1; index < rowCenters.length; index += 1) {
-    if (Math.abs(localY - rowCenters[index]) < Math.abs(localY - rowCenters[row])) row = index
-  }
-  return Math.max(0, Math.min(row * 4 + col, previewPages.value[home.currentPage].length))
+  return insertionIndexAtPoint(page, displayPositions.value[home.currentPage], localX, localY)
 }
 function updatePreview(x, y) {
-  if (!dragging.value || !previewPages.value) return
+  if (!dragging.value || !previewOrder.value) return
   trackDockTarget(x, y)
   if (dockTargetIndex.value != null) return
   trackFolderTarget(x, y)
   // 命中文件夹候选时保持原网格不动，让 420ms 停留计时不会因实时让位而丢失目标。
   if (pointer.folderCandidate) return
   const index = targetIndexAt(x, y)
-  const next = moveHomeItem(previewPages.value, dragging.value.id, home.currentPage, index)
-  previewPages.value = layoutHomeOrder(next.flat(), home.items, home.folders, home.profile).pages
+  const rank = globalRankForPageIndex(displayPages.value, home.currentPage, index)
+  previewOrder.value = moveHomeOrderItem(previewOrder.value, dragging.value.id, rank)
   dragging.value.page = home.currentPage; dragging.value.index = index
   const rect = rootRef.value.getBoundingClientRect()
   const direction = x < rect.left + 34 ? -1 : x > rect.right - 34 ? 1 : 0
@@ -215,11 +196,10 @@ function updatePreview(x, y) {
     if (!dragging.value) return
     const requested = home.currentPage + direction
     if (requested < 0) return
-    if (requested >= previewPages.value.length) previewPages.value.push([])
     revealPageDots()
-    home.currentPage = Math.min(requested, previewPages.value.length - 1)
+    home.currentPage = Math.min(requested, displayPages.value.length - 1)
     dragging.value.page = home.currentPage
-    dragging.value.index = previewPages.value[home.currentPage].length
+    dragging.value.index = displayPages.value[home.currentPage].length
     updatePreview(x, y)
   }, 400)
 }
@@ -255,7 +235,7 @@ function onPointerMove(event) {
 }
 function finishItem(cancelled) {
   if (!pointer.didMove) {
-    previewPages.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null
+    previewOrder.value = null; dragging.value = null; ghost.value = null; folderTargetId.value = null; dockTargetIndex.value = null
     return
   }
   if (!cancelled && dragging.value && dockTargetIndex.value != null) {
@@ -270,7 +250,7 @@ function finishItem(cancelled) {
   } else if (!cancelled && dragging.value && pointer.sourceDock) {
     home.moveFromDock(dragging.value.id,dragging.value.page,dragging.value.index)
   } else if (!cancelled && dragging.value) home.moveItem(dragging.value.id, dragging.value.page, dragging.value.index)
-  previewPages.value = null; dragging.value = null; ghost.value = null
+  previewOrder.value = null; dragging.value = null; ghost.value = null
   folderTargetId.value = null
   dockTargetIndex.value = null
   if (cancelled) home.currentPage = Math.min(pointer.startPage,home.pages.length - 1)
