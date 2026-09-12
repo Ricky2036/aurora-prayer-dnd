@@ -49,7 +49,7 @@ export const APPS = [
   },
   {
     id: 'notes',
-    name: '备忘录',
+    name: '记事本',
     depth: 'placeholder',
     heroBackground: 'linear-gradient(180deg,#FFD33A 0%,#F4AA00 100%)',
     image: '/icons/notes.png',
@@ -65,7 +65,7 @@ export const APPS = [
   },
   {
     id: 'voicememos',
-    name: '语音备忘录',
+    name: '录音机',
     depth: 'core',
     heroBackground: 'linear-gradient(180deg,#F65A62 0%,#E82636 100%)',
     image: '/icons/voicememos.png',
@@ -81,7 +81,7 @@ export const APPS = [
   },
   {
     id: 'calculator',
-    name: '钱包', // 显示为钱包；桌面图片图标暂沿用 calculator.png（待补钱包图）
+    name: '计算器',
     depth: 'placeholder',
     heroBackground: '#ECECEF',
     image: '/icons/calculator.png',
