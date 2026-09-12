@@ -75,6 +75,9 @@ const gesture = useSwipeGesture(rootRef, {
   onStart() {
     snapTo(system.homeGestureProgress)
     clearDwellArm()
+    // 每次手势开始都重置悬停标记：上一次手势（尤其是从切换器恢复应用那条路径）
+    // 可能把它留成 true，否则这一次轻微上滑会被误判为「已悬停」而直接打开切换器。
+    system.switcherDwell = false
   },
   onProgress(p) {
     const switcherCandidate =
