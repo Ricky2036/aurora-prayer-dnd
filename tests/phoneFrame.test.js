@@ -7,14 +7,14 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-test('tokens.css defines 50px modern screen corner radius', () => {
+test('tokens.css defines 40px modern screen corner radius', () => {
   const tokensPath = path.resolve(__dirname, '../src/styles/tokens.css')
   const tokensContent = fs.readFileSync(tokensPath, 'utf8')
 
   assert.match(
     tokensContent,
-    /--screen-radius:\s*50px;/,
-    '--screen-radius must be updated to 50px for modern flagship ratio'
+    /--screen-radius:\s*40px;/,
+    '--screen-radius must be 40px for flagship ratio'
   )
 })
 
@@ -40,15 +40,15 @@ test('PhoneFrame implements premium titanium frame, antenna bands, 5-button layo
   assert.match(frameContent, /class="punch-hole"/, 'Must retain punch-hole camera node for status bar test compatibility')
   assert.match(frameContent, /class="frame-inner"/, 'Must include ultra-narrow black bezel frame-inner')
 
-  // Concentric geometric radii (2px outer metal + 3px inner black bezel = 5px total)
+  // Concentric geometric radii (5px outer metal + 5px inner black bezel = 10px total)
   assert.match(
     frameContent,
-    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*5px\);/,
-    'Outer titanium frame must concentric scale by +5px'
+    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*10px\);/,
+    'Outer titanium frame must concentric scale by +10px'
   )
   assert.match(
     frameContent,
-    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*3px\);/,
-    'Inner black bezel must concentric scale by +3px'
+    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*5px\);/,
+    'Inner black bezel must concentric scale by +5px'
   )
 })
