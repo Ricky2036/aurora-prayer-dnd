@@ -12,7 +12,8 @@ const props = defineProps({
   folders: { type: Object, default: () => ({}) }, editing: { type: Boolean, default: false },
   profile: { type: Object, required: true },
   selectedIds: { type: Array, default: () => [] }, draggingId: { type: String, default: null },
-  folderTargetId: { type: String, default: null }, removingIds: { type: Array, default: () => [] }
+  folderTargetId: { type: String, default: null }, removingIds: { type: Array, default: () => [] },
+  suppressClickId: { type: String, default: null }
 })
 const emit = defineEmits(['item-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
 const selected = computed(() => new Set(props.selectedIds))
@@ -45,6 +46,9 @@ function itemStyle(id) {
   return { width: `${p.width}px`, height: `${p.height}px`, transform: `translate3d(${p.x}px,${p.y}px,0)` }
 }
 function activate(event, id, item) {
+  if (props.suppressClickId === id) {
+    event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); return
+  }
   if (props.editing) {
     event.preventDefault(); event.stopPropagation(); emit('toggle-select', id)
   } else if (item.type === 'folder') {

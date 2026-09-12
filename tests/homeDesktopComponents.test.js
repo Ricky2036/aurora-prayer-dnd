@@ -135,3 +135,39 @@ test('desktop accepts dominant horizontal trackpad wheel gestures for paging', a
   assert.match(source, /wheelDeltaX/)
   assert.match(source, /@wheel="onWheel"/)
 })
+
+test('item long press starts direct drag without entering desktop editing', async () => {
+  const [home, grid, dock] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'),
+    read('../src/components/system/AppGrid.vue'),
+    read('../src/components/system/DockBar.vue')
+  ])
+  assert.match(home, /setTimeout\(\(\) => \{[\s\S]*startItemDrag\(pointer\.startX,pointer\.startY\)/)
+  assert.doesNotMatch(home, /home\.setEditing\(true\); pointer\.mode = 'item-ready'/)
+  assert.match(home, /source\?\.cloneNode\(true\)/)
+  assert.match(home, /grabX:point\.x-left,grabY:point\.y-top/)
+  assert.match(home, /suppressClick\(pointer\.itemId\)/)
+  assert.match(grid, /suppressClickId/)
+  assert.match(dock, /suppressClickId/)
+})
+
+test('empty long press and touch or trackpad pinch enter desktop editing', async () => {
+  const home = await read('../src/components/system/HomeScreen.vue')
+  assert.match(home, /onRootPointerDownCapture/)
+  assert.match(home, /pinch\.initial-distance >= 36/)
+  assert.match(home, /distance <= pinch\.initial\*\.86/)
+  assert.match(home, /event\.ctrlKey/)
+  assert.match(home, /pinchWheelDelta >= 24/)
+  assert.match(home, /system\.baseLayer !== 'home'/)
+  assert.match(home, /setTimeout\(enterEditingFromEmptyPress,450\)/)
+  assert.match(home, /function enterEditingFromEmptyPress\(\)[\s\S]*releasePointerCapture[\s\S]*home\.setEditing\(true\)/)
+})
+
+test('compact clock and calendar icons retain legible special rendering', async () => {
+  const icon = await read('../src/components/ui/AppIcon.vue')
+  assert.match(icon, /compactSpecial = computed\(\(\) => props\.size < 20\)/)
+  assert.match(icon, /class="clock-face" width="100%" height="100%"/)
+  assert.match(icon, /v-for="i in \(compactSpecial \? \[\] : 12\)"/)
+  assert.match(icon, /<line v-if="!compactSpecial"/)
+  assert.match(icon, /is-compact-special/)
+})
