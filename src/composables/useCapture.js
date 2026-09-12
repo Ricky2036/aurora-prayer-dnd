@@ -299,7 +299,7 @@ async function startRecording(opts = {}) {
 
   const frameEl = withFrame ? resolveFrameEl() : null
   const targetEl = frameEl || resolveScreenEl()
-  const shapeEl = rounded ? (frameEl?.querySelector('.phone-frame') || targetEl) : null
+  const shapeEl = rounded ? targetEl : null
   const shapeWidth = shapeEl?.offsetWidth || 1
   const shapeRadius = rounded ? (Number.parseFloat(getComputedStyle(shapeEl).borderTopLeftRadius) || 0) : 0
   const captureRadiusRatio = shapeRadius / shapeWidth
@@ -483,7 +483,7 @@ async function captureScreenshot(opts = {}) {
   setCaptureMode(!withFrame)
 
   // 圆角裁切只在调用方显式要求时才做（带壳演示素材用）；不带壳一律不裁
-  const shapeEl = rounded ? (frameEl?.querySelector('.phone-frame') || targetEl) : null
+  const shapeEl = rounded ? targetEl : null
   const shapeWidth = shapeEl?.offsetWidth || 1
   const shapeRadius = rounded ? (Number.parseFloat(getComputedStyle(shapeEl).borderTopLeftRadius) || 0) : 0
   const captureRadiusRatio = shapeRadius / shapeWidth

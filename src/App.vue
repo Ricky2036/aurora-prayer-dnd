@@ -190,6 +190,12 @@ function takeScreenshot() {
 .phone-scale {
   transform-origin: center center;
   transition: transform 0.2s ease;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 6px;
+  box-sizing: content-box;
+  border-radius: calc(var(--screen-radius) + 16px);
 }
 
 /* ============ 录制中指示器 ============ */
