@@ -2153,15 +2153,17 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-/* 原型手机微型化（浅灰色边框 + 8.5px 外圆角 + 2.8px 边框） */
+/* 原型手机微型化（毛玻璃质感 + 稍深外框 + 大圆角 10.5px / 7.7px） */
 .mini-proto-phone {
   position: relative;
   width: 30px;
   height: 46px;
-  border-radius: 8.5px;
-  border: 2.8px solid #c4c9d4;
-  background: #c4c9d4;
-  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.35);
+  border-radius: 10.5px;
+  border: 2.8px solid rgba(130, 145, 168, 0.75);
+  background: rgba(85, 98, 118, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), inset 0 0.5px 0.5px rgba(255, 255, 255, 0.35);
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -2169,13 +2171,15 @@ function onToggleFineTune(enabled) {
   transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 深灰屏幕区（5.7px 内圆角，严格满足同心圆角公式：R_inner = 8.5 - 2.8 = 5.7） */
+/* 深灰毛玻璃屏幕区（稍浅深灰 + 7.7px 内圆角，严格同心平行） */
 .mini-screen {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 5.7px;
-  background: #1f232b; /* 高级深灰屏幕 */
+  border-radius: 7.7px;
+  background: rgba(36, 44, 58, 0.72); /* 稍浅深灰透光毛玻璃屏幕 */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2208,12 +2212,12 @@ function onToggleFineTune(enabled) {
   z-index: 2;
 }
 
-/* 设置齿轮（与边框完全相同的浅灰色） */
+/* 设置齿轮（与边框同色系浅雾灰） */
 .mini-gear {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c4c9d4;
+  color: #94a3b8;
   z-index: 1;
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
 }
