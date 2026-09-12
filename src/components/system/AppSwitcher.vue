@@ -36,6 +36,16 @@ import {
  * 参考实现：SoxiaLiSA/StackSwipe（MIT，Kotlin）——固定 zIndex、几何级数露边、
  * 阻尼橡皮筋、投影吸附。它没有缩放堆叠与 8:3:2:1，那两块是本项目自研。
  *
+ * ── 2026-09-12 第三轮：Ricky 提交参考视频后的四条修正（详见 switcherDeck.js 顶部）──
+ *   A. 卡片整体下移 → 不再用固定 Y_FRAC，改为「图标行 + 卡片」整体垂直居中于
+ *      [状态栏底(--safe-top), 删除按钮顶]（实测锚点：54 / 840，gap = 77）。
+ *   B. 背景层不再上浮 → 删除 Y_STEP_FRAC，y = cardCy - cardH·scale/2，
+ *      所有层共用同一垂直中心。
+ *   C. 图标 18 → 24px、字号 14 → 16px，并纳入整体居中的 blockH。
+ *   D. 横滑动效：ios-deck 由 ζ=1.0 临界阻尼改为 ζ=0.65（τ 仍 ≈110ms，带 6.7% 过冲）；
+ *      扇开包络松手时交给弹簧衰减（不再硬置零 → 消除背景层硬跳变）；
+ *      拖动灵敏度 0.60 → 0.85 卡宽/张（对齐参考实测 0.87）。
+ *
  * 动效：
  *   进入    HomeIndicator 停驻手势驱动 switcherProgress 0→1，前台应用围绕【屏幕中心】
  *           连续缩到卡位（跟手，逐帧直写无 transition）；进度用原始位移换算，
@@ -57,6 +67,10 @@ const LABEL_INSIDE = false
 const rootRef = ref(null)
 const screenW = ref(0)
 const screenH = ref(0)
+/* 布局锚点（修正 A）：「图标行 + 卡片」整体垂直居中于 [状态栏底, 删除按钮顶]。
+   两者都从 CSS 变量读，避免与 StatusBar / .switcher-dock 的样式脱钩。 */
+const safeTop = ref(0)
+const homeInset = ref(DECK.DEFAULT_HOME_INSET)
 
 /**
  * 屏幕尺寸 —— 必须早于「跟手卡/堆叠卡」的首次渲染就绪。
@@ -76,12 +90,23 @@ function measure() {
   const h = el.offsetHeight
   if (w && w !== screenW.value) screenW.value = w
   if (h && h !== screenH.value) screenH.value = h
+  /* 锚点：状态栏高度（--safe-top）与底部安全区（--home-indicator-inset） */
+  const cs = getComputedStyle(el)
+  const st = parseFloat(cs.getPropertyValue('--safe-top'))
+  if (Number.isFinite(st) && st > 0 && st !== safeTop.value) safeTop.value = st
+  const hi = parseFloat(cs.getPropertyValue('--home-indicator-inset'))
+  if (Number.isFinite(hi) && hi !== homeInset.value) homeInset.value = hi
 }
 
 let ro = null
 
 /* ---- 几何：全部来自纯函数模块（可单测）---- */
-const metrics = computed(() => deckMetrics(screenW.value, screenH.value))
+const metrics = computed(() =>
+  deckMetrics(screenW.value, screenH.value, {
+    topInset: safeTop.value > 0 ? safeTop.value : undefined,
+    homeInset: homeInset.value
+  })
+)
 const cardW = computed(() => metrics.value.cardW)
 const cardH = computed(() => metrics.value.cardH)
 const RADIUS = computed(() => metrics.value.radius)
@@ -107,8 +132,11 @@ const frontIndex = computed(() => {
 
 const visible = computed(() => system.appSwitcherOpen || system.switcherProgress > 0)
 
-/* 拖动期的「扇开」包络（-1..1）。松手与静止时恒为 0 —— 静态几何只由 focus 唯一决定。 */
-const dragFan = ref(0)
+/* 拖动期的「扇开」包络（0..1）。松手与静止时归 0 —— 静态几何只由 focus 唯一决定。
+   修正 D（2026-09-12 第三轮）：松手时【交给弹簧衰减】而不是硬置零。
+   旧实现松手瞬间 dragFan = 0，同时 focusMoving → true 关掉 CSS transition，
+   背景层会硬跳一下（「横滑动效非常不自然」的一个真实来源）。 */
+const { value: dragFan, snapTo: fanSnap, animateTo: fanTo } = useSpring(0, 'ios-deck')
 
 /* 焦点弹簧动画期间关闭 CSS transition —— 否则逐帧推进的 spring 会被 0.24s 过渡
    二次低通，松手后的吸附变成「慢慢飘过去」，没有弹簧的干脆手感。 */
@@ -150,7 +178,7 @@ watch(
       entranceDone.value = false
       homePath.value = false
       hasFollow.value = false
-      dragFan.value = 0
+      fanSnap(0)
       return
     }
     /* 同步编排（不放到 nextTick）：邻居卡要和开关置位在同一帧就带上目标样式，
@@ -158,7 +186,7 @@ watch(
        不依赖本组件 dom 是否已挂载。 */
     measure()
     focusSnap(frontIndex.value)
-    dragFan.value = 0
+    fanSnap(0)
     homePath.value = !system.activeAppId
     hasFollow.value = !!system.activeAppId && system.switcherProgress < 1
     if (homePath.value) {
@@ -231,11 +259,13 @@ function stackStyle(i) {
   }
 }
 
-/** 卡片左上角标签（图标 + 名称）的位置 —— 见 LABEL_INSIDE 开关 */
+/** 卡片左上角标签（图标 + 名称）的位置 —— 见 LABEL_INSIDE 开关。
+ *  卡外上方时 top = -(图标行高 + 间隙)，这两个值与 deckMetrics 的 LABEL_ROW_H/LABEL_GAP
+ *  同源（修正 C：图标 18 → 24px，行高与间隙一起纳入「整体居中」的 blockH 计算）。 */
 function labelStyle() {
   return LABEL_INSIDE
     ? { top: '10px', left: '12px' }
-    : { top: '-30px', left: '0px' }
+    : { top: -(DECK.LABEL_ROW_H + DECK.LABEL_GAP) + 'px', left: '0px' }
 }
 
 /* 交接判定：进场进度到位（跟手卡与前卡槽位几何重合）后交给堆叠前卡 */
@@ -351,7 +381,7 @@ function onPointerMove(e) {
   d.dx = dx
   vtPush(e.clientX, performance.now())
   d.vPx = vtVelocity()
-  dragFan.value = deckFan(dx, metrics.value.span)
+  fanSnap(deckFan(dx, metrics.value.span))
   focusSnap(deckClampFocus(d.startFocus + dx / metrics.value.span, apps.value.length))
 }
 
@@ -368,7 +398,7 @@ function onPointerUp(e) {
   if (d.mode === 'h') {
     /* 松手吸附（参考 StackSwipe：projected = pos + vIndex × 提前量 → 四舍五入）：
        位移过半才翻页；速度只用来「补足」尚未过半的位移 —— 快甩即使只走了 1/3 张也翻页，
-       而已经走满一整张的快滑不会额外多翻一张（否则 165px 的快滑会一次跳两层）。
+       而已经走满一整张的快滑不会额外多翻一张（否则 span=0.85 卡宽的快滑会一次跳两层）。
        提前量偏置钳制在 ±0.4 层，避免高速把判定推得离谱。 */
     const cur = focus.value
     const base = Math.floor(cur)
@@ -376,11 +406,12 @@ function onPointerUp(e) {
     const bias = Math.max(-0.4, Math.min(0.4, vFocus * 0.1))
     const idx0 = base + (frac > 0.5 - bias ? 1 : 0)
     const idx = Math.max(0, Math.min(apps.value.length - 1, idx0))
-    dragFan.value = 0
+    /* 扇开交给弹簧归零（与 focus 弹簧同参数、同起点 → 同步收尾，无硬跳变） */
+    fanTo(0)
     focusToIndex(idx, { initialVelocity: Math.max(-6, Math.min(6, vFocus)) })
     return
   }
-  dragFan.value = 0
+  fanTo(0)
   if (d.mode === 'v') {
     const cardId = hitCardId(e)
     if (cardId && dy < -110) dismissWithAnimation(cardId)
@@ -550,7 +581,7 @@ onBeforeUnmount(() => {
         >
           <!-- 卡片左上角：应用图标 + 名称（只跟离焦点最近的那张走） -->
           <div v-if="c.i === labelIndex && !dismissing" class="switcher-card-label" :style="labelStyle()">
-            <AppIcon :app="appOf(c.id)" :size="18" :show-label="false" />
+            <AppIcon :app="appOf(c.id)" :size="24" :show-label="false" />
             <span>{{ nameOf(c.id) }}</span>
           </div>
           <div class="switcher-card-body">
@@ -621,29 +652,33 @@ onBeforeUnmount(() => {
   will-change: transform, filter;
 }
 /* 堆叠几何：以【左上角】为原点缩放 —— 左边缘被钉住，下层才会「露出越来越少的左侧阶梯」
-   （若用 center，缩放会把左边缘往右推，阶梯会被吃掉，最深层还会漂出屏） */
+   （若用 center，缩放会把左边缘往右推，阶梯会被吃掉，最深层还会漂出屏）。
+   垂直方向的「居中」由 deckPose 的 y = cardCy - cardH·scale/2 显式补偿（修正 B）：
+   原点在左上角不再意味着顶对齐，所有层的垂直中心恒等于 cardCy。 */
 .switcher-card.is-deck {
   transform-origin: 0 0;
 }
 /* 非拖拽 / 非焦点弹簧推进时开过渡（重排、移除、恢复、桌面入场）。
    - .is-follow 的 transform 由手势/进场弹簧逐帧直写，挂 transition 会被二次低通，
      表现为「跟手滞后、松手后慢慢飘」→ 必须排除；
-   - .is-focus-moving 是松手后的吸附弹簧，同理必须排除。 */
+   - .is-focus-moving 是松手后的吸附弹簧，同理必须排除。
+   - 曲线 0.32s / cubic-bezier(0.32, 1.16, 0.6, 1)：与 ios-deck 弹簧（τ≈110ms、
+     过冲 6.7%）的收尾观感一致，末段带一点回弹余韵，不再是死板的 ease-out。 */
 .app-switcher:not(.is-dragging):not(.is-focus-moving) .switcher-card:not(.is-follow) {
   transition:
-    transform 0.24s cubic-bezier(0.25, 1, 0.4, 1),
-    opacity 0.2s ease,
-    filter 0.24s ease;
+    transform 0.32s cubic-bezier(0.32, 1.16, 0.6, 1),
+    opacity 0.22s ease,
+    filter 0.28s ease;
 }
 
 .switcher-card-label {
   position: absolute;
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 24px;
+  gap: 7px;
+  height: 24px; /* = DECK.LABEL_ROW_H（改这里要同步 switcherDeck.js） */
   color: rgba(255, 255, 255, 0.95);
-  font: 500 14px/1 var(--font-stack);
+  font: 500 16px/1 var(--font-stack);
   white-space: nowrap;
   pointer-events: none;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);

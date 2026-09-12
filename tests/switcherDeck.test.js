@@ -21,11 +21,39 @@ const m = deckMetrics(430, 932)
 test('几何度量：卡宽 275、焦点层水平居中', () => {
   assert.equal(m.cardW, 275)
   assert.equal(m.cardH, 596)
-  assert.equal(m.cardY, 84)
   assert.equal(m.frontX, 77.5)
   assert.equal(m.radius, 29)
   assert.equal(m.exit, 378.4)
-  assert.equal(m.span, 165)
+  assert.equal(m.span, 233.75) // = 卡宽 × 0.85（对齐参考视频实测 0.87 卡宽/张）
+})
+
+test('修正 A：卡片整体在删除按钮上方居中（图标行 + 卡片作为整体）', () => {
+  /* 锚点：状态栏底 54（--safe-top）、删除按钮顶 = 932 - 14(home inset) - 26 - 52 = 840 */
+  assert.equal(m.topInset, 54)
+  assert.equal(m.dockTop, 840)
+  assert.equal(m.blockH, 24 + 12 + 596) // 图标行 24 + 间隙 12 + 卡高 596
+  assert.equal(m.gap, 77) // (840 - 54 - 632) / 2
+  assert.equal(m.labelY, 131) // 图标行顶部 = 54 + 77
+  assert.equal(m.cardY, 167) // 卡顶 = 131 + 24 + 12
+  assert.equal(m.cardY + m.cardH, 763) // 卡底
+  /* 「居中」的判定：卡片底到按钮顶的留白 === 状态栏底到图标顶的留白 */
+  assert.equal(m.dockTop - (m.cardY + m.cardH), m.gap)
+  /* 默认兜底比例（测不到 DOM 时）也要落在 54 附近 */
+  assert.equal(deckMetrics(430, 932).topInset, 54)
+})
+
+test('修正 B：所有卡片与顶部卡片上下居中对齐（同一垂直中心）', () => {
+  const cy = (p) => p.y + (m.cardH * p.scale) / 2
+  for (const a of [0, 0.5, 1, 1.5, 2, 3]) {
+    assert.ok(Math.abs(cy(deckPose(a, m, 0)) - m.cardCy) < 1e-9, `层深 ${a} 的垂直中心偏离 cardCy`)
+  }
+  /* 背景层不再「整体靠上」：顶/底内缩对称（旧版 yStep + 顶对齐会让它整体上浮） */
+  const p0 = deckPose(0, m, 0)
+  const p1 = deckPose(1, m, 0)
+  const insetTop = p1.y - p0.y
+  const insetBottom = p0.y + m.cardH - (p1.y + m.cardH * p1.scale)
+  assert.ok(Math.abs(insetTop - insetBottom) < 1e-9, `内缩不对称 上${insetTop} / 下${insetBottom}`)
+  assert.ok(insetTop > 0, '背景层必须比顶卡小（内缩为正）')
 })
 
 test('规则④ 阶梯式缩小 + 露出越来越少', () => {
@@ -73,12 +101,13 @@ test('规则⑤ 最多四层：4 个槽位 + 1 张正在离场的卡，第 5 层
   assert.ok(!deckVisible(-1.02 - 1e-6))
 })
 
-test('规则② 下层缩小后藏在上层下方（左边缘钉住 + y 下移 + 变暗）', () => {
+test('规则② 下层缩小后藏在上层下方（左边缘钉住 + 居中缩放 + 变暗）', () => {
   const p0 = deckPose(0, m, 0)
   const p1 = deckPose(1, m, 0)
   const p2 = deckPose(2, m, 0)
   // 缩放锚点是左上角，所以左边缘严格单调左移 → 背景层只被上层盖住左露出条
   assert.ok(p1.x < p0.x && p2.x < p1.x)
+  // 「缩小后藏在上层下方」= 顶边比上层低（居中内缩，不是整体上浮）
   assert.ok(p1.y > p0.y && p2.y > p1.y)
   assert.ok(p1.bright < p0.bright && p2.bright < p1.bright)
   // 背景层缩放后右边缘不越过焦点层右边缘（真正「藏在上层卡片下方」）

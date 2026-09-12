@@ -110,7 +110,7 @@ async function fastPauseSwipe() {
 const screenBox = await page.locator('.screen').boundingBox()
 const screenCenterX = screenBox.x + screenBox.width / 2
 const cardW = Math.round(screenBox.width * 0.64)
-const SPAN = cardW * 0.6 // 一整层的拖动距离
+const SPAN = cardW * 0.85 // 一整层的拖动距离（DECK.FOCUS_SPAN_FRAC，对齐参考视频实测 0.87）
 const expectStair = [0, 0.12, 0.186, 0.222].map((f) => Math.round(cardW * f))
 
 /* 采样器：跟手卡在拖拽期的几何。Ricky 2026-09-12 定的三条硬规则：
@@ -290,6 +290,66 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
     '删除按钮 = 通知中心同款磨砂圆钮（52×52 / blur24 / 8% 白）',
     !!trash && trash.shared && trash.w === 52 && trash.h === 52 && /blur\(24px\)/.test(trash.blur || '') && /rgba\(255, 255, 255, 0\.08\)/.test(trash.bg),
     JSON.stringify(trash)
+  )
+}
+
+/* ---- 修正 A/B/C（2026-09-12 第三轮：Ricky 提交参考视频后的布局修正）----
+   A. 卡片整体在【删除按钮上方】居中 —— 判定：图标顶到状态栏底的留白 === 卡底到按钮顶的留白；
+   B. 背景层与顶卡【上下居中对齐】—— 判定：所有层垂直中心一致，且上下内缩对称；
+   C. 图标放大到 24px，并纳入整体居中的 blockH。 */
+{
+  const trashBox = await page.locator('.switcher-trash').boundingBox()
+  const safeTopPx = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.querySelector('.screen')).getPropertyValue('--safe-top'))
+  )
+  const byIdx = [...rows].sort((a, b) => a.idx - b.idx)
+  const focusCard = byIdx[0]
+  const cardBottom = focusCard.y + focusCard.h
+  const labelBox = await page.locator('.switcher-card-label').first().boundingBox()
+  const iconBox = await page.evaluate(() => {
+    const l = document.querySelector('.switcher-card-label')
+    const el = l && l.firstElementChild
+    if (!el) return null
+    const r = el.getBoundingClientRect()
+    return { w: +r.width.toFixed(1), h: +r.height.toFixed(1) }
+  })
+
+  const gapTop = labelBox.y - safeTopPx
+  const gapBottom = trashBox.y - cardBottom
+  check(
+    '修正 A：图标行 + 卡片作为整体，在删除按钮上方居中',
+    Math.abs(gapTop - gapBottom) <= 2.5,
+    `上留白=${gapTop.toFixed(1)} 下留白=${gapBottom.toFixed(1)}（状态栏底=${safeTopPx} 按钮顶=${trashBox.y.toFixed(1)}）`
+  )
+  check(
+    '修正 A：卡片整体已下移（旧版卡顶 84 / 卡底 680，上留白 84 vs 下留白 160 明显偏上）',
+    focusCard.y > 140 && focusCard.y < 195,
+    `卡顶=${focusCard.y.toFixed(1)} 卡底=${cardBottom.toFixed(1)}（期望 ≈ 167 / 763）`
+  )
+
+  const centers = byIdx.map((r) => r.y + r.h / 2)
+  check(
+    '修正 B：所有卡片与顶卡上下居中对齐（垂直中心一致）',
+    Math.max(...centers) - Math.min(...centers) <= 1,
+    `中心=${centers.map((v) => v.toFixed(1)).join(' / ')}`
+  )
+  const insetsTop = byIdx.map((r) => r.y - focusCard.y)
+  const insetsBot = byIdx.map((r) => cardBottom - (r.y + r.h))
+  check(
+    '修正 B：背景层上下内缩对称（不再整体上浮）',
+    byIdx.every((_, i) => Math.abs(insetsTop[i] - insetsBot[i]) <= 1),
+    `上内缩=${insetsTop.map((v) => v.toFixed(1)).join('/')} 下内缩=${insetsBot.map((v) => v.toFixed(1)).join('/')}`
+  )
+
+  check(
+    '修正 C：应用图标放大到 24px（原 18px）',
+    !!iconBox && Math.abs(iconBox.w - 24) <= 1.5 && Math.abs(iconBox.h - 24) <= 1.5,
+    iconBox ? `图标 ${iconBox.w}×${iconBox.h}` : '未找到图标'
+  )
+  check(
+    '修正 C：图标行高 24px（已纳入整体居中的 blockH）',
+    Math.abs(labelBox.height - 24) <= 1.5,
+    `label 高=${labelBox.height.toFixed(1)}`
   )
 }
 
@@ -531,6 +591,116 @@ await page.waitForTimeout(1000)
     [...document.querySelectorAll('.switcher-card.is-deck')].map((c) => +getComputedStyle(c).opacity)
   )
   check('桌面入场结束后全部卡片可见（无残留 opacity 0）', opacities.every((o) => o === 1), opacities.join('/'))
+}
+
+/* ---- 修正 D（2026-09-12 第三轮）：松手吸附的连续性与弹性 ----
+   抽帧量化参考视频得到的目标：τ ≈ 110ms 的缓出 + 到位时约 6.7% 的轻微过冲回弹。
+   放在脚本最末：此处状态干净（桌面路径刚打开、焦点 = 0、4 层齐全），不影响任何后续断言。
+   守两条可回归的行为不变量：
+     ① 无硬跳变 —— 任意相邻帧、任意相邻两层，间距变化 < 10px
+        （旧实现松手瞬间 dragFan 硬置零、同时关掉 CSS transition → 一帧 30px+ 的突变）；
+     ② 轻微过冲 —— 快甩后新焦点卡越过终点再回落（旧版 ios-deck 是 ζ=1.0 临界阻尼、无弹性）。 */
+{
+  const startX = 110
+  const slowPx = Math.round(SPAN * 0.42) // 明显不足半层 → 松手必回原位
+  const flickPx = Math.round(SPAN * 0.62) // 过半 → 必翻一层
+
+  // ---- ① 慢拖 0.42 层（扇开明显）→ 停 150ms → 松手 ----
+  await page.evaluate(() => {
+    window.__d4 = []
+    window.__d4Stop = false
+    const tick = () => {
+      if (window.__d4Stop) return
+      const cards = [...document.querySelectorAll('.switcher-card.is-deck')]
+      if (cards.length >= 2) {
+        window.__d4.push(
+          cards.map((el) => ({
+            i: +el.dataset.index,
+            x: +new DOMMatrixReadOnly(getComputedStyle(el).transform).e.toFixed(2)
+          }))
+        )
+      }
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+  await page.mouse.move(startX, 500)
+  await page.mouse.down()
+  for (let i = 1; i <= 20; i++) {
+    await page.mouse.move(startX + (slowPx * i) / 20, 500, { steps: 1 })
+    await page.waitForTimeout(8)
+  }
+  await page.waitForTimeout(150)
+  await page.mouse.up()
+  await page.waitForTimeout(700)
+  const trace = await page.evaluate(() => { window.__d4Stop = true; return window.__d4 })
+
+  /* 按 data-index 对齐算「相邻两层间距」的逐帧序列。
+     卡片会在拖动中进出 DOM（数组长度变化），按下标比较会错位 —— 必须按 index 配对。 */
+  const gapsOf = (sample) => {
+    const m = new Map()
+    const byI = new Map(sample.map((r) => [r.i, r.x]))
+    for (const r of sample) {
+      const nx = byI.get(r.i + 1)
+      if (nx != null) m.set(r.i, r.x - nx)
+    }
+    return m
+  }
+  let maxJump = 0
+  let jumpAt = -1
+  for (let i = 1; i < trace.length; i++) {
+    const a = gapsOf(trace[i - 1])
+    const b = gapsOf(trace[i])
+    for (const [k, v] of b) {
+      if (!a.has(k)) continue
+      const d = Math.abs(v - a.get(k))
+      if (d > maxJump) {
+        maxJump = d
+        jumpAt = i
+      }
+    }
+  }
+  const mid = trace[Math.floor(trace.length * 0.4)]
+  const peakGap = mid ? gapsOf(mid).get(0) : null
+  check(
+    '修正 D①：松手无硬跳变（扇开交给弹簧衰减，不再硬置零）',
+    maxJump < 10,
+    `拖动中最大层间距=${peakGap != null ? peakGap.toFixed(1) : '?'}px 最大单帧间距跳变=${maxJump.toFixed(1)}px（第 ${jumpAt}/${trace.length} 帧）`
+  )
+
+  // ---- ② 快甩 0.62 层 → 采样第 2 张卡的 x，看是否越过终点再回落 ----
+  await page.evaluate(() => {
+    window.__d4b = []
+    window.__d4bStop = false
+    const tick = () => {
+      if (window.__d4bStop) return
+      const c = document.querySelector('.switcher-card.is-deck[data-index="1"]')
+      if (c) window.__d4b.push(+new DOMMatrixReadOnly(getComputedStyle(c).transform).e.toFixed(2))
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+  await page.mouse.move(startX, 500)
+  await page.mouse.down()
+  for (let i = 1; i <= 6; i++) {
+    await page.mouse.move(startX + (flickPx * i) / 6, 500, { steps: 1 })
+    await page.waitForTimeout(6)
+  }
+  await page.mouse.up()
+  await page.waitForTimeout(800)
+  const ft = await page.evaluate(() => { window.__d4bStop = true; return window.__d4b })
+  if (ft.length > 12) {
+    const peak = Math.max(...ft)
+    const iPeak = ft.indexOf(peak)
+    const finalX = ft[ft.length - 1]
+    check(
+      '修正 D②：松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）',
+      peak > finalX + 3 && iPeak < ft.length - 3,
+      `终点 x=${finalX} 峰值 x=${peak} 过冲=${(peak - finalX).toFixed(1)}px（峰值在第 ${iPeak}/${ft.length} 帧）`
+    )
+  } else {
+    check('修正 D②：松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）', false, `采样不足 ${ft.length}`)
+  }
 }
 
 check('无控制台报错', errs.length === 0, errs.slice(0, 3).join(' | '))
