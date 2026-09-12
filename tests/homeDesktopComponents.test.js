@@ -218,3 +218,14 @@ test('folder merge candidate arms before committing and flies both icons into st
   assert.match(grid, /folder-candidate-in 140ms/)
   assert.match(folder, /is-merging/)
 })
+
+test('desktop application labels use the corrected Chinese names', async () => {
+  const [apps, names] = await Promise.all([
+    read('../src/config/apps.js'), read('../src/locales/app-names.js')
+  ])
+  for (const source of [apps, names]) {
+    assert.match(source, /notes:\s*'记事本'|id: 'notes',[\s\S]*?name: '记事本'/)
+    assert.match(source, /voicememos:\s*'录音机'|id: 'voicememos',[\s\S]*?name: '录音机'/)
+    assert.match(source, /calculator:\s*'计算器'|id: 'calculator',[\s\S]*?name: '计算器'/)
+  }
+})
