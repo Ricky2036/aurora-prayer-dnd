@@ -67,6 +67,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Codex | Restore app taps after desktop editing | `codex/lane` | None (locks released) | `20174e4` | `4b2d285` |
 | Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `763378f` |
 | Merged | Antigravity | Fix LockScreen mobile touch gestures: separate non-card swipe to unlock, resolve card scroll stuck & desktop leak, and support touch swipe down collapse | `antigravity/lane` | None (locks released) | `0dc5cac` | `ac79331` |
-| Active | Antigravity | Move DevConsole fullscreen and screen power buttons into Prototype Controls card | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `5e8b28d` | Pending |
+| Merged | Antigravity | Move DevConsole fullscreen and screen power buttons into Prototype Controls card | `antigravity/lane` | None (locks released) | `5e8b28d` | `1cf32f4` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
