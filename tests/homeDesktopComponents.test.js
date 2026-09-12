@@ -29,10 +29,11 @@ test('motion polish includes FLIP, removal animation and reduced-motion support'
   assert.match(dock, /is-removing/)
 })
 
-test('desktop grid preserves square widgets and keeps the following app row close', async () => {
+test('desktop grid renders adaptive pixel frames and preserves square widgets', async () => {
   const grid = await read('../src/components/system/AppGrid.vue')
-  assert.match(grid, /grid-template-rows:65\.5px 65\.5px repeat\(4,79px\)/)
-  assert.match(grid, /row-gap:20px/)
+  assert.match(grid, /position:absolute/)
+  assert.match(grid, /translate3d\(\$\{p\.x\}px,\$\{p\.y\}px,0\)/)
+  assert.match(grid, /profile\.iconSize \* profile\.compactScale/)
   assert.match(grid, /\.home-item\.is-widget \{[^}]*aspect-ratio:1\/1/)
   assert.doesNotMatch(grid, /\.home-item\.is-large \{ align-items:stretch; \}/)
 })
