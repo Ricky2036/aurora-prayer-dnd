@@ -40,15 +40,15 @@ test('PhoneFrame implements premium titanium frame, antenna bands, 5-button layo
   assert.match(frameContent, /class="punch-hole"/, 'Must retain punch-hole camera node for status bar test compatibility')
   assert.match(frameContent, /class="frame-inner"/, 'Must include ultra-narrow black bezel frame-inner')
 
-  // Concentric geometric radii
+  // Concentric geometric radii (2px outer metal + 3px inner black bezel = 5px total)
   assert.match(
     frameContent,
-    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*8\.5px\);/,
-    'Outer titanium frame must concentric scale by +8.5px'
+    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*5px\);/,
+    'Outer titanium frame must concentric scale by +5px'
   )
   assert.match(
     frameContent,
-    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*4px\);/,
-    'Inner black bezel must concentric scale by +4px'
+    /border-radius:\s*calc\(var\(--screen-radius\)\s*\+\s*3px\);/,
+    'Inner black bezel must concentric scale by +3px'
   )
 })
