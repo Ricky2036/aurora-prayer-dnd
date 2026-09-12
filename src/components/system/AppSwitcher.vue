@@ -15,14 +15,17 @@ import { screenRef } from '../../utils/screenRef'
  * 几何（全部按屏幕分数，不写死 px）：
  *   卡片      宽 = 屏宽 × 0.64、高 = 屏高 × 0.64（与屏幕同比例 → 预览零裁切）
  *   顶距      屏高 × 0.09；圆角 = 屏宽 × 0.0667（360 屏上 = 24）
- *   前卡槽位  焦点 0（当前）左缘 31%；浏览时 23.5%（左右各留 12.5% 对称露出）
- *   堆叠      更早的卡向【左】逐层偏移 12.5% 屏宽、亮度 ×0.78 递减（尺寸不变）
- *   更新的卡  向【右】滑出，只留 12.5% 屏宽露出（与左侧对称）
+ *   前卡槽位  恒定【屏幕水平正中】（左右各留 18%）—— 上滑缩放落点即屏幕中心
+ *   堆叠      以屏幕中心为基准对称排列：更早的卡向左、更新的卡向右，
+ *             每层偏移 12.5% 屏宽、亮度 ×0.78 递减（尺寸不变）；
+ *             z 层级严格按「距焦点远近」排（×1000 细粒度），最近的在最上
+ *   横滑      焦点头跟手：手往右拖 → focus 增大 → 全部卡片一起往右走，
+ *             更早的卡从左侧进场；手往左拖则反之（松手按位移/速度吸附到整卡）
  *
  * 动效：
  *   进入      HomeIndicator 停驻手势驱动 switcherProgress 0→1，前台应用围绕【屏幕中心】
- *             连续缩到卡位（跟手，无 transition 平滑，逐帧直写）；进度可过拉到 1.35
- *             继续缩小变透明，松手弹簧回 1
+ *             连续缩到卡位（跟手，无 transition 平滑，逐帧直写）；进度用原始位移换算，
+ *             越过满量程后继续无极变小，但【绝不淡出】；松手弹簧回到固定终点
  *   交接      跟手卡落位后由同位姿的堆叠前卡接管（几何逐像素相等，无跳变）
  *   邻居卡    手势路径一开始就在槽位（藏在前卡后面，前卡缩小后自然露出）；
  *             桌面直开路径自下方 30% 上浮、逐张 60ms 错峰入场
@@ -67,6 +70,15 @@ const cardY = computed(() => Math.round(screenH.value * 0.09))
 const PILE_FRAC = 0.125                              // 堆叠每层位移（屏宽分数）
 const RADIUS = computed(() => Math.round(screenW.value * 0.0667)) // 按比例，不写死
 const previewScale = computed(() => (screenW.value ? cardW.value / screenW.value : 1))
+
+/* ---- 内部 z 层级 ----
+   本组件（.app-switcher）自带层叠上下文，所以这里只须【内部自洽】，
+   不必迁就外面的 z。堆叠卡的层级必须由「距焦点的远近」决定，且粒度要足够细。 */
+const Z_STACK_BASE = 10000                            // 焦点卡（距焦点 0 张）
+const Z_STACK_STEP = 1000                             // 每远离焦点 1 张降 1 档
+const Z_FOLLOW = 12000                                // 跟手缩放卡（进场中，压在堆叠卡上）
+const Z_EXPAND = 13000                                // 点卡片恢复的放大卡
+const Z_CHROME = 14000                                // 标题 / 底部垃圾桶
 
 /* ---- 焦点（小数，单位=张），spring 驱动 —— 丝滑的来源 ---- */
 const { value: focus, animateTo: focusTo, snapTo: focusSnap } = useSpring(0, 'ios-gentle')
@@ -139,34 +151,43 @@ watch(
       dwellTimer = setTimeout(() => { neighborsIn.value = true; markEntrance() }, 60)
       return
     }
-    // 手势路径：进度从交接点连续推到 1；邻居卡立即就位（不滑入、不淡入）
+    // 手势路径：进度从交接点连续推到 1（不论当前是小于还是【大于】1 —— 手指越过
+    // 满量程时交接进度会 >1，必须双向都能弹回固定终点，否则弹簧停在 >1 处，
+    // 跟手卡永远压在堆叠卡上、切换器卡死）；邻居卡立即就位（不滑入、不淡入）
     openSnap(system.switcherProgress)
-    if (system.switcherProgress < 1) openTo(1)
+    openTo(1)
     neighborsIn.value = true
     entranceDone.value = true
   },
   { immediate: true }
 )
 
-/* ---- 前卡槽位：焦点 0 → 左缘 31%（当前卡最右）；浏览时 → 23.5%（左右对称） ---- */
-const frontX = computed(() => screenW.value * (0.31 - Math.min(Math.max(focus.value, 0), 1) * 0.075))
+/* ---- 前卡槽位：恒定【屏幕水平中心】 ----
+   Ricky 2026-09-12：上滑缩放要落在屏幕中心，不是偏左/偏右。
+   这一条同时决定了跟手卡的缩放锚点与落点 —— 两者都等于屏幕中心，
+   所以缩小的全过程卡片「原地缩」，不会一边缩一边往一侧漂。 */
+const frontX = computed(() => (screenW.value - cardW.value) / 2)
 
 /* ---- 卡片位姿：o = i - focus ----
-   o ≥ 0（比焦点更早）：向左堆叠，每层左移 12.5% 屏宽、亮度递减；
-   o < 0（比焦点更新）：向右滑出，o = -1 时只留 12.5% 屏宽露出（与左侧对称），
-                        更外层的继续右移出屏。 */
-const outX = computed(() => screenW.value * (1 - PILE_FRAC))
+   全部以屏幕中心为基准做【对称】堆叠：每层偏移 12.5% 屏宽。
+   o ≥ 0（更早的卡）在左，o < 0（更新的卡）在右，
+   前卡（o = 0）永远在屏幕正中，左右露出的宽度一致。
+
+   z 层级 = 距焦点越近越靠上（×1000 细粒度）。
+
+   ⚠️ 历史 bug（2026-09-12 修复）：旧公式 `100 - Math.round(ao * 10)` 粒度太粗，
+   在「两张相邻卡等距」的交叉点附近（ao 相差 < 0.05）会算出【完全相同的 z】，
+   浏览器只能用 DOM 顺序兜底 → 索引更大的那张（更早的卡）永远赢 →
+   拖到一半时「正在进场的卡」被「正在出场的卡」盖住，肉眼看到中心卡突然沉到下面
+   （Ricky 原话：最顶部的卡片还能跑到下面去，整个层级关系都是错的）。
+   实测：去程 6 帧、回程 8 帧出现「屏幕中心最上层 ≠ 离中心最近的卡」。
+   放大到 ×1000 后等距窗口只剩 0.05px 卡片位移，肉眼不可见。 */
 function pose(i) {
   const o = i - focus.value
   const ao = Math.abs(o)
-  let x
-  if (o >= 0) {
-    x = frontX.value - o * screenW.value * PILE_FRAC
-  } else {
-    x = frontX.value + (-o) * (outX.value - frontX.value) + Math.max(0, -o - 1) * screenW.value * 0.9
-  }
+  const x = frontX.value - o * screenW.value * PILE_FRAC
   const bright = 1 - 0.22 * Math.min(ao, 1.5)
-  return { x, scale: 1, bright, z: 100 - Math.round(ao * 10), o }
+  return { x, scale: 1, bright, z: Z_STACK_BASE - Math.round(ao * Z_STACK_STEP), o }
 }
 
 /* 堆叠渲染态：统一的「藏 → 进场」编排，CSS transition 负责丝滑。 */
@@ -196,13 +217,19 @@ function stackStyle(i) {
   }
 }
 
-/* ---- 跟手缩放 ----
-   ① 锚点是【屏幕中心】：缩放围绕中心进行，不是左上角；
-   ② 进度可过拉到 1.35：到最终大小后继续拖，卡片继续缩小并变透明，松手弹簧回 1；
-   ③ 进度 1 时恰好落到前卡槽位（与堆叠卡同位姿，无缝交接）。 */
+/* 交接判定：进场进度到位（跟手卡与前卡槽位几何重合）后交给堆叠前卡 */
 const settledOne = computed(
   () => openP.value >= 0.999 && system.switcherProgress >= 0.999 && system.switcherProgress <= 1.001
 )
+
+/* ---- 跟手缩放（Ricky 2026-09-12 纠正）----
+   ① 锚点 = 落点 = 【屏幕中心】：卡片原地缩小，全程不左右漂；
+   ② 缩放严格跟随手指的上滑位移做【无极】变化 —— 上滑越远缩得越小，
+      越过满量程（260px）之后继续按指数曲线变小；
+   ③ 【绝不淡出】：卡片缩小但不允许「缩到不见」（去掉旧版过拉变透明的逻辑），
+      并留一个可见下限兜底；
+   ④ 松手后由弹簧回到固定终点（前卡槽位、最终大小）。 */
+const MIN_FOLLOW_SCALE = 0.3
 const followStyle = computed(() => {
   const p = system.switcherProgress
   if (p <= 0 || settledOne.value) return null
@@ -210,18 +237,20 @@ const followStyle = computed(() => {
   const slot = pose(idx)
   const slotCx = slot.x + cardW.value / 2
   const slotCy = cardY.value + cardH.value / 2
+  // p ≤ 1：屏幕中心 → 卡位中心（两者水平上同为屏幕中心，只有纵向在移动）
   const cx = screenW.value / 2 + (slotCx - screenW.value / 2) * Math.min(1, p)
   const cy = screenH.value / 2 + (slotCy - screenH.value / 2) * Math.min(1, p)
-  const s = 1 + (previewScale.value - 1) * p // p=1 → 0.64；过拉继续变小
-  const over = Math.max(0, p - 1)
-  const opacity = 1 - Math.min(1, over / 0.35)
+  const s =
+    p <= 1
+      ? 1 + (previewScale.value - 1) * p
+      : Math.max(MIN_FOLLOW_SCALE, previewScale.value * Math.pow(0.55, p - 1))
   return {
     width: screenW.value + 'px',
     height: screenH.value + 'px',
     transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(${s})`,
     borderRadius: (RADIUS.value * Math.min(1, p)) / Math.max(s, 0.01) + 'px',
-    opacity,
-    zIndex: 300
+    opacity: 1,
+    zIndex: Z_FOLLOW
   }
 })
 
@@ -280,10 +309,13 @@ function onPointerMove(e) {
     d.mode = Math.abs(dy) > Math.abs(dx) * 1.4 ? (dy < 0 ? 'v' : 'down') : 'h'
   }
   if (d.mode === 'h') {
-    d.travel = -dx / cardW.value
-    // 跟手：焦点直接跟手指，两端橡皮筋 0.35
-    let next = d.startFocus - dx / cardW.value
-    if (next < 0) next *= 0.35
+    /* 跟手方向（Ricky 2026-09-12 纠正）：
+       堆叠布局是「更早的卡在左、更新的卡在右」，手势要让【手往右拖，卡片也往右走】。
+       卡片位姿 x = frontX + o × 步距（o = i - focus），所以要 x 增大就必须让 focus 增大，
+       因此焦点跟手是 startFocus + dx（旧代码写成 - dx → 手往右拖卡片却往左走）。 */
+    d.travel = dx / cardW.value
+    let next = d.startFocus + dx / cardW.value
+    if (next < 0) next *= 0.35                       // 越过最新端（右侧到头）：橡皮筋
     if (next > apps.value.length - 1) next = apps.value.length - 1 + (next - (apps.value.length - 1)) * 0.35
     focusSnap(next)
   }
@@ -392,7 +424,7 @@ function expandingStyle(i) {
     transform: `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%) scale(${s})`,
     borderRadius: expandTo.value ? '0px' : RADIUS.value / Math.max(s, 0.01) + 'px',
     filter: 'brightness(1)',
-    zIndex: 400,
+    zIndex: Z_EXPAND,
     opacity: 1
   }
 }
@@ -435,7 +467,7 @@ onBeforeUnmount(() => {
     <div
       v-if="system.appSwitcherOpen && labelApp"
       class="switcher-title"
-      :style="{ opacity: chromeOpacity }"
+      :style="{ opacity: chromeOpacity, zIndex: Z_CHROME }"
     >
       <AppIcon :app="appOf(labelApp)" :size="22" :show-label="false" />
       <span>{{ nameOf(labelApp) }}</span>
@@ -494,7 +526,7 @@ onBeforeUnmount(() => {
     <div
       v-if="system.appSwitcherOpen"
       class="switcher-dock"
-      :style="{ opacity: chromeOpacity }"
+      :style="{ opacity: chromeOpacity, zIndex: Z_CHROME }"
     >
       <button class="switcher-trash" @click.stop="clearAll" aria-label="清空全部">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -535,8 +567,7 @@ onBeforeUnmount(() => {
   gap: 7px;
   color: rgba(255, 255, 255, 0.95);
   font: 500 14px/1 var(--font-stack);
-  z-index: 500;
-  pointer-events: none;
+  pointer-events: none;             /* z-index 由模板绑 Z_CHROME 给 */
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
 }
 
@@ -588,8 +619,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  z-index: 500;
+  gap: 10px;                      /* z-index 由模板绑 Z_CHROME 给（压在所有卡片之上） */
 }
 .switcher-trash {
   width: 44px;

@@ -79,15 +79,18 @@ const gesture = useSwipeGesture(rootRef, {
     // 可能把它留成 true，否则这一次轻微上滑会被误判为「已悬停」而直接打开切换器。
     system.switcherDwell = false
   },
-  onProgress(p) {
+  onProgress(p, d) {
     const switcherCandidate =
       system.recentApps.length > 0 &&
       system.baseLayer !== 'lock' &&
       !system.anyOverlayOpen() &&
       !system.appSwitcherOpen // 切换器已打开时不再驱动跟手进度（否则会在堆叠上再叠跟手卡）
     if (switcherCandidate) {
-      // 跟手缩放：进度全程直写（AppSwitcher 的跟手卡据此从全屏连续缩到卡位）
-      system.setSwitcherProgress(p)
+      /* 跟手缩放：进度直接用【原始位移】除以满量程，而不是 useSwipeGesture 传来的
+         已截断到 0..1 的 p —— 这样越过满量程（GESTURE_SPAN）之后手指继续上滑，
+         卡片还会继续无极变小（Ricky 2026-09-12：上滑越远缩得越小，但不许缩到不见）。
+         d 本身带橡皮筋（越界后增速放缓），所以不会失控。 */
+      system.setSwitcherProgress(Math.max(0, (typeof d === 'number' ? d : p * GESTURE_SPAN) / GESTURE_SPAN))
       // 「悬停」= 手指停住不动：每次移动都重计 0.2s，
       // 只有 0.2s 无移动才算 dwell（持续快滑绝不会误触发）
       clearDwellArm()
