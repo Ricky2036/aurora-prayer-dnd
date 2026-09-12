@@ -135,7 +135,6 @@ test('desktop accepts dominant horizontal trackpad wheel gestures for paging', a
   assert.match(source, /wheelDeltaX/)
   assert.match(source, /@wheel="onWheel"/)
 })
-
 test('item long press starts direct drag without entering desktop editing', async () => {
   const [home, grid, dock] = await Promise.all([
     read('../src/components/system/HomeScreen.vue'),
