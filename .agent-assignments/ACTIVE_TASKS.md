@@ -72,7 +72,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Active | Codex | Desktop direct drag and pinch edit | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/ui/AppIcon.vue`; `src/components/home/HomeFolder.vue`; `tests/homeDesktopComponents.test.js` | `023a810` | — |
 | Merged | Antigravity | DevConsole record button unhighlight default style and text refinement | `antigravity/lane` | None (locks released) | `8cecb67` | `37682ee` |
 | Merged | Antigravity | Premium natural titanium phone frame redesign with ultra-thin bezel, 50px radius, and authentic buttons | `antigravity/lane` | None (locks released) | `07e85f4` | `f2adc92` |
-| Merged | Antigravity | Restore flagship 50px corner radius and resolve framed recording button clipping | `antigravity/lane` | None (locks released) | `1059e10` | `84a5706` |
+| Merged | Antigravity | Optimize mobile floating console button: remove background, enlarge phone icon, and add settings gear icon | `antigravity/lane` | None (locks released) | `082d100` | `706dad2` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
 
