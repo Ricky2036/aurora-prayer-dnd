@@ -477,3 +477,32 @@ test('DynamicIsland enlarged compact capsule & icons and StatusBar obstacle calc
   assert.match(sbContent, /276\s*\+\s*HIDE_MARGIN/, 'StatusBar fallback obstacle edge must be 276 + HIDE_MARGIN')
 })
 
+test('DevConsole record button defaults to unhighlighted secondary style and displays only duration elapsed during recording', () => {
+  const devPath = path.resolve(__dirname, '../src/components/dev/DevConsole.vue')
+  const devContent = fs.readFileSync(devPath, 'utf8')
+
+  // Button class should use pc-btn-secondary instead of pc-btn-primary as default
+  assert.match(
+    devContent,
+    /:class="isTranscoding \? 'pc-btn-disabled' : isRecording \? 'pc-btn-danger' : 'pc-btn-secondary'"/,
+    'Record button must default to pc-btn-secondary when not recording'
+  )
+  assert.doesNotMatch(
+    devContent,
+    /isRecording \? 'pc-btn-danger' : 'pc-btn-primary'/,
+    'Record button must not default to pc-btn-primary'
+  )
+
+  // Recording text should only be {{ recordElapsed }} without "停止 ·"
+  assert.match(
+    devContent,
+    /<span>\{\{\s*recordElapsed\s*\}\}<\/span>/,
+    'Recording active text must only display elapsed time'
+  )
+  assert.doesNotMatch(
+    devContent,
+    /<span>停止 · \{\{\s*recordElapsed\s*\}\}<\/span>/,
+    'Recording active text must not contain "停止 ·"'
+  )
+})
+

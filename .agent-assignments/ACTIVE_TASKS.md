@@ -68,5 +68,7 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `763378f` |
 | Merged | Antigravity | Fix LockScreen mobile touch gestures: separate non-card swipe to unlock, resolve card scroll stuck & desktop leak, and support touch swipe down collapse | `antigravity/lane` | None (locks released) | `0dc5cac` | `ac79331` |
 | Merged | Antigravity | Move DevConsole fullscreen and screen power buttons into Prototype Controls card | `antigravity/lane` | None (locks released) | `5e8b28d` | `1cf32f4` |
+| Active | Codex | Desktop direct drag and pinch edit | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/ui/AppIcon.vue`; `src/components/home/HomeFolder.vue`; `tests/homeDesktopComponents.test.js` | `023a810` | — |
+| Active | Antigravity | DevConsole record button unhighlight default style and text refinement | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `8cecb67` | Pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
