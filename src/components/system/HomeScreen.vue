@@ -36,6 +36,7 @@ const stripStyle = computed(() => ({
 const homeStyle = computed(() => system.unlockProgress <= 0 ? {} : ({
   transform: `scale(${1.12 - system.unlockProgress * .12})`, opacity: .3 + system.unlockProgress * .7
 }))
+const indicatorStyle = computed(() => ({ bottom: home.editing ? '194px' : `${home.profile.height - home.profile.indicatorY - 4}px` }))
 const ghostApp = computed(() => {
   const item = ghost.value && home.items[ghost.value.id]
   return item?.type === 'app' ? getApp(item.appId) : null
@@ -427,8 +428,8 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
         <span>卸载</span>
       </button>
     </div>
-    <div class="indicator-wrap"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
-    <DockBar v-if="!home.editing" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
+    <div class="indicator-wrap" :style="indicatorStyle"><PageIndicator :count="displayPages.length" :current="home.currentPage" :show-pages="home.editing || showPageDots" @search="emit('open-library')" /></div>
+    <DockBar v-if="!home.editing" :profile="home.profile" :dragging-id="dragging?.id" :dock-target-index="dockTargetIndex" :removing-ids="removingIds" @item-pointerdown="onDockPointerDown"
       @toggle-select="home.toggleSelected" @request-remove="requestRemove" />
     <HomeFolderOverlay v-if="openFolderId && home.folders[openFolderId]" :folder="home.folders[openFolderId]" :origin="folderOrigin"
       @close="openFolderId=null" @rename="home.renameFolder(openFolderId,$event)" @app-pointerdown="onFolderAppPointerDown" />
