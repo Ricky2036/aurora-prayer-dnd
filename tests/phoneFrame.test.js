@@ -7,14 +7,14 @@ import { fileURLToPath } from 'node:url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-test('tokens.css defines 40px modern screen corner radius', () => {
+test('tokens.css defines 50px modern screen corner radius', () => {
   const tokensPath = path.resolve(__dirname, '../src/styles/tokens.css')
   const tokensContent = fs.readFileSync(tokensPath, 'utf8')
 
   assert.match(
     tokensContent,
-    /--screen-radius:\s*40px;/,
-    '--screen-radius must be 40px for flagship ratio'
+    /--screen-radius:\s*50px;/,
+    '--screen-radius must be 50px for flagship ratio'
   )
 })
 
