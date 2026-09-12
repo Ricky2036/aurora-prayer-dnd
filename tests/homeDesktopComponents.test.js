@@ -203,3 +203,18 @@ test('folder operation mode exposes a resize handle with transient four-size pre
   assert.match(folder, /class="folder-resize-handle"/)
   assert.match(folder, /width:36px;height:36px/)
 })
+
+test('folder merge candidate arms before committing and flies both icons into stable slots', async () => {
+  const [home, grid, folder] = await Promise.all([
+    read('../src/components/system/HomeScreen.vue'), read('../src/components/system/AppGrid.vue'), read('../src/components/home/HomeFolder.vue')
+  ])
+  assert.match(home, /folderMergeCandidate = ref/)
+  assert.match(home, /folderMergeCandidate\.value = candidate \? \{ id:candidate,armed:false \}/)
+  assert.match(home, /}, 420\)/)
+  assert.match(home, /function cloneMergeAnchor/)
+  assert.match(home, /function animateMergeAnchors/)
+  assert.match(home, /duration:280/)
+  assert.match(grid, /is-folder-candidate/)
+  assert.match(grid, /folder-candidate-in 140ms/)
+  assert.match(folder, /is-merging/)
+})

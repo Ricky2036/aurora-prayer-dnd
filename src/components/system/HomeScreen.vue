@@ -26,6 +26,8 @@ const folderOrigin = ref(null)
 const folderTargetId = ref(null)
 const folderOperation = ref(null)
 const folderResize = ref(null)
+const folderMergeCandidate = ref(null)
+const folderMergeAnimation = ref(null)
 const dockTargetIndex = ref(null)
 const pendingRemoval = ref([])
 const toast = ref('')
@@ -133,6 +135,7 @@ function onWheel(event) {
     return
   }
   if (home.editing || openFolderId.value || Math.abs(event.deltaX) <= Math.abs(event.deltaY) || Math.abs(event.deltaX) < 2) return
+  folderOperation.value = null
   event.preventDefault()
   if (wheelLocked) return
   wheelDeltaX += event.deltaX
@@ -175,7 +178,19 @@ function clientPointToHome(x, y) {
 }
 function setGhostPosition(id, clientX, clientY) {
   const point = clientPointToHome(clientX, clientY)
-  ghost.value = { ...ghost.value, id, x:point.x-(ghost.value?.grabX || 0), y:point.y-(ghost.value?.grabY || 0) }
+  let x = point.x-(ghost.value?.grabX || 0), y = point.y-(ghost.value?.grabY || 0)
+  if (folderMergeCandidate.value?.id && ghost.value) {
+    const target = rootRef.value?.querySelector(`[data-home-item="${folderMergeCandidate.value.id}"]`)
+    const rect = target?.getBoundingClientRect(), rootRect = rootRef.value?.getBoundingClientRect()
+    if (rect && rootRect) {
+      const scaleX = rootRef.value.offsetWidth/rootRect.width, scaleY = rootRef.value.offsetHeight/rootRect.height
+      const targetX = (rect.left-rootRect.left)*scaleX + (rect.width*scaleX-ghost.value.width)/2
+      const targetY = (rect.top-rootRect.top)*scaleY + (Math.min(rect.width,rect.height)*scaleY-ghost.value.height)/2
+      const mix = folderMergeCandidate.value.armed ? .72 : .34
+      x += (targetX-x)*mix; y += (targetY-y)*mix
+    }
+  }
+  ghost.value = { ...ghost.value, id, x, y }
 }
 function suppressClick(id) {
   suppressedClickId.value = id
@@ -297,8 +312,12 @@ function trackFolderTarget(x, y) {
   clearTimeout(folderTimer)
   pointer.folderCandidate = candidate
   folderTargetId.value = null
+  folderMergeCandidate.value = candidate ? { id:candidate,armed:false } : null
   if (candidate) folderTimer = setTimeout(() => {
-    if (pointer?.folderCandidate === candidate) folderTargetId.value = candidate
+    if (pointer?.folderCandidate === candidate) {
+      folderTargetId.value = candidate
+      folderMergeCandidate.value = { id:candidate,armed:true }
+    }
   }, 420)
 }
 function trackDockTarget(x, y) {
@@ -310,6 +329,38 @@ function trackDockTarget(x, y) {
   }
   dockTargetIndex.value = Math.max(0,Math.min(3,Math.floor((x - rect.left) / (rect.width / 4))))
   folderTargetId.value = null
+  folderMergeCandidate.value = null
+}
+
+function cloneMergeAnchor(element,appId) {
+  const anchor = element?.querySelector?.('.app-icon-anchor') || element
+  const rect = anchor?.getBoundingClientRect?.()
+  if (!anchor || !rect?.width) return null
+  const clone = anchor.cloneNode(true)
+  clone.classList.add('folder-merge-clone')
+  Object.assign(clone.style,{position:'fixed',left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`,margin:'0',zIndex:'1200',pointerEvents:'none',transformOrigin:'top left'})
+  document.body.appendChild(clone)
+  return { appId,clone,rect }
+}
+async function animateMergeAnchors(entries,folderItemId) {
+  const valid = entries.filter(Boolean)
+  if (!valid.length) return
+  folderMergeAnimation.value = folderItemId
+  await nextTick()
+  await new Promise((resolve) => requestAnimationFrame(resolve))
+  const folderElement = rootRef.value?.querySelector(`[data-home-item="${folderItemId}"]`)
+  const animations = valid.map((entry) => {
+    const destination = [...(folderElement?.querySelectorAll?.('[data-folder-app]') || [])].find((node) => node.dataset.folderApp === entry.appId)?.querySelector('.app-icon-anchor')
+    const to = destination?.getBoundingClientRect?.()
+    if (!to) { entry.clone.remove(); return Promise.resolve() }
+    const animation = entry.clone.animate([
+      { transform:'translate3d(0,0,0) scale(1)',opacity:1 },
+      { transform:`translate3d(${to.left-entry.rect.left}px,${to.top-entry.rect.top}px,0) scale(${to.width/entry.rect.width})`,opacity:1 }
+    ],{duration:280,easing:'cubic-bezier(.22,.8,.24,1)',fill:'forwards'})
+    return animation.finished.catch(() => {}).finally(() => entry.clone.remove())
+  })
+  await Promise.all(animations)
+  folderMergeAnimation.value = null
 }
 function targetIndexAt(x, y) {
   const grid = rootRef.value.querySelector(`[data-page="${home.currentPage}"]`)
@@ -390,16 +441,26 @@ function finishItem(cancelled) {
     home.moveToDock(dragging.value.id,dockTargetIndex.value)
   } else if (!cancelled && dragging.value && folderTargetId.value) {
     const target = home.items[folderTargetId.value]
-    if (target?.type === 'folder') home.addAppToFolder(dragging.value.id, folderTargetId.value)
+    const draggedAppId = home.items[dragging.value.id]?.appId
+    const ghostAnchor = cloneMergeAnchor(ghostRef.value,draggedAppId)
+    if (target?.type === 'folder') {
+      const folderItemId = folderTargetId.value
+      home.addAppToFolder(dragging.value.id,folderItemId)
+      animateMergeAnchors([ghostAnchor],folderItemId)
+    }
     else if (target?.type === 'app') {
+      const targetElement = rootRef.value?.querySelector(`[data-home-item="${folderTargetId.value}"]`)
+      const targetAnchor = cloneMergeAnchor(targetElement,target.appId)
       const location = home.itemLocation(folderTargetId.value) || { page:dragging.value.page, index:dragging.value.index }
-      home.createFolder([folderTargetId.value, dragging.value.id], location.page, location.index)
+      const folderItemId = home.createFolder([folderTargetId.value, dragging.value.id], location.page, location.index)
+      animateMergeAnchors([targetAnchor,ghostAnchor],folderItemId)
     }
   } else if (!cancelled && dragging.value && pointer.sourceDock) {
     home.moveFromDock(dragging.value.id,dragging.value.page,dragging.value.index)
   } else if (!cancelled && dragging.value) home.moveItem(dragging.value.id, dragging.value.page, dragging.value.index)
   previewOrder.value = null; dragging.value = null; ghost.value = null
   folderTargetId.value = null
+  folderMergeCandidate.value = null
   dockTargetIndex.value = null
   if (cancelled) home.currentPage = Math.min(pointer.startPage,home.pages.length - 1)
   if (showPageDots.value) restoreSearchAfterPaging()
@@ -441,7 +502,13 @@ function cleanup(cancelled) {
 function onPointerUp(event) { touchPoints.delete(event.pointerId); if (pointer && event.pointerId === pointer.id) cleanup(false) }
 function onPointerCancel(event) { touchPoints.delete(event.pointerId); if (pointer && event.pointerId === pointer.id) cleanup(true) }
 function onWindowBlur() { if (pointer) cleanup(true) }
+function onHomeKeydown(event) {
+  if (event.key !== 'Escape') return
+  folderOperation.value = null
+  if (pointer) cleanup(true)
+}
 function showFolder(folderId, element) {
+  folderOperation.value = null
   openFolderId.value = folderId
   const copyRect = (rect) => rect ? ({ left:rect.left,top:rect.top,width:rect.width,height:rect.height,right:rect.right,bottom:rect.bottom }) : null
   const shell = element?.querySelector?.('[data-folder-shell]')
@@ -451,6 +518,7 @@ function showFolder(folderId, element) {
   folderOrigin.value = { shellRect:copyRect(shell?.getBoundingClientRect()),titleRect:copyRect(title?.getBoundingClientRect()),iconRects }
 }
 function launchFolderApp(appId, anchor) {
+  folderOperation.value = null
   const screen = document.querySelector('.screen-view')
   if (!screen || !anchor) return
   const screenRect = screen.getBoundingClientRect(), rect = anchor.getBoundingClientRect()
@@ -559,6 +627,7 @@ function measureViewport() {
   })
 }
 onMounted(() => {
+  window.addEventListener('keydown',onHomeKeydown)
   measureViewport()
   resizeObserver = new ResizeObserver(() => {
     cancelAnimationFrame(resizeFrame)
@@ -566,7 +635,7 @@ onMounted(() => {
   })
   resizeObserver.observe(rootRef.value)
 })
-onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimeout(wheelResetTimer); clearTimeout(pinchWheelTimer); clearTimeout(suppressClickTimer); clearTimers(); unbindWindow(); unbindPinchWindow() })
+onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimeout(wheelResetTimer); clearTimeout(pinchWheelTimer); clearTimeout(suppressClickTimer); clearTimers(); unbindWindow(); unbindPinchWindow(); window.removeEventListener('keydown',onHomeKeydown); document.querySelectorAll('.folder-merge-clone').forEach((node) => node.remove()) })
 </script>
 
 <template>
@@ -574,7 +643,7 @@ onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resiz
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
         <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]" :profile="home.profile"
-          :folders="displayFolders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" :open-folder-id="openFolderId" :folder-operation-id="folderOperation?.folderId"
+          :folders="displayFolders" :editing="home.editing" :selected-ids="home.selectedItemIds" :dragging-id="dragging?.id" :folder-target-id="folderTargetId" :folder-candidate-id="folderMergeCandidate?.id" :folder-candidate-armed="folderMergeCandidate?.armed" :merging-folder-item-id="folderMergeAnimation" :removing-ids="removingIds" :suppress-click-id="suppressedClickId" :open-folder-id="openFolderId" :folder-operation-id="folderOperation?.folderId"
           @item-pointerdown="onItemPointerDown" @folder-resize-pointerdown="onFolderResizePointerDown" @toggle-select="home.toggleSelected" @open-folder="showFolder" @request-remove="requestRemove" />
       </section>
     </div>
