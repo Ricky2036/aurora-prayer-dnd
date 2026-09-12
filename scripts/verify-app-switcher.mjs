@@ -598,14 +598,14 @@ await page.waitForTimeout(1000)
    放在脚本最末：此处状态干净（桌面路径刚打开、焦点 = 0、4 层齐全），不影响任何后续断言。
    守两条可回归的行为不变量：
      ① 无硬跳变 —— 任意相邻帧、任意相邻两层，间距变化 < 10px
-        （旧实现松手瞬间 dragFan 硬置零、同时关掉 CSS transition → 一帧 30px+ 的突变）；
+        （旧实现松手瞬间把牵连量硬置零、同时关掉 CSS transition → 一帧 30px+ 的突变）；
      ② 轻微过冲 —— 快甩后新焦点卡越过终点再回落（旧版 ios-deck 是 ζ=1.0 临界阻尼、无弹性）。 */
 {
   const startX = 110
   const slowPx = Math.round(SPAN * 0.42) // 明显不足半层 → 松手必回原位
   const flickPx = Math.round(SPAN * 0.62) // 过半 → 必翻一层
 
-  // ---- ① 慢拖 0.42 层（扇开明显）→ 停 150ms → 松手 ----
+  // ---- ① 慢拖 0.42 层（牵连明显）→ 停 150ms → 松手 ----
   await page.evaluate(() => {
     window.__d4 = []
     window.__d4Stop = false
@@ -663,7 +663,7 @@ await page.waitForTimeout(1000)
   const mid = trace[Math.floor(trace.length * 0.4)]
   const peakGap = mid ? gapsOf(mid).get(0) : null
   check(
-    '修正 D①：松手无硬跳变（扇开交给弹簧衰减，不再硬置零）',
+    '修正 D①：松手无硬跳变（牵连交给弹簧连续推进，不再硬置零）',
     maxJump < 10,
     `拖动中最大层间距=${peakGap != null ? peakGap.toFixed(1) : '?'}px 最大单帧间距跳变=${maxJump.toFixed(1)}px（第 ${jumpAt}/${trace.length} 帧）`
   )
@@ -701,6 +701,113 @@ await page.waitForTimeout(1000)
   } else {
     check('修正 D②：松手吸附带轻微过冲回弹（ζ=0.65，不是临界阻尼的死板收尾）', false, `采样不足 ${ft.length}`)
   }
+}
+
+/* ---- 修正 E（2026-09-12 第四轮）：卡片之间的【相对运动】规律 ----
+   Ricky 原话：「顶层卡片应该像是拉着底层卡片一起往右移动，但是现在的底层卡片先做向中间
+   位移放大的动画，应该是一边被顶层卡片拖着向右移动一边放大，直到顶层卡片完全滑出屏幕
+   两张卡片才完全分离。」
+
+   改前逐帧实测（慢拖一整层）：底卡左缘 52.7 → 101.9（峰值）→ 77.5，回退 24px；
+   顶卡还有 60px 没出屏（dx=199）两卡就分离了。两条定律：
+     ① 同相位：顶卡退出与背景层推进共用同一个层过渡进度 → 底卡单调右移、不再「先冲后回」；
+     ② 不提前分离：顶卡左缘越过屏宽之前，被拖卡的右缘始终 ≥ 顶卡左缘。 */
+{
+  const dragPx = Math.round(SPAN * 0.98) // 走满一层（顶卡必然完全出屏）
+  await page.evaluate(() => {
+    window.__e5 = []
+    window.__e5Stop = false
+    const tick = () => {
+      if (window.__e5Stop) return
+      const cards = [...document.querySelectorAll('.switcher-card.is-deck')].map((el) => {
+        const r = el.getBoundingClientRect()
+        return {
+          i: +el.dataset.index,
+          x: +r.left.toFixed(2),
+          r: +r.right.toFixed(2),
+          s: +new DOMMatrixReadOnly(getComputedStyle(el).transform).a.toFixed(4)
+        }
+      })
+      if (cards.length >= 2) window.__e5.push(cards)
+      requestAnimationFrame(tick)
+    }
+    tick()
+  })
+  const startX = 60
+  await page.mouse.move(startX, 500)
+  await page.mouse.down()
+  const steps = 60
+  for (let i = 1; i <= steps; i++) {
+    await page.mouse.move(startX + (dragPx * i) / steps, 500, { steps: 1 })
+    await page.waitForTimeout(14)
+  }
+  await page.waitForTimeout(140)
+  const trace = await page.evaluate(() => {
+    window.__e5Stop = true
+    return window.__e5
+  })
+  await page.mouse.up()
+  await page.waitForTimeout(800)
+
+  /* 配对：锁定同一对卡（退出中的顶卡 i 与被它拖着走的 i+1）。
+     第一帧 x 最大的那张 = 当前退出的顶卡；之后只统计 index 不变的同一对，
+     否则顶卡出屏后配对会漂到下一对，把两张卡的位移混在一起。 */
+  const first = trace[0] || []
+  // 只取【还在屏内】的最大 x —— 已出屏的旧卡（x ≥ 屏宽）会先被 deckVisible 剔除，
+  // 拿它当顶卡的话配对只活 4 帧。
+  const firstTop = [...first].filter((c) => c.x < screenBox.width).sort((a, b) => b.x - a.x)[0]
+  const TOP_I = firstTop ? firstTop.i : -1
+  const NEXT_I = TOP_I + 1
+  let minGap = Infinity
+  let sepAt = null
+  let mono = true
+  let scaleMono = true
+  let peakDrift = 0
+  let growthWhileDragged = false
+  let base = null
+  let maxNextX = -Infinity
+  let frames = 0
+  for (const sample of trace) {
+    const top = sample.find((c) => c.i === TOP_I)
+    const next = sample.find((c) => c.i === NEXT_I)
+    if (!top || !next) continue
+    frames++
+    const onScreen = top.x < screenBox.width // 顶卡还留在屏幕上
+    const gap = next.r - top.x
+    if (onScreen && gap < minGap) minGap = gap
+    if (gap < -1.5 && !sepAt) sepAt = { topX: top.x }
+    if (!base) base = { x: next.x, s: next.s }
+    if (onScreen && next.x < maxNextX - 0.6) mono = false
+    maxNextX = Math.max(maxNextX, next.x)
+    if (next.s < base.s - 1e-6) scaleMono = false
+    peakDrift = Math.max(peakDrift, next.x - base.x)
+    if (next.x - base.x >= 25 && next.s - base.s >= 0.005) growthWhileDragged = true
+  }
+  check(
+    '第四轮·定律二：顶卡完全出屏之前，两卡始终贴合（重叠 ≥ -1.5px）',
+    frames >= 20 && minGap >= -1.5,
+    `采样 ${frames} 帧，顶卡在屏内时最小重叠=${minGap.toFixed(1)}px`
+  )
+  check(
+    '第四轮·定律二：分离时刻不早于顶卡完全滑出屏幕',
+    !sepAt || sepAt.topX >= screenBox.width - 1,
+    sepAt ? `分离时顶卡左缘=${sepAt.topX.toFixed(1)}px（屏宽 ${screenBox.width}）` : '全程未分离'
+  )
+  check(
+    '第四轮·定律一：被拖卡在顶卡出屏前单调右移（不再「先向中间冲一下再退回」）',
+    mono,
+    `最大右移 ${peakDrift.toFixed(1)}px（改前峰值 57px 后回退 24px）`
+  )
+  check(
+    '第四轮：底卡确实被「拖着走」（右移 ≥ 60px，改前仅 ~57px 且随后回退）',
+    peakDrift >= 60,
+    `实测 ${peakDrift.toFixed(1)}px`
+  )
+  check(
+    '第四轮：位移与放大同时发生（不是先位移再放大）',
+    growthWhileDragged && scaleMono,
+    `scale 全程单调=${scaleMono} 位移≥25px 时已同步放大=${growthWhileDragged}`
+  )
 }
 
 check('无控制台报错', errs.length === 0, errs.slice(0, 3).join(' | '))

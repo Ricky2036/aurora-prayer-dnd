@@ -12,8 +12,8 @@ import { screenRef } from '../../utils/screenRef'
 import {
   DECK,
   deckClampFocus,
-  deckFan,
   deckMetrics,
+  deckPhase,
   deckPose,
   deckZ,
   deckVisible
@@ -30,8 +30,8 @@ import {
  *   ③ 左侧边缘不出屏：最深层的左边缘 = 77.5 - 61.1 = 16.4px &gt; 0（单测守这条不变量）。
  *   ④ 底层阶梯式缩小、露出越来越少：stair(k) 几何级数 → 露出 33 / 18 / 10 px。
  *   ⑤ 同时最多四层：焦点层 + 3 层背景，第 5 张起不渲染。
- *   ⑥ 间距随滑动距离动态变化：拖动期叠加「扇开」位移，正弦包络（整层处归零 → 交接零跳变）。
- *   ⑦ 同样滑动距离 顶层:二:三:四 = 8:3:2:1：扇开权重 W = [1, 0.375, 0.25, 0.125]。
+ *   ⑥ 间距随滑动距离动态变化：拖动期叠加「牵连」位移（层过渡进度驱动，两端归零）。
+ *   ⑦ 同样滑动距离 顶层:二:三:四 = 8:3:2:1：牵连权重 W = [0, 1, 0.6, 0.36]。
  *
  * 参考实现：SoxiaLiSA/StackSwipe（MIT，Kotlin）——固定 zIndex、几何级数露边、
  * 阻尼橡皮筋、投影吸附。它没有缩放堆叠与 8:3:2:1，那两块是本项目自研。
@@ -132,11 +132,14 @@ const frontIndex = computed(() => {
 
 const visible = computed(() => system.appSwitcherOpen || system.switcherProgress > 0)
 
-/* 拖动期的「扇开」包络（0..1）。松手与静止时归 0 —— 静态几何只由 focus 唯一决定。
-   修正 D（2026-09-12 第三轮）：松手时【交给弹簧衰减】而不是硬置零。
-   旧实现松手瞬间 dragFan = 0，同时 focusMoving → true 关掉 CSS transition，
-   背景层会硬跳一下（「横滑动效非常不自然」的一个真实来源）。 */
-const { value: dragFan, snapTo: fanSnap, animateTo: fanTo } = useSpring(0, 'ios-deck')
+/* ---- 层过渡进度（第四轮）----
+   顶卡退出与背景层推进共用【同一个进度】（详见 switcherDeck.js 头部「定律一」）。
+   旧实现背景层用原始焦点小数 x、顶卡用 x^EXIT_POW —— 背景层抢跑，把「向中间的
+   位移 + 放大」提前做完，观感就是 Ricky 说的「底层卡片先做向中间位移放大的动画」。
+   现在统一由 deckPhase 给出 u，deckPose 内部把背景层的连续层深折算成 a + (x − u)，
+   两端与原始层深重合 → 层边界零跳变、不需要额外的扇开弹簧。 */
+const phase = computed(() => deckPhase(focus.value))
+const xFrac = computed(() => phase.value.x)
 
 /* 焦点弹簧动画期间关闭 CSS transition —— 否则逐帧推进的 spring 会被 0.24s 过渡
    二次低通，松手后的吸附变成「慢慢飘过去」，没有弹簧的干脆手感。 */
@@ -178,7 +181,6 @@ watch(
       entranceDone.value = false
       homePath.value = false
       hasFollow.value = false
-      fanSnap(0)
       return
     }
     /* 同步编排（不放到 nextTick）：邻居卡要和开关置位在同一帧就带上目标样式，
@@ -186,7 +188,6 @@ watch(
        不依赖本组件 dom 是否已挂载。 */
     measure()
     focusSnap(frontIndex.value)
-    fanSnap(0)
     homePath.value = !system.activeAppId
     hasFollow.value = !!system.activeAppId && system.switcherProgress < 1
     if (homePath.value) {
@@ -209,13 +210,11 @@ watch(
 
 /* ---- 位姿：a = i - focus ----
    0 = 焦点层（屏幕正中），1/2/3 = 更早的背景层（向左阶梯 + 缩小 + 变暗），
-   负数 = 比焦点更新的卡（向右退出屏幕）。详见 switcherDeck.js。 */
+   负数 = 比焦点更新的卡（向右退出屏幕）。详见 switcherDeck.js。
+   第四轮起不再有「扇开弹簧」：位姿完全由 focus（含其小数进度 xFrac）唯一决定 ——
+   拖动期逐帧跟手、松手后由 focus 弹簧推进，背景层与顶卡天然同相位。 */
 function poseOf(i) {
-  return deckPose(i - focus.value, metrics.value, dragFan.value)
-}
-/** 静止槽位（忽略扇开）—— 跟手卡交接、展开动画都按它算，保证像素级同位姿 */
-function slotPose(i) {
-  return deckPose(i - focus.value, metrics.value, 0)
+  return deckPose(i - focus.value, metrics.value, xFrac.value)
 }
 
 /* 需要渲染的卡片：离焦点太远的直接剔除（规则⑤ 最多四层）。
@@ -234,7 +233,7 @@ const labelIndex = computed(() => {
 
 /* 堆叠渲染态：统一的「藏 → 进场」编排，CSS transition 负责丝滑。 */
 function stackStyle(i) {
-  const p = deckPose(i - focus.value, metrics.value, dragFan.value)
+  const p = deckPose(i - focus.value, metrics.value, xFrac.value)
   let y = p.y
   let opacity = 1
   let delay = '0ms'
@@ -284,7 +283,7 @@ const followStyle = computed(() => {
   const p = system.switcherProgress
   if (p <= 0 || settledOne.value) return null
   const idx = frontIndex.value
-  const slot = slotPose(idx)
+  const slot = poseOf(idx)
   const slotCx = slot.x + cardW.value / 2
   const slotCy = slot.y + cardH.value / 2
   // p ≤ 1：屏幕中心 → 卡位中心（两者水平上同为屏幕中心，只有纵向在移动）
@@ -381,7 +380,6 @@ function onPointerMove(e) {
   d.dx = dx
   vtPush(e.clientX, performance.now())
   d.vPx = vtVelocity()
-  fanSnap(deckFan(dx, metrics.value.span))
   focusSnap(deckClampFocus(d.startFocus + dx / metrics.value.span, apps.value.length))
 }
 
@@ -406,12 +404,9 @@ function onPointerUp(e) {
     const bias = Math.max(-0.4, Math.min(0.4, vFocus * 0.1))
     const idx0 = base + (frac > 0.5 - bias ? 1 : 0)
     const idx = Math.max(0, Math.min(apps.value.length - 1, idx0))
-    /* 扇开交给弹簧归零（与 focus 弹簧同参数、同起点 → 同步收尾，无硬跳变） */
-    fanTo(0)
     focusToIndex(idx, { initialVelocity: Math.max(-6, Math.min(6, vFocus)) })
     return
   }
-  fanTo(0)
   if (d.mode === 'v') {
     const cardId = hitCardId(e)
     if (cardId && dy < -110) dismissWithAnimation(cardId)
@@ -458,7 +453,7 @@ function dismissWithAnimation(appId) {
 }
 
 function dismissingStyle(i) {
-  const p = deckPose(i - focus.value, metrics.value, 0)
+  const p = deckPose(i - focus.value, metrics.value, xFrac.value)
   return {
     width: cardW.value + 'px',
     height: cardH.value + 'px',
@@ -488,7 +483,7 @@ function resumeWithExpand(appId) {
 
 function expandingStyle(i) {
   const idx = apps.value.indexOf(expanding.value)
-  const slot = slotPose(idx < 0 ? i : idx)
+  const slot = poseOf(idx < 0 ? i : idx)
   const cx = expandTo.value ? screenW.value / 2 : slot.x + cardW.value / 2
   const cy = expandTo.value ? screenH.value / 2 : slot.y + cardH.value / 2
   const s = expandTo.value ? 1 : previewScale.value
