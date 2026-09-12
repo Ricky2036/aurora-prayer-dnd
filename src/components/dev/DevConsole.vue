@@ -331,7 +331,7 @@ function initFabPosition() {
   const w = window.innerWidth
   const h = window.innerHeight
   fabPos.value = {
-    x: Math.max(12, w - 64),
+    x: Math.max(12, w - 56),
     y: Math.max(80, h - 190)
   }
 }
@@ -383,7 +383,7 @@ function onFabPointerMove(e) {
   if (hasMoved) {
     const w = window.innerWidth
     const h = window.innerHeight
-    const newX = Math.max(8, Math.min(w - 56, startFab.x + dx))
+    const newX = Math.max(8, Math.min(w - 50, startFab.x + dx))
     const newY = Math.max(48, Math.min(h - 80, startFab.y + dy))
     fabPos.value = { x: newX, y: newY }
   }
@@ -426,7 +426,7 @@ function snapToEdge() {
   const h = window.innerHeight
   isSnapping.value = true
 
-  const snapX = fabPos.value.x < w / 2 ? 14 : w - 62
+  const snapX = fabPos.value.x < w / 2 ? 14 : w - 56
   const clampY = Math.max(54, Math.min(h - 90, fabPos.value.y))
   fabPos.value = { x: snapX, y: clampY }
 
@@ -956,7 +956,7 @@ function onToggleFineTune(enabled) {
 
   <!-- ================= 2. 移动端悬浮球与居中弹窗模式 ================= -->
   <aside v-else class="mobile-dev-console">
-    <!-- 可拖动悬浮按钮 (FAB) -->
+    <!-- 可拖动悬浮按钮 (FAB：精致无背景微晶手机 + 内部设置齿轮) -->
     <div
       class="fab-btn"
       :class="{ 'is-snapping': isSnapping, 'is-open': isDrawerOpen }"
@@ -968,14 +968,24 @@ function onToggleFineTune(enabled) {
       @pointerup="onFabPointerUp"
       @pointercancel="onFabPointerUp"
       @click="onFabClick"
+      title="控制台"
+      aria-label="打开控制台"
     >
       <div class="fab-inner">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
-          <line x1="12" y1="18" x2="12.01" y2="18"/>
+        <svg width="34" height="48" viewBox="0 0 34 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- 手机微透深色微晶玻璃内屏（防纯白/纯色背景干扰）与白钛金属外轮廓 -->
+          <rect class="fab-phone-body" x="2" y="2" width="30" height="44" rx="7" fill="rgba(15, 18, 24, 0.45)" stroke="rgba(255, 255, 255, 0.95)" stroke-width="2.2"/>
+          <!-- 顶部微缝听筒/灵动岛 -->
+          <rect class="fab-phone-notch" x="13.5" y="5.2" width="7" height="1.8" rx="0.9" fill="rgba(255, 255, 255, 0.85)"/>
+          <!-- 底部 Home Indicator 触控横条 -->
+          <rect class="fab-phone-bar" x="12" y="40" width="10" height="1.8" rx="0.9" fill="rgba(255, 255, 255, 0.75)"/>
+          <!-- 居中设置齿轮图标 -->
+          <g class="fab-gear" transform="translate(7.5, 14.5) scale(0.79)" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </g>
         </svg>
       </div>
-      <div class="fab-tag">控制台</div>
     </div>
 
     <!-- 弹窗遮罩与居中弹窗 (Modal Popup) -->
@@ -2060,28 +2070,28 @@ function onToggleFineTune(enabled) {
   position: fixed;
   top: 0;
   left: 0;
-  width: 50px;
-  height: 50px;
-  border-radius: 25px;
-  background: #18181c;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+  width: 42px;
+  height: 56px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
   cursor: grab;
   touch-action: none;
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
   will-change: transform;
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.55)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease, opacity 0.2s ease;
 }
 
 .fab-btn:active {
   cursor: grabbing;
-  transform: scale(0.96);
+  transform: scale(0.92);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
 }
 
 .fab-btn.is-snapping {
@@ -2089,21 +2099,34 @@ function onToggleFineTune(enabled) {
 }
 
 .fab-btn.is-open {
-  border-color: #60a5fa;
-  box-shadow: 0 0 16px rgba(96, 165, 250, 0.5);
+  filter: drop-shadow(0 0 14px rgba(96, 165, 250, 0.75)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+.fab-btn.is-open .fab-phone-body {
+  stroke: #60a5fa;
+  fill: rgba(30, 58, 138, 0.45);
+}
+
+.fab-btn.is-open .fab-phone-notch,
+.fab-btn.is-open .fab-phone-bar {
+  fill: #93c5fd;
+}
+
+.fab-btn.is-open .fab-gear {
+  stroke: #60a5fa;
+  transform: translate(7.5px, 14.5px) scale(0.79) rotate(45deg);
 }
 
 .fab-inner {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
 }
 
-.fab-tag {
-  font-size: 8.5px;
-  font-weight: 700;
-  color: #f4f4f5;
-  letter-spacing: 0.2px;
+.fab-gear {
+  transform-origin: 12px 12px;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.2s ease;
 }
 
 /* 弹窗遮罩 (居中容器) */
