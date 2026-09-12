@@ -5,8 +5,11 @@ import { useSystemStore } from '../../stores/systemStore'
 import { usePrayerStore } from '../../stores/prayerStore'
 import { useClockStore } from '../../stores/clockStore'
 import { useI18nStore } from '../../stores/i18nStore'
+import { useRecorderStore } from '../../stores/recorderStore'
+import { useNotificationsStore } from '../../stores/notificationsStore'
 import { useCapture } from '../../composables/useCapture'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
+import { GLYPHS } from '../../assets/icons/glyphs'
 import LIcon from '../ui/LIcon.vue'
 
 /* 微调面板改为按需异步加载 */
@@ -29,12 +32,12 @@ const props = defineProps({
   },
   recordWithFrame: {
     type: Boolean,
-    default: true
+    default: false
   },
   /** 控制台「带壳截图」开关状态（由 App.vue 经 v-model 传入） */
   screenshotWithFrame: {
     type: Boolean,
-    default: true
+    default: false
   },
   /** 截图进行中：禁用按钮 + 显示「截取中...」 */
   isCapturing: {
@@ -54,10 +57,13 @@ const control = useControlStore()
 const system = useSystemStore()
 const prayerStore = usePrayerStore()
 const clockStore = useClockStore()
+const recorderStore = useRecorderStore()
+const notificationsStore = useNotificationsStore()
 const i18n = useI18nStore()
 
 if (typeof window !== 'undefined') {
   window.__clock = clockStore
+  window.__recorder = recorderStore
 }
 
 /** 默认布局按「系列」分行：tOS 16 / tOS 17 / EE1，每行同样是 CAMON / NOTE / GT */
@@ -124,18 +130,125 @@ const initialModule = (urlParams?.get('overlay') === 'controlCenter' || urlParam
     ? 'island'
     : (urlParams?.get('tab') === 'prayer' || urlParams?.get('tab') === 'muslim' || urlParams?.get('module') === 'muslim')
       ? 'muslim'
-      : 'control'
+      : 'island'
 
 const selectedModule = ref(initialModule) // 'control' | 'island' | 'muslim'
+const desktopCardRef = ref(null)
+const mobileCardRef = ref(null)
 
-watch(selectedModule, (mod) => {
-  if (mod === 'control') {
+function animateCardTransition(cardEl) {
+  if (!cardEl) return
+  const prevHeight = cardEl.offsetHeight
+  if (prevHeight <= 0) return
+
+  cardEl.style.height = `${prevHeight}px`
+  cardEl.style.overflow = 'hidden'
+  cardEl.style.transition = 'height 0.38s cubic-bezier(0.22, 1, 0.36, 1)'
+
+  nextTick(() => {
+    const nextEl = cardEl.querySelector('.pc-module-section-group:not(.pc-module-swap-leave-active)')
+    const targetHeight = nextEl ? nextEl.offsetHeight + 24 : cardEl.scrollHeight
+
+    void cardEl.offsetHeight
+    cardEl.style.height = `${targetHeight}px`
+
+    const onEnd = (e) => {
+      if (e.target !== cardEl || e.propertyName !== 'height') return
+      cardEl.removeEventListener('transitionend', onEnd)
+      cardEl.style.height = ''
+      cardEl.style.overflow = ''
+      cardEl.style.transition = ''
+      if (selectedModule.value === 'control') {
+        desktopPresetThumb.syncThumb()
+        mobilePresetThumb.syncThumb()
+      }
+    }
+    cardEl.addEventListener('transitionend', onEnd)
+    setTimeout(() => {
+      if (cardEl.style.transition) {
+        cardEl.style.height = ''
+        cardEl.style.overflow = ''
+        cardEl.style.transition = ''
+      }
+    }, 450)
+  })
+}
+
+watch(selectedModule, (newMod, oldMod) => {
+  if (newMod !== oldMod) {
+    if (desktopCardRef.value) animateCardTransition(desktopCardRef.value)
+    if (mobileCardRef.value) animateCardTransition(mobileCardRef.value)
+  }
+  if (newMod === 'control') {
     nextTick(() => {
       desktopPresetThumb.syncThumb()
       mobilePresetThumb.syncThumb()
     })
+    setTimeout(() => {
+      desktopPresetThumb.syncThumb()
+      mobilePresetThumb.syncThumb()
+    }, 120)
   }
 })
+
+/* ================= 系统应用灵动岛开关与应用状态联动 ================= */
+function toggleAlarmIsland() {
+  if (clockStore.isAlarmActive) {
+    clockStore.dismissAlarm()
+  } else {
+    notificationsStore.setIslandEnabled('alarm', true)
+    clockStore.triggerAlarm()
+  }
+}
+
+function toggleStopwatchIsland() {
+  if (clockStore.isStopwatchActive) {
+    clockStore.resetStopwatch()
+  } else {
+    notificationsStore.setIslandEnabled('stopwatch', true)
+    clockStore.startStopwatch()
+    if (system.activeAppId === 'clock') {
+      system.closeApp()
+    }
+  }
+}
+
+function toggleTimerIsland() {
+  if (clockStore.isTimerActive) {
+    clockStore.cancelTimer()
+  } else {
+    notificationsStore.setIslandEnabled('timer', true)
+    if (clockStore.timer.totalDuration <= 0) {
+      clockStore.setTimerDuration(0, 5, 0)
+    }
+    clockStore.startTimer()
+    if (system.activeAppId === 'clock') {
+      system.closeApp()
+    }
+  }
+}
+
+function toggleRecorderIsland() {
+  if (recorderStore.isRecording) {
+    recorderStore.stopRecording()
+  } else {
+    notificationsStore.setIslandEnabled('recorder', true)
+    recorderStore.startRecording()
+    if (system.activeAppId === 'voicememos') {
+      system.closeApp()
+    }
+  }
+}
+
+function toggleMediaIsland() {
+  if (control.mediaActive) {
+    control.dismissMediaImmediately()
+  } else {
+    notificationsStore.setIslandEnabled('media', true)
+    control.mediaActive = true
+    control.mediaPlaying = true
+  }
+}
 
 /* ================= 移动端悬浮球与弹窗状态 ================= */
 const isDrawerOpen = ref(false)
@@ -433,9 +546,9 @@ function onToggleFineTune(enabled) {
       <label for="desktop-module-select" class="pc-module-label">切换模块</label>
       <div class="pc-select-wrapper">
         <select id="desktop-module-select" v-model="selectedModule" class="pc-module-select">
+          <option value="island">灵动岛</option>
+          <option value="muslim">礼拜模式</option>
           <option value="control">控制中心</option>
-          <option value="island">灵动岛与闹钟</option>
-          <option value="muslim">礼拜与时钟</option>
         </select>
         <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -445,10 +558,10 @@ function onToggleFineTune(enabled) {
 
     <!-- 单一模块大卡片：所有设置项收纳于一张大卡内，按需用虚线分割 -->
     <main class="pc-content-body">
-      <Transition name="tab-fade" mode="out-in">
-        <div class="pc-card pc-module-big-card" :key="selectedModule">
+      <div class="pc-card pc-module-big-card" ref="desktopCardRef">
+        <Transition name="pc-module-swap">
           <!-- 模块 1: 控制中心 -->
-          <div v-if="selectedModule === 'control'" class="pc-module-section-group">
+          <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
             <!-- 区域 1：默认布局 -->
             <div class="pc-section">
               <div class="pc-card-header">
@@ -560,36 +673,80 @@ function onToggleFineTune(enabled) {
             </div>
           </div>
 
-          <!-- 模块 2: 灵动岛与闹钟 -->
-          <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
-            <!-- 区域 1：闹钟提醒 -->
+          <!-- 模块 2: 灵动岛 -->
+          <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
+            <!-- 区域 1：系统应用 -->
             <div class="pc-section">
               <div class="pc-card-header">
-                <span class="pc-card-title">闹钟提醒</span>
-                <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
-                  {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
+                <span class="pc-card-title">系统应用</span>
+                <span v-if="clockStore.isAlarmActive || clockStore.isStopwatchActive || clockStore.isTimerActive || recorderStore.isRecording || control.mediaActive" class="pc-state-tag is-on">
+                  {{ clockStore.isAlarmActive ? '闹钟进行中' : (clockStore.isStopwatchActive ? '计时中' : (clockStore.isTimerActive ? '倒计时中' : (recorderStore.isRecording ? '录音中' : '音乐播放中'))) }}
                 </span>
               </div>
-              <div style="display: flex; gap: 8px;">
+              <div class="pc-sysapp-grid">
+                <!-- 1. 闹钟 -->
                 <button
-                  class="pc-prayer-btn pc-alarm-trigger-btn"
-                  style="flex: 1;"
-                  :class="{ on: clockStore.isAlarmRinging }"
-                  @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
+                  class="pc-sysapp-btn"
+                  :class="{ on: clockStore.isAlarmActive }"
+                  @click="toggleAlarmIsland"
+                  title="开启/关闭闹钟灵动岛"
                 >
-                  <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
                     <path :d="CLOCK_ICONS.alarm" />
                   </svg>
-                  <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '开启闹钟' }}</span>
+                  <span>闹钟</span>
                 </button>
+
+                <!-- 2. 计时器 -->
                 <button
-                  v-if="clockStore.isAlarmActive"
-                  class="pc-prayer-btn"
-                  style="flex: 1;"
-                  :class="{ on: clockStore.isAlarmSnoozing }"
-                  @click="clockStore.snoozeAlarm()"
+                  class="pc-sysapp-btn"
+                  :class="{ on: clockStore.isStopwatchActive }"
+                  @click="toggleStopwatchIsland"
+                  title="开启/关闭计时器灵动岛"
                 >
-                  {{ clockStore.isAlarmSnoozing ? '重置10分' : '延时10分' }}
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.stopwatch" />
+                  </svg>
+                  <span>计时器</span>
+                </button>
+
+                <!-- 3. 倒计时 -->
+                <button
+                  class="pc-sysapp-btn"
+                  :class="{ on: clockStore.isTimerActive }"
+                  @click="toggleTimerIsland"
+                  title="开启/关闭倒计时灵动岛"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="CLOCK_ICONS.timer" />
+                  </svg>
+                  <span>倒计时</span>
+                </button>
+
+                <!-- 4. 录音 -->
+                <button
+                  class="pc-sysapp-btn"
+                  :class="{ on: recorderStore.isRecording }"
+                  @click="toggleRecorderIsland"
+                  title="开启/关闭录音灵动岛"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="GLYPHS.mic" />
+                  </svg>
+                  <span>录音</span>
+                </button>
+
+                <!-- 5. 音乐 -->
+                <button
+                  class="pc-sysapp-btn"
+                  :class="{ on: control.mediaActive }"
+                  @click="toggleMediaIsland"
+                  title="开启/关闭音乐灵动岛"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path :d="GLYPHS.music" />
+                  </svg>
+                  <span>音乐</span>
                 </button>
               </div>
             </div>
@@ -597,41 +754,125 @@ function onToggleFineTune(enabled) {
             <!-- 虚线分割 -->
             <div class="pc-divider-dashed"></div>
 
-            <!-- 区域 2：礼拜灵动岛模拟 -->
+            <!-- 区域 2：礼拜模式模拟 -->
             <div class="pc-section">
               <div class="pc-card-header">
-                <span class="pc-card-title">礼拜灵动岛</span>
+                <span class="pc-card-title">礼拜模式</span>
                 <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                   {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
                 </span>
               </div>
-              <div class="prayer-buttons-grid">
+              <div class="pc-sysapp-grid">
                 <button
                   v-for="p in prayerStore.prayers"
                   :key="p.id"
-                  class="pc-prayer-btn"
+                  class="pc-sysapp-btn"
                   :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                   @click="prayerStore.toggleSimulatedPrayer(p.id)"
                 >
-                  {{ i18n.prayerName(p.id) }}
+                  <!-- 晨礼：朝阳破晓 -->
+                  <svg
+                    v-if="p.id === 'fajr'"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 2v6" />
+                    <path d="m4.93 10.93 2.83 2.83" />
+                    <path d="m19.07 10.93-2.83 2.83" />
+                    <path d="M2 18h20" />
+                    <path d="M6 18a6 6 0 0 1 12 0" />
+                  </svg>
+                  <!-- 晌礼：正午烈日 -->
+                  <svg
+                    v-else-if="p.id === 'dhuhr'"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2" />
+                    <path d="M12 20v2" />
+                    <path d="m4.93 4.93 1.41 1.41" />
+                    <path d="m17.66 17.66 1.41 1.41" />
+                    <path d="M2 12h2" />
+                    <path d="M20 12h2" />
+                    <path d="m6.34 17.66-1.41 1.41" />
+                    <path d="m19.07 4.93-1.41 1.41" />
+                  </svg>
+                  <!-- 哺礼：斜阳斜影 -->
+                  <svg
+                    v-else-if="p.id === 'asr'"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <circle cx="9" cy="9" r="3.5" />
+                    <path d="M9 2v2.5" />
+                    <path d="M2 9h2.5" />
+                    <path d="m4.05 4.05 1.77 1.77" />
+                    <path d="M13 13l6 6" />
+                    <path d="M20 16v4h-4" />
+                    <path d="M2 21h8" />
+                  </svg>
+                  <!-- 昏礼：落日余晖 -->
+                  <svg
+                    v-else-if="p.id === 'maghrib'"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M12 10v6" />
+                    <path d="m9 13 3 3 3-3" />
+                    <path d="m4.93 10.93 2.83 2.83" />
+                    <path d="m19.07 10.93-2.83 2.83" />
+                    <path d="M2 18h20" />
+                    <path d="M6 18a6 6 0 0 1 12 0" />
+                  </svg>
+                  <!-- 宵礼：夜空星月 -->
+                  <svg
+                    v-else
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    <path d="M19 4v3" />
+                    <path d="M17.5 5.5h3" />
+                  </svg>
+                  <span>{{ i18n.prayerName(p.id) }}</span>
                 </button>
-              </div>
-            </div>
-
-            <!-- 虚线分割 -->
-            <div class="pc-divider-dashed"></div>
-
-            <!-- 区域 3：系统常驻岛提示 -->
-            <div class="pc-section">
-              <div class="pc-island-hint-row">
-                <span>音乐 / 倒计时 / 录音灵动岛</span>
-                <span class="pc-island-badge">前台应用驱动</span>
               </div>
             </div>
           </div>
 
-          <!-- 模块 3: 礼拜与时钟 -->
-          <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
+          <!-- 模块 3: 礼拜模式 -->
+          <div v-else-if="selectedModule === 'muslim'" key="muslim" class="pc-module-section-group is-muslim">
             <!-- 区域 1：智慧建议模式 -->
             <div class="pc-section">
               <div class="pc-card-header">
@@ -697,8 +938,8 @@ function onToggleFineTune(enabled) {
               </div>
             </div>
           </div>
-        </div>
-      </Transition>
+        </Transition>
+      </div>
     </main>
   </aside>
 
@@ -826,9 +1067,9 @@ function onToggleFineTune(enabled) {
               <label for="mobile-module-select" class="pc-module-label">切换模块</label>
               <div class="pc-select-wrapper">
                 <select id="mobile-module-select" v-model="selectedModule" class="pc-module-select">
+                  <option value="island">灵动岛</option>
+                  <option value="muslim">礼拜模式</option>
                   <option value="control">控制中心</option>
-                  <option value="island">灵动岛与闹钟</option>
-                  <option value="muslim">礼拜与时钟</option>
                 </select>
                 <svg class="pc-select-arrow" viewBox="0 0 20 20" fill="none">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="m6 8 4 4 4-4"/>
@@ -838,10 +1079,10 @@ function onToggleFineTune(enabled) {
 
             <!-- 单一模块大卡片 -->
             <main class="pc-content-body">
-              <Transition name="tab-fade" mode="out-in">
-                <div class="pc-card pc-module-big-card" :key="'mob-' + selectedModule">
+              <div class="pc-card pc-module-big-card" ref="mobileCardRef">
+                <Transition name="pc-module-swap">
                   <!-- 模块 1: 控制中心 -->
-                  <div v-if="selectedModule === 'control'" class="pc-module-section-group">
+                  <div v-if="selectedModule === 'control'" key="control" class="pc-module-section-group is-control">
                     <!-- 区域 1：默认布局 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
@@ -953,36 +1194,80 @@ function onToggleFineTune(enabled) {
                     </div>
                   </div>
 
-                  <!-- 模块 2: 灵动岛与闹钟 -->
-                  <div v-else-if="selectedModule === 'island'" class="pc-module-section-group">
-                    <!-- 区域 1：闹钟提醒 -->
+                  <!-- 模块 2: 灵动岛 -->
+                  <div v-else-if="selectedModule === 'island'" key="island" class="pc-module-section-group is-island">
+                    <!-- 区域 1：系统应用 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
-                        <span class="pc-card-title">闹钟提醒</span>
-                        <span v-if="clockStore.isAlarmActive" class="pc-state-tag is-on">
-                          {{ clockStore.isAlarmRinging ? '响铃中' : '延时倒计时' }}
+                        <span class="pc-card-title">系统应用</span>
+                        <span v-if="clockStore.isAlarmActive || clockStore.isStopwatchActive || clockStore.isTimerActive || recorderStore.isRecording || control.mediaActive" class="pc-state-tag is-on">
+                          {{ clockStore.isAlarmActive ? '闹钟进行中' : (clockStore.isStopwatchActive ? '计时中' : (clockStore.isTimerActive ? '倒计时中' : (recorderStore.isRecording ? '录音中' : '音乐播放中'))) }}
                         </span>
                       </div>
-                      <div style="display: flex; gap: 8px;">
+                      <div class="pc-sysapp-grid">
+                        <!-- 1. 闹钟 -->
                         <button
-                          class="pc-prayer-btn pc-alarm-trigger-btn"
-                          style="flex: 1;"
-                          :class="{ on: clockStore.isAlarmRinging }"
-                          @click="clockStore.isAlarmRinging ? clockStore.dismissAlarm() : clockStore.triggerAlarm()"
+                          class="pc-sysapp-btn"
+                          :class="{ on: clockStore.isAlarmActive }"
+                          @click="toggleAlarmIsland"
+                          title="开启/关闭闹钟灵动岛"
                         >
-                          <svg class="pc-alarm-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path :d="CLOCK_ICONS.alarm" />
                           </svg>
-                          <span>{{ clockStore.isAlarmRinging ? '关闭闹钟' : '开启闹钟' }}</span>
+                          <span>闹钟</span>
                         </button>
+
+                        <!-- 2. 计时器 -->
                         <button
-                          v-if="clockStore.isAlarmActive"
-                          class="pc-prayer-btn"
-                          style="flex: 1;"
-                          :class="{ on: clockStore.isAlarmSnoozing }"
-                          @click="clockStore.snoozeAlarm()"
+                          class="pc-sysapp-btn"
+                          :class="{ on: clockStore.isStopwatchActive }"
+                          @click="toggleStopwatchIsland"
+                          title="开启/关闭计时器灵动岛"
                         >
-                          {{ clockStore.isAlarmSnoozing ? '重置10分' : '延时10分' }}
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="CLOCK_ICONS.stopwatch" />
+                          </svg>
+                          <span>计时器</span>
+                        </button>
+
+                        <!-- 3. 倒计时 -->
+                        <button
+                          class="pc-sysapp-btn"
+                          :class="{ on: clockStore.isTimerActive }"
+                          @click="toggleTimerIsland"
+                          title="开启/关闭倒计时灵动岛"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="CLOCK_ICONS.timer" />
+                          </svg>
+                          <span>倒计时</span>
+                        </button>
+
+                        <!-- 4. 录音 -->
+                        <button
+                          class="pc-sysapp-btn"
+                          :class="{ on: recorderStore.isRecording }"
+                          @click="toggleRecorderIsland"
+                          title="开启/关闭录音灵动岛"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="GLYPHS.mic" />
+                          </svg>
+                          <span>录音</span>
+                        </button>
+
+                        <!-- 5. 音乐 -->
+                        <button
+                          class="pc-sysapp-btn"
+                          :class="{ on: control.mediaActive }"
+                          @click="toggleMediaIsland"
+                          title="开启/关闭音乐灵动岛"
+                        >
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path :d="GLYPHS.music" />
+                          </svg>
+                          <span>音乐</span>
                         </button>
                       </div>
                     </div>
@@ -990,41 +1275,125 @@ function onToggleFineTune(enabled) {
                     <!-- 虚线分割 -->
                     <div class="pc-divider-dashed"></div>
 
-                    <!-- 区域 2：礼拜灵动岛模拟 -->
+                    <!-- 区域 2：礼拜模式模拟 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
-                        <span class="pc-card-title">礼拜灵动岛</span>
+                        <span class="pc-card-title">礼拜模式</span>
                         <span v-if="prayerStore.currentIslandPrayer" class="pc-state-tag is-on">
                           {{ i18n.prayerName(prayerStore.currentIslandPrayer.id) }}中
                         </span>
                       </div>
-                      <div class="prayer-buttons-grid">
+                      <div class="pc-sysapp-grid">
                         <button
                           v-for="p in prayerStore.prayers"
                           :key="p.id"
-                          class="pc-prayer-btn"
+                          class="pc-sysapp-btn"
                           :class="{ on: prayerStore.currentIslandPrayer?.id === p.id }"
                           @click="prayerStore.toggleSimulatedPrayer(p.id)"
                         >
-                          {{ i18n.prayerName(p.id) }}
+                          <!-- 晨礼：朝阳破晓 -->
+                          <svg
+                            v-if="p.id === 'fajr'"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 2v6" />
+                            <path d="m4.93 10.93 2.83 2.83" />
+                            <path d="m19.07 10.93-2.83 2.83" />
+                            <path d="M2 18h20" />
+                            <path d="M6 18a6 6 0 0 1 12 0" />
+                          </svg>
+                          <!-- 晌礼：正午烈日 -->
+                          <svg
+                            v-else-if="p.id === 'dhuhr'"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <circle cx="12" cy="12" r="4" />
+                            <path d="M12 2v2" />
+                            <path d="M12 20v2" />
+                            <path d="m4.93 4.93 1.41 1.41" />
+                            <path d="m17.66 17.66 1.41 1.41" />
+                            <path d="M2 12h2" />
+                            <path d="M20 12h2" />
+                            <path d="m6.34 17.66-1.41 1.41" />
+                            <path d="m19.07 4.93-1.41 1.41" />
+                          </svg>
+                          <!-- 哺礼：斜阳斜影 -->
+                          <svg
+                            v-else-if="p.id === 'asr'"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <circle cx="9" cy="9" r="3.5" />
+                            <path d="M9 2v2.5" />
+                            <path d="M2 9h2.5" />
+                            <path d="m4.05 4.05 1.77 1.77" />
+                            <path d="M13 13l6 6" />
+                            <path d="M20 16v4h-4" />
+                            <path d="M2 21h8" />
+                          </svg>
+                          <!-- 昏礼：落日余晖 -->
+                          <svg
+                            v-else-if="p.id === 'maghrib'"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M12 10v6" />
+                            <path d="m9 13 3 3 3-3" />
+                            <path d="m4.93 10.93 2.83 2.83" />
+                            <path d="m19.07 10.93-2.83 2.83" />
+                            <path d="M2 18h20" />
+                            <path d="M6 18a6 6 0 0 1 12 0" />
+                          </svg>
+                          <!-- 宵礼：夜空星月 -->
+                          <svg
+                            v-else
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                            <path d="M19 4v3" />
+                            <path d="M17.5 5.5h3" />
+                          </svg>
+                          <span>{{ i18n.prayerName(p.id) }}</span>
                         </button>
-                      </div>
-                    </div>
-
-                    <!-- 虚线分割 -->
-                    <div class="pc-divider-dashed"></div>
-
-                    <!-- 区域 3：系统常驻岛提示 -->
-                    <div class="pc-section">
-                      <div class="pc-island-hint-row">
-                        <span>音乐 / 倒计时 / 录音灵动岛</span>
-                        <span class="pc-island-badge">前台应用驱动</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- 模块 3: 礼拜与时钟 -->
-                  <div v-else-if="selectedModule === 'muslim'" class="pc-module-section-group">
+                  <!-- 模块 3: 礼拜模式 -->
+                  <div v-else-if="selectedModule === 'muslim'" key="muslim" class="pc-module-section-group is-muslim">
                     <!-- 区域 1：智慧建议模式 -->
                     <div class="pc-section">
                       <div class="pc-card-header">
@@ -1090,8 +1459,8 @@ function onToggleFineTune(enabled) {
                       </div>
                     </div>
                   </div>
-                </div>
-              </Transition>
+                </Transition>
+              </div>
             </main>
           </div>
         </Transition>
@@ -1293,12 +1662,17 @@ function onToggleFineTune(enabled) {
 }
 
 .pc-module-big-card {
+  position: relative;
   padding: 12px 13px;
+  box-sizing: border-box;
+  will-change: height;
 }
 
 .pc-module-section-group {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pc-section {
@@ -1580,17 +1954,22 @@ function onToggleFineTune(enabled) {
   margin-right: 7px;
 }
 
-/* 礼拜按钮组 */
-.prayer-buttons-grid {
+/* 系统应用 5 按钮组 */
+.pc-sysapp-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 5px;
 }
 
-.pc-prayer-btn {
-  padding: 8px 0;
+.pc-sysapp-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 2px;
   border-radius: 9px;
-  font: 600 12px/1 var(--font-stack);
+  font: 600 11px/1 var(--font-stack);
   background: #101014;
   border: 1px solid #27272a;
   color: #d4d4d8;
@@ -1601,18 +1980,29 @@ function onToggleFineTune(enabled) {
   user-select: none;
 }
 
-.pc-prayer-btn:hover {
+.pc-sysapp-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.pc-sysapp-btn svg:not([stroke]) {
+  fill: currentColor;
+}
+
+.pc-sysapp-btn:hover {
   background: #27272a;
   color: #ffffff;
 }
 
-.pc-prayer-btn.on {
+.pc-sysapp-btn.on {
   background: #10b981;
   border-color: #34d399;
   color: #ffffff;
   font-weight: 700;
   box-shadow: 0 3px 12px rgba(16, 185, 129, 0.4);
 }
+
 
 .pc-alarm-trigger-btn {
   display: inline-flex;
@@ -1774,20 +2164,56 @@ function onToggleFineTune(enabled) {
   color: #ffffff;
 }
 
-/* ================= 切换过渡动画 ================= */
-.tab-fade-enter-active,
-.tab-fade-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+/* ================= 模块切换卡片内部过渡与无缝展开 ================= */
+.pc-module-swap-enter-active {
+  transition: opacity 0.32s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.tab-fade-enter-from {
-  opacity: 0;
-  transform: translateY(6px);
+.pc-module-swap-leave-active {
+  position: absolute;
+  top: 12px;
+  left: 13px;
+  right: 13px;
+  transition: opacity 0.18s cubic-bezier(0.4, 0, 1, 1), transform 0.18s cubic-bezier(0.4, 0, 1, 1);
+  pointer-events: none;
 }
 
-.tab-fade-leave-to {
+.pc-module-swap-enter-from {
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(14px);
+}
+
+.pc-module-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* 控制中心列表内部内容平滑移动与无缝展开 */
+.pc-module-section-group.is-control .pc-section:nth-of-type(1) {
+  animation: pc-section-unfold 0.34s cubic-bezier(0.22, 1, 0.36, 1) 0.02s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(2) {
+  animation: pc-section-unfold 0.36s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(3) {
+  animation: pc-section-unfold 0.38s cubic-bezier(0.22, 1, 0.36, 1) 0.10s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(4) {
+  animation: pc-section-unfold 0.40s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+}
+.pc-module-section-group.is-control .pc-section:nth-of-type(5) {
+  animation: pc-section-unfold 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both;
+}
+
+@keyframes pc-section-unfold {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 弹窗背景淡入淡出 */

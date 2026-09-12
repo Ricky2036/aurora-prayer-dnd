@@ -96,6 +96,8 @@ export const MESSAGES = {
       linkedin: 'LinkedIn', alipay: '支付宝'
     },
     demoNotifBodies: {
+      recorder: '录音已就绪，可在后台实时收音。',
+      voicememos: '录音已就绪，可在后台实时收音。',
       whatsapp: '周末有空聚聚吗？想带你去那家新餐厅。',
       facebook: '你关注的"周末车友会"将于明天下午举行。',
       tiktok: '@李四 刚刚发布了新视频，快来看看吧。',
@@ -117,6 +119,10 @@ export const MESSAGES = {
       linkedin: '恭喜王五晋升为高级产品经理。',
       alipay: '您的蚂蚁森林有能量可收集，已有好友帮你浇水。'
     },
+
+    notifAuthPrompt: (app) => `要允许“${app}”向您发送通知吗？`,
+    notifAuthAllow: '允许',
+    notifAuthDeny: '不允许',
 
     // 日历预置事件标题
     evtStandup: '晨会',
@@ -473,6 +479,8 @@ export const MESSAGES = {
       linkedin: 'LinkedIn', alipay: 'Alipay'
     },
     demoNotifBodies: {
+      recorder: 'Voice Memos is ready for background recording.',
+      voicememos: 'Voice Memos is ready for background recording.',
       whatsapp: 'Free this weekend? Want to take you to that new restaurant.',
       facebook: 'The "Weekend Car Club" you follow starts tomorrow afternoon.',
       tiktok: '@Li Si just posted a new video, come and check it out.',
@@ -494,6 +502,10 @@ export const MESSAGES = {
       linkedin: 'Congratulations to Wang Wu on the promotion to Senior Product Manager.',
       alipay: 'Your Ant Forest has energy to collect, and a friend has watered it for you.'
     },
+
+    notifAuthPrompt: (app) => `Allow “${app}” to send you notifications?`,
+    notifAuthAllow: 'Allow',
+    notifAuthDeny: 'Don’t Allow',
 
     // Calendar preset events
     evtStandup: 'Standup',
@@ -851,6 +863,8 @@ export const MESSAGES = {
       linkedin: 'LinkedIn', alipay: 'Alipay'
     },
     demoNotifBodies: {
+      recorder: 'ব্যাকগ্রাউন্ড রেকর্ডিংয়ের জন্য প্রস্তুত।',
+      voicememos: 'ভয়েস মেমো প্রস্তুত।',
       whatsapp: 'সপ্তাহান্তে ফ্রি আছো? সেই নতুন রেস্তোরাঁয় নিয়ে যাব।',
       facebook: 'তুমি ফলো করা "উইকেন্ড কার ক্লাব" আগামীকাল বিকেলে অনুষ্ঠিত হবে।',
       tiktok: '@লি সি এইমাত্র নতুন ভিডিও পোস্ট করেছে, দেখে নাও।',
@@ -872,6 +886,10 @@ export const MESSAGES = {
       linkedin: 'অভিনন্দন ওয়াং উ-কে সিনিয়র প্রোডাক্ট ম্যানেজার পদে পদোন্নতির জন্য।',
       alipay: 'তোমার Ant Forest-এ শক্তি সংগ্রহ করা যাবে, এক বন্ধু তোমাকে পানি দিয়েছে।'
     },
+
+    notifAuthPrompt: (app) => `“${app}” কি আপনাকে বিজ্ঞপ্তি পাঠাতে অনুমতি দেবেন?`,
+    notifAuthAllow: 'অনুমতি দিন',
+    notifAuthDeny: 'অনুমতি দেবেন না',
 
     // Calendar preset events
     evtStandup: 'স্ট্যান্ডআপ',

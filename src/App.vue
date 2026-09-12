@@ -65,13 +65,17 @@ const {
   captureScreenshot: runScreenshot
 } = useCapture()
 
-/** 控制台：连外壳 + 圆角裁切 + 转码 ProRes（演示素材管线，行为保持原样） */
+/** 控制台：
+ *  - 带壳录屏：连外壳 + 圆角裁切 + 转码 ProRes（演示素材管线）
+ *  - 不带壳录屏：直出矩形 MP4，不做圆角裁切，不转码
+ */
 function toggleRecording() {
+  const withFrame = !isMobile.value && recordWithFrame.value
   runRecording({
-    withFrame: !isMobile.value && recordWithFrame.value,
-    rounded: true,
-    transcode: true,
-    preferMp4: false
+    withFrame,
+    rounded: withFrame,
+    transcode: withFrame,
+    preferMp4: !withFrame
   })
 }
 

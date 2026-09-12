@@ -19,10 +19,10 @@ const isCapturing = ref(false)
 const lastError = ref('')
 /** 录制时长 mm:ss，屏幕上的录制指示器和控制台按钮共用同一份 */
 const recordElapsed = ref('00:00')
-/** 控制台「带壳录制」开关，只影响控制台发起的录制 */
-const recordWithFrame = ref(true)
-/** 控制台「带壳截图」开关，只影响控制台发起的截图 */
-const screenshotWithFrame = ref(true)
+/** 控制台「带壳录制」开关，只影响控制台发起的录制（默认不带壳） */
+const recordWithFrame = ref(false)
+/** 控制台「带壳截图」开关，只影响控制台发起的截图（默认不带壳） */
+const screenshotWithFrame = ref(false)
 
 /* ================= 轻量提示（toast） ================= */
 /**
@@ -399,7 +399,6 @@ async function startRecording(opts = {}) {
 
 async function onRecorderStop() {
   isRecording.value = false
-  isTranscoding.value = true
   stopElapsed()
   teardownStream()
   // 还原屏幕圆角（采集态只在录制期间生效）
@@ -415,6 +414,7 @@ async function onRecorderStop() {
 
   // 演示素材路径：转 Apple ProRes 4444 with Alpha（仅 dev server 提供该接口）
   if (cfg.transcode) {
+    isTranscoding.value = true
     try {
       const res = await fetch(`/__transcode_mov?radiusRatio=${cfg.captureRadiusRatio}`, {
         method: 'POST',

@@ -1,17 +1,41 @@
 <script setup>
-import { computed } from 'vue'
+import { ref } from 'vue'
 import { useRecorderStore } from '../../../stores/recorderStore'
 import { useSystemStore } from '../../../stores/systemStore'
+import { useNotificationsStore } from '../../../stores/notificationsStore'
+import NotificationPermissionModal from '../../ui/NotificationPermissionModal.vue'
 
 const recorder = useRecorderStore()
 const system = useSystemStore()
+const notifications = useNotificationsStore()
+
+const showPermissionModal = ref(false)
 
 function toggleRecord() {
   if (recorder.isRecording) {
     recorder.stopRecording()
   } else {
+    // 弹窗时机：在用户点击录音按钮时判断
+    if (!notifications.hasPromptedPermission('voicememos')) {
+      showPermissionModal.value = true
+      return
+    }
     recorder.startRecording()
   }
+}
+
+function handleAllowPermission() {
+  showPermissionModal.value = false
+  notifications.setAppNotificationEnabled('voicememos', true)
+  notifications.markPermissionPrompted('voicememos')
+  recorder.startRecording()
+}
+
+function handleDenyPermission() {
+  showPermissionModal.value = false
+  notifications.setAppNotificationEnabled('voicememos', false)
+  notifications.markPermissionPrompted('voicememos')
+  recorder.startRecording()
 }
 
 function togglePause() {
@@ -31,6 +55,14 @@ function formatDuration(sec) {
 
 <template>
   <div class="voicememos-app">
+    <!-- 通知授权弹窗 -->
+    <NotificationPermissionModal
+      v-model:visible="showPermissionModal"
+      app-id="voicememos"
+      app-name="录音"
+      @allow="handleAllowPermission"
+      @deny="handleDenyPermission"
+    />
     <!-- 顶部状态与标题栏 -->
     <header class="vm-header">
       <h1 class="vm-title">全部录音</h1>
@@ -103,6 +135,7 @@ function formatDuration(sec) {
 
 <style scoped>
 .voicememos-app {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;

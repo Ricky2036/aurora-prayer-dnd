@@ -19,9 +19,9 @@ const clockStore = useClockStore()
 const prayerStore = usePrayerStore()
 const { activeActivities, isMediaActive } = useActiveActivities()
 
-/** 当正在录音且不在录音应用内（灵动岛已激活显示）时，或者锁屏层时，隐藏状态栏原始时间 */
+/** 锁屏层时隐藏状态栏时间（锁屏有居中大时钟）；在桌面或应用内始终显示状态栏时钟，不受录音等灵动岛活动影响 */
 const hideTime = computed(() => {
-  return system.baseLayer === 'lock' || (recorder.isRecording && system.activeAppId !== 'voicememos')
+  return system.baseLayer === 'lock'
 })
 
 /** 判断是否有灵动岛处于活跃展示状态 */
@@ -70,21 +70,21 @@ const HIDE_MARGIN = 2 // 右缘留的安全间距(px)
 /** 障碍物（灵动岛胶囊或居中打孔摄像头）右边界在屏幕坐标系下的 x（含安全间距） */
 function obstacleRightEdge() {
   const scr = document.querySelector('.screen')
-  // 1. 优先判断是否有灵动岛处于活跃状态：指示器避让的是紧凑胶囊边界（宽124px居中）
+  // 1. 优先判断是否有灵动岛处于活跃状态：指示器避让的是紧凑胶囊边界（宽136px居中）
   if (hasIsland.value) {
     if (scr) {
       const scrRect = scr.getBoundingClientRect()
-      return scrRect.left + scrRect.width / 2 + 62 + HIDE_MARGIN
+      return scrRect.left + scrRect.width / 2 + 68 + HIDE_MARGIN
     }
     const island = document.querySelector('.island-card')
     if (island) {
       const rect = island.getBoundingClientRect()
       // 仅在明确收起态时取实际 right，避免展开态全宽污染测量
-      if (!island.classList.contains('is-expanded') && rect.width <= 140 && rect.width > 0) {
+      if (!island.classList.contains('is-expanded') && rect.width <= 150 && rect.width > 0) {
         return rect.right + HIDE_MARGIN
       }
     }
-    return 272 + HIDE_MARGIN
+    return 276 + HIDE_MARGIN
   }
   // 2. 无灵动岛时以居中摄像头打孔右边界为基准
   const ph = document.querySelector('.punch-hole')
@@ -226,7 +226,7 @@ watch(isIslandExpanded, (expanded) => {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  padding: 6.5px 18px 0;
+  padding: 6.5px 24px 0;
   z-index: var(--z-status-bar);
   font: 600 15px/1 var(--font-stack);
   font-variant-numeric: tabular-nums;

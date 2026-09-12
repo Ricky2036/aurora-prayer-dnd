@@ -36,7 +36,8 @@ export const APP_NAMES = {
     amap: '高德地图',
     switcher: '换机助手',
     notepad: '记事本',
-    search: '搜索'
+    search: '搜索',
+    recorder: '录音'
   },
   en: {
     phone: 'Phone',
@@ -69,7 +70,8 @@ export const APP_NAMES = {
     amap: 'Amap',
     switcher: 'Phone Clone',
     notepad: 'Notepad',
-    search: 'Search'
+    search: 'Search',
+    recorder: 'Voice Memos'
   },
   bn: {
     phone: 'ফোন',
@@ -102,6 +104,7 @@ export const APP_NAMES = {
     amap: 'Amap',
     switcher: 'ফোন ক্লোন',
     notepad: 'নোটবুক',
-    search: 'অনুসন্ধান'
+    search: 'অনুসন্ধান',
+    recorder: 'ভয়েস মেমো'
   }
 }

@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import ToggleSwitch from '../../ui/ToggleSwitch.vue'
 import ListCell from '../../ui/ListCell.vue'
+import SplitActionCell from '../../ui/SplitActionCell.vue'
 import AppNavBar from '../../ui/AppNavBar.vue'
 import SettingsAppIcon from '../../ui/SettingsAppIcon.vue'
 import NotificationIcon from '../../ui/NotificationIcon.vue'
@@ -9,7 +10,7 @@ import AppIcon from '../../ui/AppIcon.vue'
 import { getApp } from '../../../config/apps'
 import { seedNotifications } from '../../../config/seedNotifications'
 import { useI18nStore } from '../../../stores/i18nStore'
-import { useNotificationsStore } from '../../../stores/notificationsStore'
+import { useNotificationsStore, getIslandKeysForApp } from '../../../stores/notificationsStore'
 import { formatRelativeTime } from '../../../utils/timeFormat'
 import { CLOCK_ICONS } from '../../apps/clock/clockIcons'
 import { GLYPHS } from '../../../assets/icons/glyphs'
@@ -26,22 +27,139 @@ function tFn(key) {
   return typeof v === 'function' ? v : () => ''
 }
 
-/* ---------- 子视图栈 ---------- */
-const initialSubView = notificationsStore.targetSubView === 'dynamicBar' ? 'dynamicBar' : 'main'
-if (notificationsStore.targetSubView === 'dynamicBar') {
-  notificationsStore.setTargetView('notifications', null)
+/* ---------- 子视图栈与灵动岛菜单高亮 ---------- */
+const highlightedIslandKey = ref(null)
+let highlightTimer = null
+
+function triggerIslandHighlight(key) {
+  if (!key) return
+  let normalized = key
+  if (typeof normalized === 'object' && normalized !== null) {
+    normalized = normalized.key || normalized.type || normalized.id || ''
+  }
+  if (normalized === 'voicememos') normalized = 'recorder'
+  if (normalized === 'music' || normalized === 'spotify') normalized = 'media'
+  if (normalized === 'clock') normalized = 'alarm'
+
+  if (highlightTimer) clearTimeout(highlightTimer)
+  highlightedIslandKey.value = normalized
+
+  nextTick(() => {
+    const el = document.querySelector(`[data-island-key="${normalized}"]`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  })
+
+  highlightTimer = setTimeout(() => {
+    highlightedIslandKey.value = null
+    notificationsStore.targetIslandKey = null
+  }, 1800)
 }
-const subStack = ref(initialSubView === 'dynamicBar' ? ['main', 'dynamicBar'] : ['main'])
+
+/* 通知应用列表（顶部置顶录音通知设置项，其余从 notificationsStore.list 读取，确保与通知中心通知完全一致） */
+const notificationApps = computed(() => {
+  const map = new Map()
+
+  // 顶部置顶录音通知设置项
+  const recorderItem = notificationsStore.list.find((item) => item.appId === 'recorder' || item.appId === 'voicememos')
+  map.set('recorder', {
+    id: 'recorder',
+    appId: 'recorder',
+    iconType: 'recorder',
+    time: recorderItem ? recorderItem.time : Date.now()
+  })
+
+  for (const item of notificationsStore.list) {
+    if (item.appId !== 'recorder' && item.appId !== 'voicememos' && !map.has(item.appId)) {
+      map.set(item.appId, {
+        id: item.appId,
+        appId: item.appId,
+        iconType: item.iconType || item.appId,
+        time: item.time
+      })
+    }
+  }
+  if (map.size <= 1) {
+    for (const item of seedNotifications()) {
+      if (item.appId !== 'recorder' && item.appId !== 'voicememos' && !map.has(item.appId)) {
+        map.set(item.appId, {
+          id: item.appId,
+          appId: item.appId,
+          iconType: item.iconType || item.appId,
+          time: item.time
+        })
+      }
+    }
+  }
+  return Array.from(map.values())
+})
+
+function resolveApp(appId) {
+  if (!appId) return notificationApps.value?.[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
+  const found = notificationApps.value?.find(a => a.appId === appId || a.id === appId)
+  if (found) return found
+  return {
+    id: appId,
+    appId,
+    iconType: appId,
+    time: Date.now()
+  }
+}
+
+const initialSubView = notificationsStore.targetSubView === 'dynamicBar'
+  ? 'dynamicBar'
+  : (notificationsStore.targetSubView === 'appDetail' ? 'appDetail' : 'main')
+const pendingHighlightKey = ref(notificationsStore.targetIslandKey)
+
+const selectedApp = ref(
+  initialSubView === 'appDetail' && notificationsStore.targetAppId
+    ? resolveApp(notificationsStore.targetAppId)
+    : null
+)
+
+const subStack = ref(
+  initialSubView === 'dynamicBar'
+    ? ['main', 'dynamicBar']
+    : (initialSubView === 'appDetail' ? ['main', 'appDetail'] : ['main'])
+)
+
+if (initialSubView === 'dynamicBar' || initialSubView === 'appDetail') {
+  notificationsStore.setTargetView('notifications', null, null, null)
+}
+
 const subView = computed(() => subStack.value[subStack.value.length - 1] || 'main')
 const isBack = ref(false)
 
+if (pendingHighlightKey.value && initialSubView === 'dynamicBar') {
+  nextTick(() => {
+    triggerIslandHighlight(pendingHighlightKey.value)
+  })
+}
+
 watch(
-  () => notificationsStore.targetSubView,
-  (newSub) => {
+  () => [notificationsStore.targetSubView, notificationsStore.targetIslandKey, notificationsStore.targetAppId],
+  ([newSub, newKey, newAppId]) => {
     if (newSub === 'dynamicBar') {
       isBack.value = false
       subStack.value = ['main', 'dynamicBar']
-      notificationsStore.setTargetView('notifications', null)
+      const keyToHighlight = newKey || notificationsStore.targetIslandKey
+      notificationsStore.setTargetView('notifications', null, null, null)
+      if (keyToHighlight) {
+        nextTick(() => {
+          triggerIslandHighlight(keyToHighlight)
+        })
+      }
+    } else if (newSub === 'appDetail') {
+      isBack.value = false
+      const targetApp = newAppId || notificationsStore.targetAppId
+      selectedApp.value = resolveApp(targetApp)
+      subStack.value = ['main', 'appDetail']
+      notificationsStore.setTargetView('notifications', null, null, null)
+    } else if (newKey && subView.value === 'dynamicBar') {
+      nextTick(() => {
+        triggerIslandHighlight(newKey)
+      })
     }
   }
 )
@@ -70,53 +188,36 @@ const onlyNewOnLock = ref(false)
 const conciseFloating = ref(true)
 const antiPeepFloating = ref(true)
 
-/* 通知应用列表（从 notificationsStore.list 读取，确保与通知中心通知完全一致） */
-const notificationApps = computed(() => {
-  const map = new Map()
-  for (const item of notificationsStore.list) {
-    if (!map.has(item.appId)) {
-      map.set(item.appId, {
-        id: item.appId,
-        appId: item.appId,
-        iconType: item.iconType || item.appId,
-        time: item.time
-      })
-    }
-  }
-  if (map.size === 0) {
-    for (const item of seedNotifications()) {
-      if (!map.has(item.appId)) {
-        map.set(item.appId, {
-          id: item.appId,
-          appId: item.appId,
-          iconType: item.iconType || item.appId,
-          time: item.time
-        })
-      }
-    }
-  }
-  return Array.from(map.values())
-})
-
-const appStates = ref({})
 function getAppState(id) {
-  return appStates.value[id] !== false
+  return notificationsStore.isAppNotificationEnabled(id)
 }
 function toggleAppState(id) {
-  appStates.value[id] = !getAppState(id)
+  notificationsStore.toggleAppNotification(id)
 }
 
 const appLiveActivityStates = ref({})
 function getAppLiveActivityState(id) {
+  const islandKeys = getIslandKeysForApp(id)
+  if (islandKeys.length > 0) {
+    return islandKeys.some((k) => notificationsStore.islandSettings[k] !== false)
+  }
   return appLiveActivityStates.value[id] !== false
 }
 function toggleAppLiveActivityState(id) {
+  const islandKeys = getIslandKeysForApp(id)
+  if (islandKeys.length > 0) {
+    const next = !getAppLiveActivityState(id)
+    for (const k of islandKeys) {
+      notificationsStore.setIslandEnabled(k, next)
+    }
+    appLiveActivityStates.value[id] = next
+    return
+  }
   appLiveActivityStates.value[id] = !getAppLiveActivityState(id)
 }
 
-const selectedApp = ref(null)
 const currentDetailApp = computed(() => {
-  return selectedApp.value || notificationApps.value[0] || { id: 'whatsapp', appId: 'whatsapp', iconType: 'whatsapp', time: Date.now() }
+  return selectedApp.value || notificationApps.value?.[0] || { id: 'recorder', appId: 'recorder', iconType: 'recorder', time: Date.now() }
 })
 
 function openAppDetail(app) {
@@ -202,28 +303,23 @@ const emit = defineEmits(['back-to-settings'])
           <span class="ns-sort"><i></i><i></i></span>
         </div>
         <div class="cell-group">
-          <ListCell
+          <SplitActionCell
             v-for="(app, index) in notificationApps"
             :key="app.id"
             :title="i18n.notifTitle(app.appId)"
             :subtitle="formatRelativeTime(app.time, i18n.t)"
+            :model-value="getAppState(app.id)"
             :last="index === notificationApps.length - 1"
-            clickable
-            @click="openAppDetail(app)"
+            switch-color="blue"
+            @navigate="openAppDetail(app)"
+            @update:modelValue="toggleAppState(app.id)"
           >
             <template #icon>
               <div class="ns-app-icon-wrap">
                 <NotificationIcon :type="app.iconType" :size="38" />
               </div>
             </template>
-            <template #right>
-              <ToggleSwitch
-                :model-value="getAppState(app.id)"
-                @click.stop
-                @update:modelValue="toggleAppState(app.id)"
-              />
-            </template>
-          </ListCell>
+          </SplitActionCell>
         </div>
       </div>
 
@@ -325,17 +421,51 @@ const emit = defineEmits(['back-to-settings'])
         <!-- 所有开关集中放置在规范 cell-group 中 -->
         <div class="cell-group">
           <!-- 系统录音 -->
-          <ListCell :title="i18n.t('nsDynamicBarRecorder')">
+          <ListCell
+            :title="i18n.t('nsDynamicBarRecorder')"
+            :class="{ 'is-highlight-flash': highlightedIslandKey === 'recorder' }"
+            data-island-key="recorder"
+          >
             <template #icon>
               <div class="db-app-icon db-icon-recorder">
                 <img :src="voicememosIconUrl" alt="Voice Memos" class="db-icon-img" />
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.recorder" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.recorder"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('recorder', val)"
+              />
+            </template>
+          </ListCell>
+
+          <!-- 闹钟 -->
+          <ListCell
+            :title="i18n.t('alarm') || '闹钟'"
+            :class="{ 'is-highlight-flash': highlightedIslandKey === 'alarm' }"
+            data-island-key="alarm"
+          >
+            <template #icon>
+              <div class="db-app-icon db-icon-alarm">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path :d="CLOCK_ICONS.alarm" fill="#FFFFFF" />
+                </svg>
+              </div>
+            </template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.alarm"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('alarm', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 倒计时 -->
-          <ListCell :title="i18n.t('nsDynamicBarTimer')">
+          <ListCell
+            :title="i18n.t('nsDynamicBarTimer')"
+            :class="{ 'is-highlight-flash': highlightedIslandKey === 'timer' }"
+            data-island-key="timer"
+          >
             <template #icon>
               <div class="db-app-icon db-icon-timer">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -343,11 +473,20 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.timer" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.timer"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('timer', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 秒表 -->
-          <ListCell :title="i18n.t('nsDynamicBarStopwatch')">
+          <ListCell
+            :title="i18n.t('nsDynamicBarStopwatch')"
+            :class="{ 'is-highlight-flash': highlightedIslandKey === 'stopwatch' }"
+            data-island-key="stopwatch"
+          >
             <template #icon>
               <div class="db-app-icon db-icon-stopwatch">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -355,11 +494,20 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.stopwatch" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.stopwatch"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('stopwatch', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 礼拜模式 -->
-          <ListCell :title="i18n.t('nsDynamicBarPrayer')">
+          <ListCell
+            :title="i18n.t('nsDynamicBarPrayer')"
+            :class="{ 'is-highlight-flash': highlightedIslandKey === 'prayer' }"
+            data-island-key="prayer"
+          >
             <template #icon>
               <div class="db-app-icon db-icon-prayer">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -367,11 +515,21 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.prayer" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.prayer"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('prayer', val)"
+              />
+            </template>
           </ListCell>
 
           <!-- 媒体播控 -->
-          <ListCell :title="i18n.t('nsDynamicBarMedia')" last>
+          <ListCell
+            :title="i18n.t('nsDynamicBarMedia')"
+            last
+            :class="{ 'is-highlight-flash': highlightedIslandKey === 'media' }"
+            data-island-key="media"
+          >
             <template #icon>
               <div class="db-app-icon db-icon-media">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -379,7 +537,12 @@ const emit = defineEmits(['back-to-settings'])
                 </svg>
               </div>
             </template>
-            <template #right><ToggleSwitch v-model="notificationsStore.islandSettings.media" /></template>
+            <template #right>
+              <ToggleSwitch
+                :model-value="notificationsStore.islandSettings.media"
+                @update:modelValue="(val) => notificationsStore.setIslandEnabled('media', val)"
+              />
+            </template>
           </ListCell>
         </div>
       </div>
@@ -762,6 +925,9 @@ const emit = defineEmits(['back-to-settings'])
 .db-icon-recorder {
   background: linear-gradient(135deg, #FF453A 0%, #D70015 100%);
 }
+.db-icon-alarm {
+  background: linear-gradient(135deg, #FF9500 0%, #E65100 100%);
+}
 .db-icon-timer {
   background: linear-gradient(135deg, #FF9F0A 0%, #FF6D00 100%);
 }
@@ -773,6 +939,22 @@ const emit = defineEmits(['back-to-settings'])
 }
 .db-icon-media {
   background: linear-gradient(135deg, #FF2D55 0%, #E11D48 100%);
+}
+
+/* 灵动岛菜单项高亮闪动动画（闪动 3 次恢复正常：从描边改为 30% 透明度填充） */
+@keyframes island-cell-flash {
+  0%, 100% {
+    background-color: var(--bg-cell, #ffffff);
+  }
+  50% {
+    background-color: rgba(0, 122, 255, 0.30);
+  }
+}
+
+:deep(.list-cell.is-highlight-flash),
+.is-highlight-flash {
+  animation: island-cell-flash 0.6s ease-in-out 3 !important;
+  border-radius: 12px;
 }
 .ns-card-footer {
   font: 400 13px/1.4 var(--font-stack);
