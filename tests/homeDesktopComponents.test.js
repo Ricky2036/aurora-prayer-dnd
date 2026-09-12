@@ -163,13 +163,12 @@ test('empty long press and touch or trackpad pinch enter desktop editing', async
   assert.match(home, /function enterEditingFromEmptyPress\(\)[\s\S]*releasePointerCapture[\s\S]*home\.setEditing\(true\)/)
 })
 
-test('compact clock and calendar icons retain legible special rendering', async () => {
+test('clock and calendar use one canonical vector canvas at every rendered size', async () => {
   const icon = await read('../src/components/ui/AppIcon.vue')
-  assert.match(icon, /compactSpecial = computed\(\(\) => props\.size < 20\)/)
-  assert.match(icon, /class="clock-face" width="100%" height="100%"/)
-  assert.match(icon, /v-for="i in \(compactSpecial \? \[\] : 12\)"/)
-  assert.match(icon, /<line v-if="!compactSpecial"/)
-  assert.match(icon, /is-compact-special/)
-  assert.match(icon, /\.clock-face\{[^}]*width:76\.667%;height:76\.667%/)
-  assert.match(icon, /\.tile-clock\.is-compact-special \.clock-face\{width:84%;height:84%\}/)
+  assert.match(icon, /class="clock-face" width="100%" height="100%" viewBox="0 0 60 60"/)
+  assert.match(icon, /class="calendar-face" width="100%" height="100%" viewBox="0 0 60 60"/)
+  assert.match(icon, /class="calendar-weekday"/)
+  assert.match(icon, /class="calendar-date"/)
+  assert.match(icon, /v-for="i in 12"/)
+  assert.doesNotMatch(icon, /compactSpecial|is-compact-special/)
 })

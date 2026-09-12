@@ -39,7 +39,6 @@ const weekday = computed(() => {
 })
 
 const badge = computed(() => notifications.countByApp[props.app.id] || 0)
-const compactSpecial = computed(() => props.size < 20)
 
 /** hero 动画期间隐藏图标本体防重影 */
 const hidden = computed(() => !props.ignoreHidden && home.hiddenIconId === props.app.id)
@@ -83,7 +82,7 @@ onBeforeUnmount(() => {
     @click="open"
   >
     <span ref="anchorRef" class="app-icon-anchor" :style="{ width: size + 'px', height: size + 'px' }">
-      <span class="icon-tile squircle-mask" :class="[app.special ? 'tile-' + app.special : '', { 'is-compact-special': compactSpecial }]" :style="{ ...(app.special ? {} : { background: app.gradient || '#fff' }), width: size + 'px', height: size + 'px' }">
+      <span class="icon-tile squircle-mask" :class="app.special ? 'tile-' + app.special : ''" :style="{ ...(app.special ? {} : { background: app.gradient || '#fff' }), width: size + 'px', height: size + 'px' }">
         <!-- 图片图标：略微放大以切除原图可能自带的不完美圆角和毛刺 -->
         <img v-if="app.image" :src="resolvedImage" alt="" draggable="false" :style="{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.02)' }" />
 
@@ -93,10 +92,10 @@ onBeforeUnmount(() => {
         </svg>
 
         <!-- 日历：星期 + 日期 -->
-        <template v-else-if="app.special === 'calendar'">
-          <span class="cal-weekday">{{ weekday }}</span>
-          <span class="cal-date">{{ today.date }}</span>
-        </template>
+        <svg v-else-if="app.special === 'calendar'" class="calendar-face" width="100%" height="100%" viewBox="0 0 60 60" preserveAspectRatio="xMidYMid meet">
+          <text class="calendar-weekday" x="30" y="13" text-anchor="middle" dominant-baseline="middle">{{ weekday }}</text>
+          <text class="calendar-date" x="30" y="37" text-anchor="middle" dominant-baseline="middle">{{ today.date }}</text>
+        </svg>
 
         <!-- 照片：彩色风车 -->
         <svg v-else-if="app.special === 'photos'" width="40" height="40" viewBox="0 0 40 40" :style="{ transform: `scale(${size / 60})` }">
@@ -108,20 +107,19 @@ onBeforeUnmount(() => {
         </svg>
 
         <!-- 时钟：实时指针 -->
-        <svg v-else-if="app.special === 'clock'" class="clock-face" width="100%" height="100%" viewBox="0 0 46 46" preserveAspectRatio="xMidYMid meet">
-          <circle cx="23" cy="23" r="21" fill="#1c1c1e"/>
-          <circle cx="23" cy="23" r="19.5" fill="#fff"/>
+        <svg v-else-if="app.special === 'clock'" class="clock-face" width="100%" height="100%" viewBox="0 0 60 60" preserveAspectRatio="xMidYMid meet">
+          <circle cx="30" cy="30" r="21" fill="#fff"/>
           <g stroke="#3a3a3c" stroke-width="1.4">
-            <line v-for="i in (compactSpecial ? [] : 12)" :key="i" x1="23" y1="5" x2="23" y2="8"
-              :transform="`rotate(${(i - 1) * 30} 23 23)`" />
+            <line v-for="i in 12" :key="i" x1="30" y1="10" x2="30" y2="13"
+              :transform="`rotate(${(i - 1) * 30} 30 30)`" />
           </g>
-          <line x1="23" y1="23" x2="23" y2="13" stroke="#1c1c1e" stroke-width="3" stroke-linecap="round"
-            :transform="`rotate(${hourDeg} 23 23)`" />
-          <line x1="23" y1="23" x2="23" y2="8" stroke="#1c1c1e" stroke-width="2" stroke-linecap="round"
-            :transform="`rotate(${minuteDeg} 23 23)`" />
-          <line v-if="!compactSpecial" x1="23" y1="25" x2="23" y2="7" stroke="#FF9500" stroke-width="1" stroke-linecap="round"
-            :transform="`rotate(${secondDeg} 23 23)`" />
-          <circle cx="23" cy="23" r="1.6" fill="#1c1c1e"/>
+          <line x1="30" y1="30" x2="30" y2="20" stroke="#1c1c1e" stroke-width="3" stroke-linecap="round"
+            :transform="`rotate(${hourDeg} 30 30)`" />
+          <line x1="30" y1="30" x2="30" y2="15" stroke="#1c1c1e" stroke-width="2" stroke-linecap="round"
+            :transform="`rotate(${minuteDeg} 30 30)`" />
+          <line x1="30" y1="32" x2="30" y2="14" stroke="#FF9500" stroke-width="1" stroke-linecap="round"
+            :transform="`rotate(${secondDeg} 30 30)`" />
+          <circle cx="30" cy="30" r="1.6" fill="#1c1c1e"/>
         </svg>
       </span>
     </span>
@@ -202,26 +200,14 @@ onBeforeUnmount(() => {
 }
 
 /* 日历图标 */
-.tile-calendar { background: linear-gradient(180deg, #ffffff 0%, #f6f6f8 100%); flex-direction: column; gap: 0; }
-.tile-calendar.is-compact-special .cal-weekday { display:none; }
-.tile-calendar.is-compact-special .cal-date { margin:0;font-size:calc(8px * var(--scale, 1) + 5px);font-weight:600;line-height:1; }
-.cal-weekday {
-  font: 600 calc(10px * var(--scale, 1))/1 var(--font-stack);
-  color: var(--ios-red);
-  letter-spacing: 0.5px;
-  margin-top: calc(7px * var(--scale, 1));
-}
-.cal-date {
-  font: 300 calc(30px * var(--scale, 1))/1.1 var(--font-stack);
-  color: #1c1c1e;
-  font-variant-numeric: tabular-nums;
-}
+.tile-calendar { background: linear-gradient(180deg, #ffffff 0%, #f6f6f8 100%); }
+.calendar-face,.clock-face{display:block;width:100%;height:100%;transform:none}
+.calendar-weekday{fill:var(--ios-red);font:600 9px var(--font-stack);letter-spacing:.35px}
+.calendar-date{fill:#1c1c1e;font:300 30px var(--font-stack);font-variant-numeric:tabular-nums}
 
 /* 照片图标：iOS 风格白底彩色风车 */
 .tile-photos { background: linear-gradient(180deg, #ffffff 0%, #f2f2f7 100%); }
 
 /* 时钟图标：黑底白表盘（SVG 自带圆，背景铺满圆角） */
 .tile-clock { background: #1c1c1e; }
-.clock-face{display:block;width:76.667%;height:76.667%;transform:none}
-.tile-clock.is-compact-special .clock-face{width:84%;height:84%}
 </style>
