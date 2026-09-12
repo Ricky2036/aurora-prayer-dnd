@@ -331,10 +331,41 @@ function initFabPosition() {
   const w = window.innerWidth
   const h = window.innerHeight
   fabPos.value = {
-    x: Math.max(12, w - 64),
+    x: Math.max(12, w - 56),
     y: Math.max(80, h - 190)
   }
 }
+
+// 彩蛋动效：页面加载首次显示及每次回桌面时设置齿轮优雅旋转
+const isEasterEggSpinning = ref(false)
+let easterEggTimer = null
+
+function triggerEasterEggSpin(delay = 180) {
+  if (easterEggTimer) clearTimeout(easterEggTimer)
+  isEasterEggSpinning.value = false
+  easterEggTimer = setTimeout(() => {
+    isEasterEggSpinning.value = true
+  }, delay)
+}
+
+function onEasterEggEnd() {
+  isEasterEggSpinning.value = false
+}
+
+// 监听是否回桌面：当回到桌面状态（baseLayer === 'home' 且无全屏覆盖物/切换器）时触发一次动效
+const isAtHome = computed(() => {
+  return system.baseLayer === 'home' &&
+    !system.appSwitcherOpen &&
+    system.overlays?.notificationCenter?.status === 'closed' &&
+    system.overlays?.controlCenter?.status === 'closed' &&
+    system.overlays?.appLibrary?.status === 'closed'
+})
+
+watch(isAtHome, (nowAtHome, prevAtHome) => {
+  if (nowAtHome && !prevAtHome) {
+    triggerEasterEggSpin(220)
+  }
+})
 
 onMounted(() => {
   initFabPosition()
@@ -342,9 +373,13 @@ onMounted(() => {
   window.addEventListener('resize', handleWindowResize)
   document.addEventListener('fullscreenchange', updateFullscreenState)
   document.addEventListener('webkitfullscreenchange', updateFullscreenState)
+
+  // 页面加载完成后优雅旋转一次作为彩蛋
+  triggerEasterEggSpin(400)
 })
 
 onBeforeUnmount(() => {
+  if (easterEggTimer) clearTimeout(easterEggTimer)
   window.removeEventListener('resize', handleWindowResize)
   document.removeEventListener('fullscreenchange', updateFullscreenState)
   document.removeEventListener('webkitfullscreenchange', updateFullscreenState)
@@ -383,7 +418,7 @@ function onFabPointerMove(e) {
   if (hasMoved) {
     const w = window.innerWidth
     const h = window.innerHeight
-    const newX = Math.max(8, Math.min(w - 56, startFab.x + dx))
+    const newX = Math.max(8, Math.min(w - 50, startFab.x + dx))
     const newY = Math.max(48, Math.min(h - 80, startFab.y + dy))
     fabPos.value = { x: newX, y: newY }
   }
@@ -409,6 +444,8 @@ function onFabPointerUp(e) {
 function onFabClick(e) {
   e.stopPropagation()
   if (!hasMoved) {
+    if (easterEggTimer) clearTimeout(easterEggTimer)
+    isEasterEggSpinning.value = false
     toggleModal()
   }
 }
@@ -426,7 +463,7 @@ function snapToEdge() {
   const h = window.innerHeight
   isSnapping.value = true
 
-  const snapX = fabPos.value.x < w / 2 ? 14 : w - 62
+  const snapX = fabPos.value.x < w / 2 ? 14 : w - 56
   const clampY = Math.max(54, Math.min(h - 90, fabPos.value.y))
   fabPos.value = { x: snapX, y: clampY }
 
@@ -462,39 +499,50 @@ function onToggleFineTune(enabled) {
     <!-- 背景流光 -->
     <div class="pc-glow"></div>
 
-    <!-- 顶部标题栏：左上角全屏，右上角亮灭屏，居中标题 -->
+    <!-- 顶部标题栏：居中标题 -->
     <header class="pc-header">
-      <button
-        class="pc-header-icon-btn"
-        @click="toggleFullscreen"
-        :title="isFullscreen ? '退出全屏' : '全屏'"
-        aria-label="切换全屏"
-      >
-        <svg v-if="!isFullscreen" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-        </svg>
-        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-        </svg>
-      </button>
-
       <h2 class="pc-title">控制台</h2>
-
-      <button
-        class="pc-header-icon-btn"
-        :class="system.screenOn ? 'is-active-power' : 'is-off-power'"
-        @click="system.screenOn ? system.powerOff() : system.powerOn()"
-        :title="system.screenOn ? '灭屏' : '亮屏'"
-        aria-label="系统亮灭屏"
-      >
-        <svg v-if="system.screenOn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>
-        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
-        </svg>
-      </button>
     </header>
+
+    <!-- 原型控制：全屏与亮灭屏合一卡片（样式与截屏录屏卡片一致） -->
+    <div class="pc-card">
+      <div class="pc-card-header">
+        <span class="pc-card-title">原型控制</span>
+      </div>
+      <div class="pc-btn-group-2">
+        <!-- 全屏动作按钮 -->
+        <button
+          class="pc-btn pc-btn-secondary"
+          @click="toggleFullscreen"
+          :title="isFullscreen ? '退出全屏' : '全屏'"
+          aria-label="切换全屏"
+        >
+          <svg v-if="!isFullscreen" class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <svg v-else class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+          </svg>
+          <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
+        </button>
+
+        <!-- 亮灭屏动作按钮 -->
+        <button
+          class="pc-btn pc-btn-secondary"
+          @click="system.screenOn ? system.powerOff() : system.powerOn()"
+          :title="system.screenOn ? '灭屏' : '亮屏'"
+          aria-label="系统亮灭屏"
+        >
+          <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+          </svg>
+          <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
+        </button>
+      </div>
+    </div>
 
     <!-- 常用功能：截屏录屏合一卡片（带壳作为通用选项置于标题右侧，按钮精简） -->
     <div class="pc-card">
@@ -510,7 +558,7 @@ function onToggleFineTune(enabled) {
         <!-- 录屏动作按钮 -->
         <button
           class="pc-btn"
-          :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+          :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-secondary'"
           :disabled="isTranscoding"
           @click="emit('toggle-recording')"
         >
@@ -520,7 +568,7 @@ function onToggleFineTune(enabled) {
           </template>
           <template v-else-if="isRecording">
             <LIcon name="video" :size="14" />
-            <span>停止 · {{ recordElapsed }}</span>
+            <span>{{ recordElapsed }}</span>
           </template>
           <template v-else>
             <LIcon name="video" :size="14" />
@@ -945,7 +993,7 @@ function onToggleFineTune(enabled) {
 
   <!-- ================= 2. 移动端悬浮球与居中弹窗模式 ================= -->
   <aside v-else class="mobile-dev-console">
-    <!-- 可拖动悬浮按钮 (FAB) -->
+    <!-- 可拖动悬浮按钮 (FAB：精致无背景微晶手机 + 内部设置齿轮) -->
     <div
       class="fab-btn"
       :class="{ 'is-snapping': isSnapping, 'is-open': isDrawerOpen }"
@@ -957,14 +1005,33 @@ function onToggleFineTune(enabled) {
       @pointerup="onFabPointerUp"
       @pointercancel="onFabPointerUp"
       @click="onFabClick"
+      title="控制台"
+      aria-label="打开控制台"
     >
       <div class="fab-inner">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="5" y="2" width="14" height="20" rx="3" ry="3"/>
-          <line x1="12" y1="18" x2="12.01" y2="18"/>
-        </svg>
+        <!-- 微型手机（控制台深曜面板配色 + 2px 均匀钛灰边框 + 黑色灵动岛 + Zinc-400 齿轮） -->
+        <div class="mini-proto-phone">
+          <!-- 深灰屏幕区 -->
+          <div class="mini-screen">
+            <!-- 顶部黑色灵动岛胶囊 -->
+            <div class="mini-island"></div>
+
+            <!-- 居中设置齿轮（控制台 Zinc-400 灰色，回桌面优雅旋转彩蛋） -->
+            <div
+              class="mini-gear"
+              :class="{ 'easter-egg-spin': isEasterEggSpinning }"
+              @animationend="onEasterEggEnd"
+            >
+              <svg width="15" height="15" viewBox="0 0.5 24 24" fill="currentColor">
+                <path d="M13.0547 1.83594C13.3984 1.83594 13.6953 1.94531 13.9453 2.16406C14.1953 2.38281 14.3438 2.64844 14.3906 2.96094V3.03125L14.5312 4.55469C14.7656 4.63281 14.9844 4.71875 15.1875 4.8125C15.4062 4.89063 15.6172 4.98438 15.8203 5.09375L16.9922 4.10938C17.2578 3.89062 17.5625 3.79687 17.9062 3.82812C18.25 3.84375 18.5469 3.96875 18.7969 4.20312L20.2969 5.70312C20.5312 5.9375 20.6562 6.21875 20.6719 6.54688C20.7031 6.875 20.6172 7.17187 20.4141 7.4375L20.3906 7.50781L19.4062 8.67969C19.5156 8.88281 19.6094 9.09375 19.6875 9.3125C19.7812 9.51562 19.8672 9.72656 19.9453 9.94531L21.4688 10.1094C21.8125 10.1406 22.0938 10.2891 22.3125 10.5547C22.5469 10.8047 22.6641 11.1016 22.6641 11.4453V13.5547C22.6641 13.8984 22.5469 14.2031 22.3125 14.4688C22.0938 14.7188 21.8125 14.8594 21.4688 14.8906L19.9453 15.0312C19.8672 15.2656 19.7812 15.4922 19.6875 15.7109C19.6094 15.9141 19.5156 16.1172 19.4062 16.3203L20.3906 17.4922C20.6094 17.7578 20.7031 18.0625 20.6719 18.4062C20.6562 18.75 20.5312 19.0469 20.2969 19.2969L18.7969 20.7969C18.5469 21.0312 18.25 21.1641 17.9062 21.1953C17.5625 21.2109 17.2578 21.1094 16.9922 20.8906L15.8203 19.9062C15.6172 20.0156 15.4062 20.1172 15.1875 20.2109C14.9844 20.2891 14.7656 20.3672 14.5312 20.4453L14.3906 21.9688C14.3594 22.3125 14.2109 22.6016 13.9453 22.8359C13.6953 23.0547 13.3984 23.1641 13.0547 23.1641H10.9453C10.6016 23.1641 10.2969 23.0547 10.0312 22.8359C9.78125 22.6016 9.64062 22.3125 9.60938 21.9688L9.44531 20.4453C9.22656 20.3672 9.00781 20.2891 8.78906 20.2109C8.58594 20.1172 8.38281 20.0156 8.17969 19.9062L7.00781 20.8906C6.74219 21.1094 6.4375 21.2109 6.09375 21.1953C5.75 21.1641 5.45312 21.0312 5.20312 20.7969L3.70312 19.2969C3.46875 19.0469 3.33594 18.75 3.30469 18.4062C3.28906 18.0625 3.39062 17.7578 3.60938 17.4922L4.59375 16.3203C4.48438 16.1172 4.38281 15.9141 4.28906 15.7109C4.21094 15.4922 4.13281 15.2656 4.05469 15.0312L2.53125 14.8906C2.1875 14.8594 1.89844 14.7188 1.66406 14.4688C1.44531 14.2031 1.33594 13.8984 1.33594 13.5547V11.4453V11.375C1.35156 11.0469 1.46875 10.7656 1.6875 10.5312C1.92188 10.2812 2.20312 10.1406 2.53125 10.1094L4.05469 9.94531C4.13281 9.72656 4.21094 9.51562 4.28906 9.3125C4.38281 9.09375 4.48438 8.88281 4.59375 8.67969L3.60938 7.50781C3.39062 7.24219 3.28906 6.9375 3.30469 6.59375C3.33594 6.25 3.46875 5.95312 3.70312 5.70312L5.20312 4.20312L5.25 4.15625C5.5 3.9375 5.78906 3.82812 6.11719 3.82812C6.44531 3.8125 6.74219 3.90625 7.00781 4.10938L8.17969 5.09375C8.38281 4.98438 8.58594 4.89063 8.78906 4.8125C9.00781 4.71875 9.22656 4.63281 9.44531 4.55469L9.60938 3.03125V2.96094C9.65625 2.64844 9.80469 2.38281 10.0547 2.16406C10.3047 1.94531 10.6016 1.83594 10.9453 1.83594H13.0547ZM12 9.5C11.1719 9.5 10.4609 9.79688 9.86719 10.3906C9.28906 10.9688 9 11.6719 9 12.5C9 13.3281 9.28906 14.0391 9.86719 14.6328C10.4609 15.2109 11.1719 15.5 12 15.5C12.8281 15.5 13.5312 15.2109 14.1094 14.6328C14.7031 14.0391 15 13.3281 15 12.5C15 11.6719 14.7031 10.9688 14.1094 10.3906C13.5312 9.79688 12.8281 9.5 12 9.5Z" />
+              </svg>
+            </div>
+
+            <!-- 底部 Home 导航条（20% 透明度白色） -->
+            <div class="mini-home-bar"></div>
+          </div>
+        </div>
       </div>
-      <div class="fab-tag">控制台</div>
     </div>
 
     <!-- 弹窗遮罩与居中弹窗 (Modal Popup) -->
@@ -975,47 +1042,57 @@ function onToggleFineTune(enabled) {
             <!-- 背景流光 -->
             <div class="pc-glow"></div>
 
-            <!-- 顶部标题栏：左全屏，中标题，右亮灭屏+关闭 -->
+            <!-- 顶部标题栏：居中标题与右侧关闭按钮 -->
             <header class="pc-header">
-              <button
-                class="pc-header-icon-btn"
-                @click="toggleFullscreen"
-                :title="isFullscreen ? '退出全屏' : '全屏'"
-                aria-label="切换全屏"
-              >
-                <svg v-if="!isFullscreen" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                </svg>
-                <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+              <div class="pc-header-spacer"></div>
+              <h2 class="pc-title">控制台</h2>
+              <button class="pc-close-btn" @click.stop="closeModal" aria-label="关闭">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
+            </header>
 
-              <h2 class="pc-title">控制台</h2>
-
-              <div class="pc-header-actions">
+            <!-- 原型控制：全屏与亮灭屏合一卡片（样式与截屏录屏卡片一致） -->
+            <div class="pc-card">
+              <div class="pc-card-header">
+                <span class="pc-card-title">原型控制</span>
+              </div>
+              <div class="pc-btn-group-2">
+                <!-- 全屏动作按钮 -->
                 <button
-                  class="pc-header-icon-btn"
-                  :class="system.screenOn ? 'is-active-power' : 'is-off-power'"
+                  class="pc-btn pc-btn-secondary"
+                  @click="toggleFullscreen"
+                  :title="isFullscreen ? '退出全屏' : '全屏'"
+                  aria-label="切换全屏"
+                >
+                  <svg v-if="!isFullscreen" class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                  </svg>
+                  <svg v-else class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                  </svg>
+                  <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
+                </button>
+
+                <!-- 亮灭屏动作按钮 -->
+                <button
+                  class="pc-btn pc-btn-secondary"
                   @click="system.screenOn ? system.powerOff() : system.powerOn()"
                   :title="system.screenOn ? '灭屏' : '亮屏'"
                   aria-label="系统亮灭屏"
                 >
-                  <svg v-if="system.screenOn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                   </svg>
-                  <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
                   </svg>
-                </button>
-                <button class="pc-close-btn" @click.stop="closeModal" aria-label="关闭">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
+                  <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
                 </button>
               </div>
-            </header>
+            </div>
 
             <!-- 常用功能：截屏录屏合一卡片 -->
             <div class="pc-card">
@@ -1031,7 +1108,7 @@ function onToggleFineTune(enabled) {
                 <!-- 录屏动作按钮 -->
                 <button
                   class="pc-btn"
-                  :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-primary'"
+                  :class="isTranscoding ? 'pc-btn-disabled' : isRecording ? 'pc-btn-danger' : 'pc-btn-secondary'"
                   :disabled="isTranscoding"
                   @click="emit('toggle-recording')"
                 >
@@ -1041,7 +1118,7 @@ function onToggleFineTune(enabled) {
                   </template>
                   <template v-else-if="isRecording">
                     <LIcon name="video" :size="14" />
-                    <span>停止 · {{ recordElapsed }}</span>
+                    <span>{{ recordElapsed }}</span>
                   </template>
                   <template v-else>
                     <LIcon name="video" :size="14" />
@@ -1501,7 +1578,7 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-/* 顶部标题栏：左右分布图标按钮，中间居中标题 */
+/* 顶部标题栏：居中标题与弹窗关闭按钮 */
 .pc-header {
   position: relative;
   display: flex;
@@ -1512,58 +1589,10 @@ function onToggleFineTune(enabled) {
   margin-bottom: 0;
 }
 
-.pc-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pc-header-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #a1a1aa;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-  outline: none;
-}
-
-.pc-header-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.pc-header-icon-btn:active {
-  transform: scale(0.94);
-}
-
-.pc-header-icon-btn.is-active-power {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.3);
-}
-
-.pc-header-icon-btn.is-active-power:hover {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fef3c7;
-}
-
-.pc-header-icon-btn.is-off-power {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-}
-
-.pc-header-icon-btn.is-off-power:hover {
-  background: rgba(239, 68, 68, 0.25);
-  color: #fee2e2;
+.pc-header-spacer {
+  width: 24px;
+  height: 24px;
+  flex: none;
 }
 
 .pc-title {
@@ -1573,6 +1602,21 @@ function onToggleFineTune(enabled) {
   margin: 0;
   text-align: center;
   flex: 1;
+}
+
+.pc-btn-icon {
+  margin-right: 6px;
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.pc-icon-sun {
+  color: #fbbf24;
+}
+
+.pc-icon-power {
+  color: #ef4444;
 }
 
 /* ================= 截屏录屏两列操作按钮 ================= */
@@ -2072,50 +2116,144 @@ function onToggleFineTune(enabled) {
   position: fixed;
   top: 0;
   left: 0;
-  width: 50px;
-  height: 50px;
-  border-radius: 25px;
-  background: #18181c;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+  width: 44px;
+  height: 60px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  filter: none; /* 去除阴影，质感纯粹通透 */
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
   cursor: grab;
   touch-action: none;
   pointer-events: auto;
   user-select: none;
   -webkit-user-select: none;
   will-change: transform;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
 }
 
 .fab-btn:active {
   cursor: grabbing;
-  transform: scale(0.96);
+}
+
+.fab-btn:active .mini-proto-phone {
+  transform: scale(0.92);
 }
 
 .fab-btn.is-snapping {
   transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.fab-btn.is-open {
-  border-color: #60a5fa;
-  box-shadow: 0 0 16px rgba(96, 165, 250, 0.5);
-}
-
 .fab-inner {
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
 }
 
-.fab-tag {
-  font-size: 8.5px;
-  font-weight: 700;
-  color: #f4f4f5;
-  letter-spacing: 0.2px;
+/* 原型手机微型化（控制台面板配色 + 毛玻璃质感 + 均匀 2px 边框 + 考究圆角 7.5px / 5.5px） */
+.mini-proto-phone {
+  position: relative;
+  width: 30px;
+  height: 46px;
+  border-radius: 7.5px;
+  border: 2px solid #3e3e4c; /* 控制台金属钛灰边框，四边严格均匀 2px */
+  background: rgba(24, 24, 28, 0.9); /* 控制台深曜面板底色 #18181c */
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45); /* 对称居中投影，无非对称偏移阴影，确保四边粗细完全一致 */
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 控制台深曜毛玻璃屏幕区（同心 5.5px 内圆角: 7.5px - 2px = 5.5px，严格同心平行） */
+.mini-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 5.5px;
+  background: rgba(20, 20, 25, 0.85); /* 控制台卡片黑曜底色 */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* 顶部黑色灵动岛微型胶囊 */
+.mini-island {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7px;
+  height: 1.8px;
+  border-radius: 1px;
+  background: #000000;
+  z-index: 2;
+}
+
+/* 底部 Home 导航条（20% 透明度白色） */
+.mini-home-bar {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 7.5px;
+  height: 0.8px;
+  border-radius: 0.4px;
+  background: rgba(255, 255, 255, 0.2);
+  z-index: 2;
+}
+
+/* 设置齿轮（控制台面板经典二级图标/文字色 Zinc-400 #a1a1aa） */
+.mini-gear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a1a1aa;
+  z-index: 1;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease;
+}
+
+/* 彩蛋动效：首屏加载及回桌面时的优雅旋转动效 */
+@keyframes easterEggSpin {
+  0% {
+    transform: rotate(0deg) scale(0.85);
+    opacity: 0.75;
+  }
+  45% {
+    transform: rotate(220deg) scale(1.12);
+    opacity: 1;
+  }
+  75% {
+    transform: rotate(380deg) scale(0.98);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.mini-gear.easter-egg-spin {
+  animation: easterEggSpin 1.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 控制台打开状态 */
+.fab-btn.is-open .mini-proto-phone {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1.5px rgba(96, 165, 250, 0.5);
+}
+
+.fab-btn.is-open .mini-gear {
+  color: #ffffff;
+  transform: rotate(45deg);
 }
 
 /* 弹窗遮罩 (居中容器) */

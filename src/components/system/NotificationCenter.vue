@@ -21,6 +21,7 @@ import { useActiveActivities } from '../../composables/useActiveActivities'
 import { CLOCK_ICONS } from '../apps/clock/clockIcons'
 import { GLYPHS } from '../../assets/icons/glyphs'
 import IslandCloseModal from '../ui/IslandCloseModal.vue'
+import GlassCircleButton from '../ui/GlassCircleButton.vue'
 
 /**
  * 通知中心（移植自 notificationcenter.tsx）：
@@ -73,7 +74,7 @@ function onNcClick(e) {
   if (isIslandModalVisible.value) return
   if (Date.now() - lastSwipeEndTime < 350) return
   // 点击卡片本体、操作按钮、播放器、清除按钮等交互元素内部时，不重置滑开状态也不关闭叠层
-  if (e.target.closest('.nc-card, .nc-activity-card, .nc-swipe-card-wrapper, .nc-item-wrapper, .nc-activity-wrapper, .ls-player, .nc-player-instance, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab, .lp-play, .island-modal-backdrop, button, a, input, label')) {
+  if (e.target.closest('.nc-card, .nc-activity-card, .nc-swipe-card-wrapper, .nc-item-wrapper, .nc-activity-wrapper, .ls-player, .nc-player-instance, .nc-swipe-actions, .nc-action-btn, .nc-clear-fab-slot, .lp-play, .island-modal-backdrop, button, a, input, label')) {
     return
   }
   // 点击空白处时，如果有滑开的卡片，先收回
@@ -801,15 +802,15 @@ watch(expandedId, async () => {
       </div>
     </div>
 
-    <!-- 悬浮圆形清除按钮 -->
-    <button
-      v-if="notifications.list.length"
-      class="nc-clear-fab"
-      :title="i18n.t('clearAllNotifs')"
-      @click.stop="handleClearAll"
-    >
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-    </button>
+    <!-- 悬浮圆形清除按钮（磨砂圆钮抽成共享组件，与最近任务切换器同一份实现） -->
+    <div v-if="notifications.list.length" class="nc-clear-fab-slot">
+      <GlassCircleButton
+        :label="i18n.t('clearAllNotifs')"
+        @click.stop="handleClearAll"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+      </GlassCircleButton>
+    </div>
 
     <!-- 灵动岛关闭确认弹窗 -->
     <IslandCloseModal
@@ -1254,28 +1255,12 @@ watch(expandedId, async () => {
   color: rgba(255, 255, 255, 0.65);
 }
 
-/* 悬浮圆形清除按钮 */
-.nc-clear-fab {
+/* 悬浮圆形清除按钮 —— 只负责定位，视觉与按压反馈在 GlassCircleButton（共享组件）里 */
+.nc-clear-fab-slot {
   position: absolute;
   left: 50%;
   bottom: 42px;
-  transform: translateX(-50%);
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  cursor: pointer;
-  transition: transform 0.15s ease, background 0.2s ease;
+  margin-left: -26px; /* 52px 圆钮水平居中（改用 margin 而非 transform，留给组件做按压缩放） */
   z-index: 60; /* 高于通知卡片的动态 zIndex（20-idx），保证永不被盖住 */
 }
-.nc-clear-fab:hover { background: rgba(255, 59, 48, 0.5); }
-.nc-clear-fab:active { transform: translateX(-50%) scale(0.88); }
 </style>

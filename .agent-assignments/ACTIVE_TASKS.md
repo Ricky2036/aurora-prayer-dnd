@@ -44,7 +44,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Set Music and Prayer dynamic island default state to closed | `antigravity/lane` | `src/stores/controlStore.js`; `src/stores/prayerStore.js` | `f9e66d0` | `d80856a` |
 | Merged | Antigravity | Refactor DevConsole with top-corner icons, combined capture card, dropdown module switcher, dashed big card, and migrate language/navigation to Settings | `antigravity/lane` | `src/components/dev/DevConsole.vue`; `src/components/apps/settings/SettingsApp.vue`; `tests/alarmDynamicIsland.test.js`; `tests/prayerAlarmLinkage.test.js` | `34693f0` | `c27ebd9` |
 | Merged | Antigravity | Move frame toggle to capture card header as common option and simplify capture/record buttons | `antigravity/lane` | `src/components/dev/DevConsole.vue` | `982831d` | `dae7b0b` |
-<<<<<<< HEAD
 | Merged | Antigravity | Unify Live Activity interactions across LockScreen, NotificationCenter, and DynamicIsland (swipe delete & settings jump, align alarm icon) | `antigravity/lane` | `src/components/system/DynamicIsland.vue`; `src/components/system/LockScreen.vue`; `src/components/system/NotificationCenter.vue`; `tests/alarmDynamicIsland.test.js` | `7aae047` | `ac4b1b0` |
 | Merged | Antigravity | LockScreen Live Activity screen-edge clipping and DynamicIsland expanded swipe without black background | `antigravity/lane` | `src/components/system/LockScreen.vue`; `src/components/system/DynamicIsland.vue`; `tests/alarmDynamicIsland.test.js` | `9e1c4d2` | `22fbb21` |
 | Merged | Antigravity | Restore LockScreen default stacked notifications and sink Live Activity cards when collapsed | `antigravity/lane` | `src/components/system/LockScreen.vue`; `tests/alarmDynamicIsland.test.js` | `48014f5` | `cf30c87` |
@@ -66,6 +65,19 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Voice Memos launch notification authorization modal & permission linkage | `antigravity/lane` | None (locks released) | `aef175f` | `675f68e` |
 | Merged | Antigravity | Refine notification authorization modal to record click trigger & Control Center bell icon | `antigravity/lane` | None (locks released) | d91f06d | `4e8a6e9` |
 | Merged | Codex | Restore app taps after desktop editing | `codex/lane` | None (locks released) | `20174e4` | `4b2d285` |
+| Merged | Codex | Rewrite adaptive Android desktop grid system | `codex/lane` | None (desktop file locks released) | `33a4c18` | `6d4783b..57c8179` |
 | Merged | Workbuddy | iOS-style app switcher (Recent): card-stack live previews, horizontal flick browsing, swipe-up dismiss, tap-to-resume | `workbuddy/lane` | None (locks released) | `0ec0db5` | `763378f` |
+| Merged | Antigravity | Fix LockScreen mobile touch gestures: separate non-card swipe to unlock, resolve card scroll stuck & desktop leak, and support touch swipe down collapse | `antigravity/lane` | None (locks released) | `0dc5cac` | `ac79331` |
+| Merged | Antigravity | Move DevConsole fullscreen and screen power buttons into Prototype Controls card | `antigravity/lane` | None (locks released) | `5e8b28d` | `1cf32f4` |
+| Merged | Codex | Desktop direct drag, pinch edit, and anchored folder motion | `codex/lane` | None (desktop file locks released) | `023a810` | `50a844f..d9652c1` |
+| Merged | Antigravity | DevConsole record button unhighlight default style and text refinement | `antigravity/lane` | None (locks released) | `8cecb67` | `37682ee` |
+| Merged | Antigravity | Premium natural titanium phone frame redesign with ultra-thin bezel, 50px radius, and authentic buttons | `antigravity/lane` | None (locks released) | `07e85f4` | `f2adc92` |
+| Merged | Antigravity | Optimize mobile floating console button: remove background, enlarge phone icon, and add settings gear icon | `antigravity/lane` | None (locks released) | `082d100` | `706dad2` |
+| Merged | Antigravity | Refine mobile floating console button: canonical headerSettings icon, perfect flexbox centering, and slender flagship phone frame | `antigravity/lane` | None (locks released) | `706dad2` | `b565ddf` |
+| Merged | Antigravity | Miniature prototype phone frame FAB: dark titanium bezel, 5 side keys, pure black screen, white solid gear, no shadow, and easter egg spin | `antigravity/lane` | None (locks released) | `b565ddf` | `79f2340` |
+| Merged | Codex | Correct desktop application names | `codex/lane` | None (locks released) | `656a293` | `6d1ee4c` |
+| Merged | Antigravity | Trigger mobile FAB gear spin on returning to desktop & change phone border to blue | `antigravity/lane` | None (locks released) | `0be1bcb` | `d17b18a` |
+| Merged | Antigravity | Apply DevConsole palette to mini-phone FAB, equalize border thickness, and moderate corner radius | `antigravity/lane` | None (locks released) | `884e66c` | `9fe9a79` |
+| Merged | Workbuddy | Polish iOS app switcher: chain reaction drag, continuous scaling, and gesture physics | `workbuddy/lane` | None (locks released) | `0dc5cac` | `a6c0f0b` |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.

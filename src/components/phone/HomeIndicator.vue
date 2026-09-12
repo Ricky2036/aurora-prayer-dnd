@@ -52,12 +52,42 @@ function doAction() {
   }
 }
 
-/* 悬停计时器：上滑超过 5% 且停住 0.2s → 激活切换器（Ricky 2026-09-11 三轮）。
-   拖动全程把进度写给 switcherProgress（跟手缩放连续，滑得越远缩得越小），
-   hero 预览在这条路径不启动（避免双重渲染）。 */
+/* 悬停判定：上滑超过 5% 后【手指停住】→ 激活切换器。
+ *
+ * 历史问题（Ricky 2026-09-12 第一次反馈）：旧实现每次 pointermove 都 clearTimeout 重计 0.2s，
+ * 而真实触摸屏上手指永远有 1~2px 微抖 → 计时器几乎永远凑不满 → 「停留很久也进不了 Recent」。
+ * 当时改成「4px 位移容差」。
+ *
+ * 第五轮再修（Ricky：桌面路径「很难激活」）：4px 位移容差依然不够 ——
+ * 实测（/tmp/probe-home-feedback.mjs，停住 360ms）：
+ *     完全静止 / 慢飘 20 / 40 / 60 px/s → 都能触发；
+ *     慢飘 90 px/s                     → ❌ 计时器被反复清零，永远不触发。
+ * 而真实手指「上滑后停住」的头 100~200ms 恰恰还在减速飘移（几十到上百 px/s），
+ * 正好落在失败区间 → 体感就是「明明停住了却进不去」。
+ *
+ * 新判据 = 【速度】：只有速度超过 REST_SPEED 才认为「还在滑」并重置倒计时；
+ * 低于阈值（含慢飘）时计时器一直跑，不再被打断。定时器只起一次，靠「重新计时」复位。
+ *
+ * 拖动全程把进度写给 switcherProgress（跟手缩放连续，滑得越远缩得越小），
+ * hero 预览在这条路径不启动（避免双重渲染）。 */
+const DWELL_MS = 120
+const REST_SPEED = 150 // px/s：低于它视为「停住」（含手指减速末段的慢飘）
 let dwellArm = null
+let lastMoveAt = 0
+let lastRaw = 0
+
+function armDwell() {
+  clearTimeout(dwellArm)
+  dwellArm = setTimeout(() => {
+    dwellArm = null
+    system.switcherDwell = true
+  }, DWELL_MS)
+}
+
 function clearDwellArm() {
-  if (dwellArm) { clearTimeout(dwellArm); dwellArm = null }
+  clearTimeout(dwellArm)
+  dwellArm = null
+  lastMoveAt = 0
 }
 
 const gesture = useSwipeGesture(rootRef, {
@@ -75,38 +105,57 @@ const gesture = useSwipeGesture(rootRef, {
   onStart() {
     snapTo(system.homeGestureProgress)
     clearDwellArm()
+    // 每次手势开始都重置悬停标记：上一次手势（尤其是从切换器恢复应用那条路径）
+    // 可能把它留成 true，否则这一次轻微上滑会被误判为「已悬停」而直接打开切换器。
+    system.switcherDwell = false
   },
-  onProgress(p) {
+  onProgress(p, d) {
     const switcherCandidate =
       system.recentApps.length > 0 &&
       system.baseLayer !== 'lock' &&
       !system.anyOverlayOpen() &&
       !system.appSwitcherOpen // 切换器已打开时不再驱动跟手进度（否则会在堆叠上再叠跟手卡）
     if (switcherCandidate) {
-      // 跟手缩放：进度全程直写（AppSwitcher 的跟手卡据此从全屏连续缩到卡位）
-      system.setSwitcherProgress(p)
-      // 「悬停」= 手指停住不动：每次移动都重计 0.2s，
-      // 只有 0.2s 无移动才算 dwell（持续快滑绝不会误触发）
-      clearDwellArm()
-      if (p >= 0.05 && !system.switcherDwell) {
-        dwellArm = setTimeout(() => {
-          dwellArm = null
-          system.switcherDwell = true
-        }, 200)
+      /* 跟手缩放：进度直接用【原始位移】除以满量程，而不是 useSwipeGesture 传来的
+         已截断到 0..1 的 p —— 这样越过满量程（GESTURE_SPAN）之后手指继续上滑，
+         卡片还会继续无极变小（Ricky 2026-09-12：上滑越远缩得越小，但不许缩到不见）。
+         d 本身带橡皮筋（越界后增速放缓），所以不会失控。 */
+      const raw = typeof d === 'number' ? d : p * GESTURE_SPAN
+      system.setSwitcherProgress(Math.max(0, raw / GESTURE_SPAN))
+      /* 「停住」判定（第五轮改为速度判据，见上方注释）：
+         算出这一帧的手指速度 —— 超过 REST_SPEED 才算「还在滑」并重置倒计时；
+         低于阈值（含慢飘）就什么都不做，让已起的计时器继续跑。 */
+      const now = performance.now()
+      if (lastMoveAt) {
+        const dt = now - lastMoveAt
+        const speed = dt > 0 ? (Math.abs(raw - lastRaw) / dt) * 1000 : 0
+        if (speed > REST_SPEED) {
+          if (system.switcherDwell) system.switcherDwell = false // 又快起来了 → 撤销
+          if (p >= 0.05) armDwell()
+          else clearDwellArm()
+        } else if (p >= 0.05 && dwellArm === null && !system.switcherDwell) {
+          armDwell()
+        } else if (p < 0.05) {
+          clearDwellArm() // 上滑量不足 → 撤销待激活状态，避免浅滑也被判成停驻
+        }
+      } else if (p >= 0.05 && dwellArm === null && !system.switcherDwell) {
+        // 手势的第一帧：没有上一帧可算速度 → 直接起算
+        armDwell()
       }
+      lastMoveAt = now
+      lastRaw = raw
     } else {
       snapTo(p) // 无最近任务：保持原 hero 预览
     }
   },
   onRelease(p, velocity) {
     clearDwellArm()
-    /* 激活条件（2026-09-11 三轮 Ricky 定）：
-     *   上滑 >5% 且悬停 ≥0.2s（switcherDwell 已由计时器置位）→ 打开切换器。
-     *   同时要求松手速度低 —— 否则松手前的协议/生理延迟也会让快甩误触发悬停，
-     *   快甩（|velocity| > 0.4）永远走回桌面，与 iOS 一致。 */
+    /* 激活条件（第五轮）：上滑 >5% 且【速度 ≥150px/s 的停顿持续了 120ms】。
+       松手时的速度门槛与 REST_SPEED 同源 —— 要求「到松手那一刻手指仍处于停住状态」，
+       所以真正的快甩（手指一直在动，凑不满 120ms 的静止）依旧走回桌面，与 iOS 一致。 */
     const canDwellOpen =
       system.switcherDwell &&
-      Math.abs(velocity) <= 0.4 &&
+      Math.abs(velocity) * GESTURE_SPAN <= REST_SPEED &&
       system.recentApps.length > 0 &&
       !system.anyOverlayOpen() &&
       system.baseLayer !== 'lock'
