@@ -222,5 +222,6 @@ onBeforeUnmount(() => {
 
 /* 时钟图标：黑底白表盘（SVG 自带圆，背景铺满圆角） */
 .tile-clock { background: #1c1c1e; }
-.clock-face{display:block;width:100%;height:100%;transform:none}
+.clock-face{display:block;width:76.667%;height:76.667%;transform:none}
+.tile-clock.is-compact-special .clock-face{width:84%;height:84%}
 </style>

@@ -170,4 +170,6 @@ test('compact clock and calendar icons retain legible special rendering', async 
   assert.match(icon, /v-for="i in \(compactSpecial \? \[\] : 12\)"/)
   assert.match(icon, /<line v-if="!compactSpecial"/)
   assert.match(icon, /is-compact-special/)
+  assert.match(icon, /\.clock-face\{[^}]*width:76\.667%;height:76\.667%/)
+  assert.match(icon, /\.tile-clock\.is-compact-special \.clock-face\{width:84%;height:84%\}/)
 })
