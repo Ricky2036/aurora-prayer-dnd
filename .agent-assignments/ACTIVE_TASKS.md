@@ -71,5 +71,6 @@ Only the integration owner edits this table. Remove or mark a row complete after
 | Merged | Antigravity | Move DevConsole fullscreen and screen power buttons into Prototype Controls card | `antigravity/lane` | None (locks released) | `5e8b28d` | `1cf32f4` |
 | Active | Codex | Desktop direct drag and pinch edit | `codex/lane` | `src/components/system/HomeScreen.vue`; `src/components/system/AppGrid.vue`; `src/components/system/DockBar.vue`; `src/components/ui/AppIcon.vue`; `src/components/home/HomeFolder.vue`; `tests/homeDesktopComponents.test.js` | `023a810` | — |
 | Merged | Antigravity | DevConsole record button unhighlight default style and text refinement | `antigravity/lane` | None (locks released) | `8cecb67` | `37682ee` |
+| Active | Antigravity | Premium natural titanium phone frame redesign with ultra-thin bezel, 50px radius, and authentic buttons | `antigravity/lane` | `src/components/phone/PhoneFrame.vue`; `src/styles/tokens.css` | `07e85f4` | Pending |
 
 Status values: `Active`, `Review`, `Merged`, or `Blocked`.
