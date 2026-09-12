@@ -77,10 +77,11 @@ function activate(event, id, item) {
 .home-item.is-widget :deep(.widget),
 .home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
 .home-item.is-dragging-source { opacity:.16; }
-.home-item.is-folder-target { transform:scale(1.1); filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
-.home-item.is-removing{transform:scale(.2);opacity:0;transition:transform 180ms ease,opacity 180ms ease}
-.home-item.is-editing:not(.is-dragging-source) { animation:home-wiggle 170ms ease-in-out infinite alternate; }
-.home-item:nth-child(even).is-editing { animation-delay:-85ms; }
+.home-item.is-folder-target > :not(.selection-mark) { transform:scale(1.1);filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
+.home-item.is-removing{opacity:0;transition:opacity 180ms ease}
+.home-item.is-removing > :not(.selection-mark){transform:scale(.2);transition:transform 180ms ease}
+.home-item.is-editing:not(.is-dragging-source) > :not(.selection-mark) { animation:home-wiggle 170ms ease-in-out infinite alternate; }
+.home-item:nth-child(even).is-editing > :not(.selection-mark) { animation-delay:-85ms; }
 .selection-mark { position:absolute; top:-8px; right:-6px; width:25px; height:25px; display:grid; place-items:center; box-sizing:border-box; border-radius:50%; color:transparent; background:linear-gradient(145deg,rgba(255,255,255,.98),rgba(240,245,255,.8)); border:1px solid rgba(255,255,255,.98); box-shadow:inset 0 1px 2px rgba(255,255,255,1),0 2px 7px rgba(15,26,62,.22); backdrop-filter:blur(12px) saturate(180%); font:700 14px/1 var(--font-stack); z-index:4; }
 .is-selected .selection-mark { color:#fff; background:linear-gradient(145deg,#47a7ff,#0878f9); border-color:rgba(255,255,255,.88); box-shadow:inset 0 1px 1px rgba(255,255,255,.7),0 3px 9px rgba(0,91,230,.42); }
 @keyframes home-wiggle { from{transform:rotate(-1deg)} to{transform:rotate(1deg)} }
