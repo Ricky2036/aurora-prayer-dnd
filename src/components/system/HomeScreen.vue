@@ -45,6 +45,9 @@ const ghostApp = computed(() => {
 const justUnlocked = ref(false)
 let unlockTimer = null
 let pageIndicatorTimer = null
+let wheelResetTimer = null
+let wheelDeltaX = 0
+let wheelLocked = false
 watch(() => system.baseLayer, (layer, previous) => {
   if (layer === 'home' && previous === 'lock') {
     justUnlocked.value = true
@@ -69,6 +72,24 @@ function restoreSearchAfterPaging() {
     showPageDots.value = false
     pageIndicatorTimer = null
   }, 5000)
+}
+function onWheel(event) {
+  if (home.editing || openFolderId.value || Math.abs(event.deltaX) <= Math.abs(event.deltaY) || Math.abs(event.deltaX) < 2) return
+  event.preventDefault()
+  if (wheelLocked) return
+  wheelDeltaX += event.deltaX
+  clearTimeout(wheelResetTimer)
+  wheelResetTimer = setTimeout(() => { wheelDeltaX = 0 }, 140)
+  if (Math.abs(wheelDeltaX) < 42) return
+  const direction = wheelDeltaX > 0 ? 1 : -1
+  wheelDeltaX = 0
+  wheelLocked = true
+  setTimeout(() => { wheelLocked = false }, 420)
+  revealPageDots()
+  const requested = home.currentPage + direction
+  if (requested >= home.pageCount) emit('open-library')
+  else home.setPage(Math.max(0, requested))
+  restoreSearchAfterPaging()
 }
 function bindWindow() {
   window.addEventListener('pointermove', onPointerMove, { passive: false })
@@ -402,11 +423,11 @@ onMounted(() => {
   })
   resizeObserver.observe(rootRef.value)
 })
-onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimers(); unbindWindow() })
+onBeforeUnmount(() => { resizeObserver?.disconnect(); cancelAnimationFrame(resizeFrame); clearTimeout(unlockTimer); clearTimeout(pageIndicatorTimer); clearTimeout(wheelResetTimer); clearTimers(); unbindWindow() })
 </script>
 
 <template>
-  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown="onEmptyPointerDown" @dragstart.prevent>
+  <div ref="rootRef" class="home-screen" :class="{ 'just-unlocked':justUnlocked, 'is-editing':home.editing }" :style="homeStyle" @pointerdown="onEmptyPointerDown" @wheel="onWheel" @dragstart.prevent>
     <div class="home-page-strip" :style="stripStyle">
       <section v-for="(page,pageIndex) in displayPages" :key="pageIndex" class="home-page">
         <AppGrid :page-index="pageIndex" :item-ids="page" :items="home.items" :positions="displayPositions[pageIndex]" :profile="home.profile"
