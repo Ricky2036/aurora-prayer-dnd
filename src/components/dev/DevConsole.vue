@@ -462,39 +462,50 @@ function onToggleFineTune(enabled) {
     <!-- 背景流光 -->
     <div class="pc-glow"></div>
 
-    <!-- 顶部标题栏：左上角全屏，右上角亮灭屏，居中标题 -->
+    <!-- 顶部标题栏：居中标题 -->
     <header class="pc-header">
-      <button
-        class="pc-header-icon-btn"
-        @click="toggleFullscreen"
-        :title="isFullscreen ? '退出全屏' : '全屏'"
-        aria-label="切换全屏"
-      >
-        <svg v-if="!isFullscreen" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-        </svg>
-        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
-        </svg>
-      </button>
-
       <h2 class="pc-title">控制台</h2>
-
-      <button
-        class="pc-header-icon-btn"
-        :class="system.screenOn ? 'is-active-power' : 'is-off-power'"
-        @click="system.screenOn ? system.powerOff() : system.powerOn()"
-        :title="system.screenOn ? '灭屏' : '亮屏'"
-        aria-label="系统亮灭屏"
-      >
-        <svg v-if="system.screenOn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-        </svg>
-        <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
-        </svg>
-      </button>
     </header>
+
+    <!-- 原型控制：全屏与亮灭屏合一卡片（样式与截屏录屏卡片一致） -->
+    <div class="pc-card">
+      <div class="pc-card-header">
+        <span class="pc-card-title">原型控制</span>
+      </div>
+      <div class="pc-btn-group-2">
+        <!-- 全屏动作按钮 -->
+        <button
+          class="pc-btn pc-btn-secondary"
+          @click="toggleFullscreen"
+          :title="isFullscreen ? '退出全屏' : '全屏'"
+          aria-label="切换全屏"
+        >
+          <svg v-if="!isFullscreen" class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+          <svg v-else class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+          </svg>
+          <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
+        </button>
+
+        <!-- 亮灭屏动作按钮 -->
+        <button
+          class="pc-btn pc-btn-secondary"
+          @click="system.screenOn ? system.powerOff() : system.powerOn()"
+          :title="system.screenOn ? '灭屏' : '亮屏'"
+          aria-label="系统亮灭屏"
+        >
+          <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
+          </svg>
+          <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
+        </button>
+      </div>
+    </div>
 
     <!-- 常用功能：截屏录屏合一卡片（带壳作为通用选项置于标题右侧，按钮精简） -->
     <div class="pc-card">
@@ -975,47 +986,57 @@ function onToggleFineTune(enabled) {
             <!-- 背景流光 -->
             <div class="pc-glow"></div>
 
-            <!-- 顶部标题栏：左全屏，中标题，右亮灭屏+关闭 -->
+            <!-- 顶部标题栏：居中标题与右侧关闭按钮 -->
             <header class="pc-header">
-              <button
-                class="pc-header-icon-btn"
-                @click="toggleFullscreen"
-                :title="isFullscreen ? '退出全屏' : '全屏'"
-                aria-label="切换全屏"
-              >
-                <svg v-if="!isFullscreen" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                </svg>
-                <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+              <div class="pc-header-spacer"></div>
+              <h2 class="pc-title">控制台</h2>
+              <button class="pc-close-btn" @click.stop="closeModal" aria-label="关闭">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
+            </header>
 
-              <h2 class="pc-title">控制台</h2>
-
-              <div class="pc-header-actions">
+            <!-- 原型控制：全屏与亮灭屏合一卡片（样式与截屏录屏卡片一致） -->
+            <div class="pc-card">
+              <div class="pc-card-header">
+                <span class="pc-card-title">原型控制</span>
+              </div>
+              <div class="pc-btn-group-2">
+                <!-- 全屏动作按钮 -->
                 <button
-                  class="pc-header-icon-btn"
-                  :class="system.screenOn ? 'is-active-power' : 'is-off-power'"
+                  class="pc-btn pc-btn-secondary"
+                  @click="toggleFullscreen"
+                  :title="isFullscreen ? '退出全屏' : '全屏'"
+                  aria-label="切换全屏"
+                >
+                  <svg v-if="!isFullscreen" class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                  </svg>
+                  <svg v-else class="pc-btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                  </svg>
+                  <span>{{ isFullscreen ? '退出全屏' : '全屏' }}</span>
+                </button>
+
+                <!-- 亮灭屏动作按钮 -->
+                <button
+                  class="pc-btn pc-btn-secondary"
                   @click="system.screenOn ? system.powerOff() : system.powerOn()"
                   :title="system.screenOn ? '灭屏' : '亮屏'"
                   aria-label="系统亮灭屏"
                 >
-                  <svg v-if="system.screenOn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-if="system.screenOn" class="pc-btn-icon pc-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
                   </svg>
-                  <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-else class="pc-btn-icon pc-icon-power" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>
                   </svg>
-                </button>
-                <button class="pc-close-btn" @click.stop="closeModal" aria-label="关闭">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
+                  <span>{{ system.screenOn ? '灭屏' : '亮屏' }}</span>
                 </button>
               </div>
-            </header>
+            </div>
 
             <!-- 常用功能：截屏录屏合一卡片 -->
             <div class="pc-card">
@@ -1501,7 +1522,7 @@ function onToggleFineTune(enabled) {
   pointer-events: none;
 }
 
-/* 顶部标题栏：左右分布图标按钮，中间居中标题 */
+/* 顶部标题栏：居中标题与弹窗关闭按钮 */
 .pc-header {
   position: relative;
   display: flex;
@@ -1512,58 +1533,10 @@ function onToggleFineTune(enabled) {
   margin-bottom: 0;
 }
 
-.pc-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pc-header-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #a1a1aa;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-  outline: none;
-}
-
-.pc-header-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.pc-header-icon-btn:active {
-  transform: scale(0.94);
-}
-
-.pc-header-icon-btn.is-active-power {
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.3);
-}
-
-.pc-header-icon-btn.is-active-power:hover {
-  background: rgba(245, 158, 11, 0.25);
-  color: #fef3c7;
-}
-
-.pc-header-icon-btn.is-off-power {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-}
-
-.pc-header-icon-btn.is-off-power:hover {
-  background: rgba(239, 68, 68, 0.25);
-  color: #fee2e2;
+.pc-header-spacer {
+  width: 24px;
+  height: 24px;
+  flex: none;
 }
 
 .pc-title {
@@ -1573,6 +1546,21 @@ function onToggleFineTune(enabled) {
   margin: 0;
   text-align: center;
   flex: 1;
+}
+
+.pc-btn-icon {
+  margin-right: 6px;
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.pc-icon-sun {
+  color: #fbbf24;
+}
+
+.pc-icon-power {
+  color: #ef4444;
 }
 
 /* ================= 截屏录屏两列操作按钮 ================= */
