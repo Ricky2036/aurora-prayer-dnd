@@ -12,9 +12,10 @@ const props = defineProps({
   folders: { type: Object, default: () => ({}) }, editing: { type: Boolean, default: false },
   profile: { type: Object, required: true },
   selectedIds: { type: Array, default: () => [] }, draggingId: { type: String, default: null },
-  folderTargetId: { type: String, default: null }, removingIds: { type: Array, default: () => [] }
+  folderTargetId: { type: String, default: null }, removingIds: { type: Array, default: () => [] },
+  suppressClickId: { type: String, default: null }, openFolderId: { type: String, default: null }, folderOperationId: { type: String, default: null }
 })
-const emit = defineEmits(['item-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
+const emit = defineEmits(['item-pointerdown', 'folder-resize-pointerdown', 'toggle-select', 'open-folder', 'request-remove'])
 const selected = computed(() => new Set(props.selectedIds))
 const removing = computed(() => new Set(props.removingIds))
 const itemElements = new Map()
@@ -56,14 +57,15 @@ function activate(event, id, item) {
 <template>
   <div class="app-grid" :class="{ 'is-editing': editing }" :data-page="pageIndex">
     <div v-for="(id, index) in itemIds" :key="id" :ref="el => setItemRef(id,el)" class="home-item"
-      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-target': folderTargetId === id, 'is-removing': removing.has(id) }"
+      :class="{ 'is-editing': editing, 'is-selected': selected.has(id), 'is-dragging-source': draggingId === id, 'is-large': (positions[id]?.w || 1) > 1 || (positions[id]?.h || 1) > 1, 'is-widget': items[id]?.type === 'widget', 'is-folder-target': folderTargetId === id, 'is-folder-open': items[id]?.folderId === openFolderId, 'is-removing': removing.has(id) }"
       :data-home-item="id" :data-page-index="pageIndex" :data-item-index="index" :style="itemStyle(id)"
       @pointerdown="emit('item-pointerdown', $event, id, pageIndex, index)"
       @click.capture="activate($event, id, items[id])">
       <ClockWidget v-if="items[id]?.type === 'widget' && items[id].widgetId === 'clock'" />
       <SmartSuggestionWidget v-else-if="items[id]?.type === 'widget'" />
       <AppIcon v-else-if="appFor(items[id])" :app="appFor(items[id])" :size="profile.iconSize * profile.compactScale" :enter-delay="120 + index * 28" home-anchor />
-      <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" @open="emit('open-folder',items[id].folderId,$event)" />
+      <HomeFolder v-else-if="folderFor(items[id])" :folder="folderFor(items[id])" :editing="editing" :operation-active="folderOperationId === items[id].folderId"
+        @open="emit('open-folder',items[id].folderId,$event)" @resize-pointerdown="emit('folder-resize-pointerdown',$event,id,items[id].folderId)" />
       <span v-if="editing" class="selection-mark" aria-hidden="true">{{ selected.has(id) ? '✓' : '' }}</span>
     </div>
   </div>
@@ -77,6 +79,7 @@ function activate(event, id, item) {
 .home-item.is-widget :deep(.widget),
 .home-item.is-widget :deep(.smart-suggestion-stack) { width:100%; height:auto; aspect-ratio:1/1; flex:none; }
 .home-item.is-dragging-source { opacity:.16; }
+.home-item.is-folder-open { opacity:0; }
 .home-item.is-folder-target > :not(.selection-mark) { transform:scale(1.1);filter:drop-shadow(0 0 14px rgba(255,255,255,.6)); }
 .home-item.is-removing{opacity:0;transition:opacity 180ms ease}
 .home-item.is-removing > :not(.selection-mark){transform:scale(.2);transition:transform 180ms ease}
