@@ -505,7 +505,7 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
    还能跑到下面去）。现在 z 只由列表索引决定 → 任意时刻「索引小的卡」都必须被
    elementFromPoint 命中，且 z 值全程不变。 */
 await page.evaluate((cx) => {
-  window.__hs = { n: 0, bad: [], zDrift: [], collide: [] }
+  window.__inv = { n: 0, bad: [], zDrift: [], collide: [] }
   const tick = () => {
     const cards = [...document.querySelectorAll('.switcher-card.is-deck')]
     if (cards.length >= 2) {
@@ -523,17 +523,17 @@ await page.evaluate((cx) => {
           b: r.bottom
         }
       })
-      window.__hs.n++
+      window.__inv.n++
       // ① z 恒定：每张卡的 z 必须 === 10000 - 列表索引（与环境无关）
       for (const r of rows) {
         const expect = 10000 - ['calculator', 'camera', 'phone', 'clock', 'settings'].indexOf(r.id)
-        if (r.z !== expect) window.__hs.zDrift.push(`${r.id} z=${r.z} 期望 ${expect}`)
+        if (r.z !== expect) window.__inv.zDrift.push(`${r.id} z=${r.z} 期望 ${expect}`)
       }
       // ② 背景层永不重叠：层深 ≥ 0 的卡按索引左边缘必须严格递减（间距 > 1.5px）
       const bg = rows.filter((r) => r.d >= 0.02).sort((a, b) => a.idx - b.idx)
       for (let k = 1; k < bg.length; k++) {
         const gap = bg[k - 1].l - bg[k].l
-        if (gap < 1.5) window.__hs.collide.push(`${bg[k - 1].id}与${bg[k].id}间距 ${gap.toFixed(1)}px`)
+        if (gap < 1.5) window.__inv.collide.push(`${bg[k - 1].id}与${bg[k].id}间距 ${gap.toFixed(1)}px`)
       }
       // ③ 顶卡（z 最大）与任何有交集的卡，交集中点必须命中顶卡
       const top = rows.reduce((a, b) => (b.z > a.z ? b : a))
@@ -548,7 +548,7 @@ await page.evaluate((cx) => {
         const sy = (t + b) / 2
         if (sx < 1 || sx > cx * 2 - 1) continue
         const hit = document.elementFromPoint(sx, sy)?.closest?.('.switcher-card')?.dataset?.appId
-        if (hit && hit !== top.id) window.__hs.bad.push(`${top.id}(z${top.z}) 被 ${hit} 盖住`)
+        if (hit && hit !== top.id) window.__inv.bad.push(`${top.id}(z${top.z}) 被 ${hit} 盖住`)
       }
     }
     requestAnimationFrame(tick)
@@ -626,7 +626,7 @@ await page.mouse.up()
 await page.waitForTimeout(900)
 check('快滑一层后居中卡 = camera', (await centeredId()) === 'camera', `centered=${await centeredId()}`)
 
-const hs = await page.evaluate(() => window.__hs)
+const hs = await page.evaluate(() => window.__inv)
 check(
   '横滑全程「顶卡永远压在别人之上」（层级不错乱）',
   hs.bad.length === 0 && hs.n > 30,
@@ -700,6 +700,135 @@ await page.waitForTimeout(400)
 await flickSwipe()
 s = await S()
 check('快速上滑 = 回桌面（不进切换器）', s.switcher === false && s.base === 'home', JSON.stringify(s))
+
+/* ================== 第七轮·批次 2 ==================
+   需求⑫：应用内上滑进多任务 —— 跟手移动 +【停驻期间左侧卡片就进场】+ 松手丝滑归位
+   需求⑧：上滑移除卡片时卡片【跟手上移】（旧实现拖动全程零位移） */
+
+/* 需求⑫-a：停驻期间（手指仍按住、appSwitcherOpen 还是 false）邻居卡必须已经在场。
+   参考视频 981c9428…mp4 逐帧：f52–f65 跟手上滑 → f66–f102 停住（仍只有一张卡）
+   → f103–f116 左侧邻居自左侧滑入并就位。旧实现只在松手那一帧一次性铺出整套 deck，
+   于是松手瞬间三张卡「啪」地出现 + 标签行半透明淡入 = Ricky 说的「卡片闪一下」。 */
+await page.evaluate(() => window.__system.openApp('camera'))
+await page.waitForTimeout(500)
+{
+  const cx = 215
+  const startY = 925
+  await page.mouse.move(cx, startY)
+  await page.mouse.down()
+  for (let i = 1; i <= 30; i++) { await page.mouse.move(cx, startY - i * 14, { steps: 1 }); await page.waitForTimeout(14) }
+  // 停住 500ms（dwell 120ms 就该触发预提交；留足滑入 + 淡入的 320ms）
+  for (let i = 0; i < 10; i++) { await page.mouse.move(cx, startY - 420, { steps: 1 }); await page.waitForTimeout(50) }
+  const hold = await page.evaluate(() => {
+    const r = (el) => { const b = el.getBoundingClientRect(); return { x: +b.x.toFixed(1), op: +getComputedStyle(el).opacity } }
+    const deck = [...document.querySelectorAll('.switcher-card.is-deck')].map((c) => ({
+      id: c.dataset.appId,
+      depth: c.dataset.depth,
+      ...r(c),
+      bodyOp: +getComputedStyle(c.querySelector('.switcher-card-body')).opacity,
+      labelText: c.querySelector('.switcher-card-label')?.textContent.trim() || ''
+    }))
+    const f = document.querySelector('.switcher-card.is-follow')
+    return { open: window.__system.appSwitcherOpen, deck, follow: !!f, dock: !!document.querySelector('.switcher-dock') }
+  })
+  const front = hold.deck.find((c) => c.depth === '0')
+  const nb = hold.deck.filter((c) => c.depth !== '0')
+  check(
+    '需求⑫：手指停驻期间（尚未松手）邻居卡已经进场——2 张背景卡已就位且完全不透明',
+    hold.open === false && nb.length === 2 && nb.every((c) => c.op === 1),
+    `open=${hold.open} 邻居=${nb.map((c) => `${c.id}@x${c.x}/op${c.op}`).join(' ')}`
+  )
+  /* 前卡的透明度必须【只下沉到卡体】：卡根留 1 才能让标签行在停驻期就在场。
+     若把透明度挂在卡根上（旧做法），停驻期没有「图标 + 应用名」，到交接那一帧才冒出来。 */
+  check(
+    '需求⑫/③：停驻期间跟手卡仍在场、堆叠前卡只淡【卡体】（卡根 op=1 → 标签行常在）',
+    hold.follow === true && !!front && front.bodyOp === 0 && front.op === 1 &&
+      front.labelText.length > 0 && hold.dock === true,
+    `follow=${hold.follow} front 卡根op=${front?.op} 卡体op=${front?.bodyOp} 标签="${front?.labelText}" dock=${hold.dock}`
+  )
+
+  /* 需求⑫-b：松手交接必须【瞬时】—— 不允许出现「跟手卡已卸载、堆叠前卡还没变实」的中间帧。
+     逐帧采样（rAF）：跟手卡消失那一帧，前卡的 computed opacity 必须已经是 1。
+     旧实现这里会露出 op 0.065 → 1 的 220ms 淡入，正是「卡片闪一下」。 */
+  await page.evaluate(() => {
+    window.__handoffTL = []
+    let k = 0
+    const tick = () => {
+      const f = document.querySelector('.switcher-card.is-follow')
+      const c0 = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
+      window.__handoffTL.push({ f: !!f, op: c0 ? +getComputedStyle(c0).opacity : null })
+      if (++k < 120) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+  await page.mouse.up()
+  await page.waitForTimeout(1400)
+  const hs = await page.evaluate(() => window.__handoffTL)
+  const iHandoff = hs.findIndex((r) => !r.f) // 跟手卡消失的第一帧
+  const bad = hs.filter((r, i) => i >= iHandoff && iHandoff >= 0 && r.op !== null && r.op < 0.999)
+  check(
+    '需求⑫/③：松手交接零闪断（跟手卡消失那一帧前卡已完全不透明，没有淡入中间帧）',
+    iHandoff > 0 && bad.length === 0,
+    `交接帧 index=${iHandoff}；交接后仍 <1 的帧数=${bad.length}${bad.length ? ` 首个 op=${bad[0].op}` : ''}`
+  )
+  /* 停驻期间邻居卡的 x 必须就是【松手后的终点槽位】——
+     否则「进场」只是先冒出来、松手再挪一段，观感依旧会跳。 */
+  const nbAfter = await page.evaluate(() =>
+    [...document.querySelectorAll('.switcher-card.is-deck')]
+      .filter((c) => c.dataset.depth !== '0')
+      .map((c) => `${c.dataset.appId}:${+c.getBoundingClientRect().x.toFixed(1)}`)
+      .join(' ')
+  )
+  check(
+    '需求⑫：停驻期间邻居卡已经在【终点槽位】（与松手后完全一致）',
+    nbAfter === nb.map((c) => `${c.id}:${c.x}`).join(' '),
+    `停驻期 ${nb.map((c) => `${c.id}:${c.x}`).join(' ')} | 松手后 ${nbAfter}`
+  )
+}
+
+/* 需求⑧：上滑移除时卡片跟手上移。
+   旧实现在 onPointerMove 里对 v 模式直接 return，整段手势卡片零纵向位移，
+   只有松手越过 110px 才瞬间飞出。 */
+{
+  // 先确认「应用内 + 切换器已打开」（上一条用例结束时切换器是开着的，点一张卡回到应用）
+  const b0 = await page.locator('.switcher-card.is-deck[data-depth="0"]').boundingBox()
+  if (b0) { await page.mouse.click(b0.x + b0.width / 2, b0.y + b0.height / 2); await page.waitForTimeout(800) }
+  await fastPauseSwipe()
+  const box = await page.locator('.switcher-card.is-deck[data-depth="0"]').boundingBox()
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
+  await page.mouse.move(cx, cy)
+  await page.mouse.down()
+  for (let i = 1; i <= 8; i++) { await page.mouse.move(cx, cy - i * 13, { steps: 1 }); await page.waitForTimeout(16) }
+  const mid = await page.evaluate(() => {
+    const c = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
+    return { y: +c.getBoundingClientRect().y.toFixed(1), op: +getComputedStyle(c).opacity }
+  })
+  check(
+    '需求⑧：上滑 104px 时被拖的卡片【跟手上移】（Δy ≈ 104px）且随高度变淡',
+    Math.abs(mid.y - (box.y - 104)) <= 3 && mid.op < 0.9,
+    `起点 y=${box.y.toFixed(1)} → 拖动中 y=${mid.y}（期望 ≈ ${(box.y - 104).toFixed(1)}）op=${mid.op.toFixed(2)}`
+  )
+  // 未过阈值 → 回弹归位
+  await page.mouse.up()
+  await page.waitForTimeout(800)
+  const back = await page.evaluate(() => {
+    const c = document.querySelector('.switcher-card.is-deck[data-depth="0"]')
+    return c ? { y: +c.getBoundingClientRect().y.toFixed(1), op: +getComputedStyle(c).opacity } : null
+  })
+  check(
+    '需求⑧：上滑不足阈值（104px < 110px）松手 → 卡片回弹归位且没有删除',
+    !!back && Math.abs(back.y - box.y) <= 2 && back.op > 0.99,
+    back ? `回到 y=${back.y}（期望 ${box.y.toFixed(1)}）op=${back.op.toFixed(2)}` : '卡片消失了（不该删）'
+  )
+}
+
+/* 本段用例是从【应用内】上滑进来的（base='app'），后续的桌面路径用例需要 base='home'。
+   用 exitSwitcherToHome 复位（它不清最近任务），保持与插入前一致的初始态。 */
+await page.evaluate(() => window.__system.exitSwitcherToHome())
+await page.waitForTimeout(500)
+s = await S()
+check('批次 2 用例复位：回桌面（后续桌面路径用例的前置条件）', s.base === 'home' && s.switcher === false, JSON.stringify(s))
 
 /* ---- 第五轮·问题②：桌面上滑期必须有【可见反馈】（跟手升起）----
    Ricky 第五轮原话：「先从桌面上滑的手感非常差，很难激活多任务。」

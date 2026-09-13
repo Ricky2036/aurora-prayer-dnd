@@ -180,8 +180,31 @@ const homeEntranceFollowing = computed(
  *  卡片就是【瞬间消失】，既没有下沉也来不及淡出（实测 45ms 内 deck=0）。
  *  所以桌面路径改为「只要本组件还在场（visible，含 linger 的 340ms 退场缓冲）就渲染」，
  *  让 stackStyle 的收场分支能把「原路下沉 + 淡出」播完。 */
+/* 停驻预提交（第七轮·批次 2，需求⑫）——
+   「应用内卡片上滑进入多任务，需要跟随滑动方向跟手移动，**停留超过一定时间时左侧卡片进场**，
+     松手后丝滑归位」（Ricky 2026-09-13，参考视频 981c9428…mp4 逐帧量测）。
+
+   逐帧事实（v12 参考视频 444×960 / 24fps / 346 帧，/tmp/vwork/v12measure.py）：
+     f52–f65  跟手上滑，前台应用自全屏连续缩到卡位（卡顶 y 95 → 119）
+     f66–f102 **停驻 1.5s**：仍是【单张】跟手卡，左侧邻居【没有】出现
+     f103–f116 左侧邻居「微信」自左侧滑入 + 前卡落位 → 整套 deck 就位
+   也就是说参考实现里「左侧卡片进场」发生在**手指仍按住**的那段时间里，
+   而本项目旧实现只在 appSwitcherOpen（= 松手）那一帧把整套 deck 一次性铺出来
+   （探针实测：松手 +0ms deck=3 三张卡已经在终点位）→ 卡片的「闪一下」（需求③ 同源）。
+
+   修法：`system.switcherDwell`（HomeIndicator 判定「上滑 >5% 后停住 120ms」）一旦成立，
+   在【松手之前】就把邻居卡编排进场：
+     · renderDeck 放行 → 堆叠卡挂载（先以 opacity 0 / 左移 36px 的「待进场」态渲染一帧）
+     · 下一帧 neighborsIn = true → 靠 CSS 过渡（0.32s 弹簧曲线 + 0.22s 透明度）滑入淡入
+     · hasFollow = true → 堆叠【前卡】仍由跟手卡顶替（opacity 0），避免与跟手卡双重曝光
+   松手时 openSwitcher 走原路径（openSnap → openTo(1)）：邻居已经就位，只有跟手卡
+   继续弹簧落到 C 槽位再交接 → 零闪断。 */
+const preCommit = ref(false)
+/** 邻居卡「待进场」态的水平偏移：自左侧滑入（仅应用内停驻路径使用） */
+const NEIGHBOR_ENTER_DX = 36
+
 const renderDeck = computed(
-  () => system.appSwitcherOpen || (deskPath.value && visible.value)
+  () => system.appSwitcherOpen || preCommit.value || (deskPath.value && visible.value)
 )
 /** 桌面路径的【退场窗口】：进度已归零、靠 linger 撑着的那 340ms。
  *  只在这个窗口里给遮罩开透明度过渡 —— 跟手期绝不能开（逐帧直写会被二次低通成滞后），
@@ -245,6 +268,7 @@ watch(
       entranceDone.value = false
       homePath.value = false
       hasFollow.value = false
+      preCommit.value = false
       return
     }
     /* 同步编排（不放到 nextTick）：邻居卡要和开关置位在同一帧就带上目标样式，
@@ -253,7 +277,12 @@ watch(
     measure()
     focusSnap(frontIndex.value)
     homePath.value = !system.activeAppId
-    hasFollow.value = !!system.activeAppId && system.switcherProgress < 1
+    /* 跟手卡是否正在顶替堆叠前卡。
+       第七轮修正：旧判据 `switcherProgress < 1` 在【上滑越过满量程】（进度 >1，
+       卡片按 0.55^(p-1) 继续缩小到比 C 槽位还小）时会翻成 false → 堆叠前卡
+       （C 槽位尺寸）在跟手卡下面露出来 = 双重曝光。改为只看「有没有跟手卡」
+       （进度 >0 且尚未交接完成），与 followStyle 的存续条件严格一致。 */
+    hasFollow.value = !!system.activeAppId && system.switcherProgress > 0
     if (homePath.value) {
       /* 桌面路径（无前台应用可缩放）。两种来法必须分开处理：
          ① 手势停驻激活 —— 卡片此刻【已经在屏上跟手入场中】（进度 >0），
@@ -281,6 +310,53 @@ watch(
   { immediate: true }
 )
 
+/* ---- 停驻 → 邻居卡提前进场（第七轮·批次 2，需求⑫）----
+   见 preCommit 的注释。触发源用 HomeIndicator 已经算好的 `system.switcherDwell`
+   （「上滑 >5% 后停住 120ms」），不新起一个计时器 —— 否则「松手能否进多任务」与
+   「邻居卡什么时候进场」会变成两套阈值，早晚不一致。
+
+   只在【应用内上滑】这条路径 + 切换器尚未打开时生效：
+     · 桌面路径本来就在手势期渲染 deck（homeEntranceFollowing 自下方上浮），
+       再叠一层「预提交」会和跟手上浮打架；
+     · 切换器已打开时邻居卡早已就位，重复置位会打断交接的错峰编排。 */
+watch(
+  () => system.switcherDwell,
+  (dwell) => {
+    if (!dwell || system.appSwitcherOpen || preCommit.value) return
+    if (!system.activeAppId) return
+    if (system.switcherProgress <= 0.02) return // 上滑量不足，别把 deck 提前铺出来
+    measure()
+    /* deck 一开始就必须朝向【前台应用】那张卡：焦点默认 0，而前台应用未必是
+       recentApps[0]（用户可能是从较早的任务切回来的）。 */
+    focusSnap(frontIndex.value)
+    /* 堆叠前卡继续由跟手卡顶替（opacity 0）。跟手卡此刻可能比 C 槽位还小
+       （上滑越过满量程），不顶替就会在它下面露出第二张卡 = 双重曝光。 */
+    hasFollow.value = true
+    preCommit.value = true
+    // 先让堆叠卡以「待进场」态（opacity 0 + 左移 36px）渲染一帧，下一帧再切目标态 ——
+    // 同一帧内挂载 + 切换目标态浏览器不会跑过渡，卡片会「啪」地出现。
+    requestAnimationFrame(() => {
+      if (!preCommit.value) return
+      neighborsIn.value = true
+      markEntrance()
+    })
+  }
+)
+
+/* 预提交的撤销：手指重新滑起来时 HomeIndicator 会把 switcherDwell 撤掉，但这里【不】跟着
+   立刻收场 —— 微调停留位置时的来回抽动比留在场上更难受。只有上滑量也退掉了
+   （进度落到 12% 以下，等价于「这次手势放弃了」）才把邻居卡收回去。 */
+watch(
+  () => system.switcherProgress,
+  (p) => {
+    if (!preCommit.value || system.appSwitcherOpen) return
+    if (p > 0.12) return
+    preCommit.value = false
+    neighborsIn.value = false
+    hasFollow.value = false
+  }
+)
+
 /* ---- 位姿：a = i - focus ----
    0 = 焦点层（屏幕正中），1/2/3 = 更早的背景层（向左阶梯 + 缩小 + 变暗），
    负数 = 比焦点更新的卡（向右退出屏幕）。详见 switcherDeck.js。
@@ -304,15 +380,35 @@ const labelIndex = computed(() => {
   return Math.max(0, Math.min(last, Math.round(focus.value)))
 })
 
+/* 卡体（应用预览）的透明度 —— 只在「堆叠前卡被跟手卡顶替」时与卡根不同。
+ *
+ * 需求③「应用内上滑进入多任务后应用卡片会非常明显的闪一下」的根因在这里：
+ *   跟手卡与堆叠前卡在交接那一刻几何逐像素相等（探针实测 follow 宽 274.8 / x 77.6，
+ *   front 宽 275 / x 77.5），本可以硬切；但 .switcher-card 上挂着 `opacity 0.22s ease`，
+ *   于是「跟手卡卸载」与「前卡 0→1 淡入」不同步 —— 实测前卡从 op 0.065 花 220ms 才变实，
+ *   中间那 100ms 屏幕上是一张【半透明的卡】。
+ * 解法：把透明度【下沉到卡体】（卡根恒为 1）。
+ *   ① 卡体的 opacity 没有任何 CSS 过渡 → 交接那一帧硬切，天然零闪断；
+ *   ② 卡根保持 1 → 标签行（卡根的兄弟节点）在【停驻期】就一直在场。
+ *      若继续把透明度挂在卡根上，停驻期 C 位的「图标 + 应用名」会整段缺失、到交接那一帧
+ *      才突然冒出来（Playwright 截图实测：b2-1-hold 里没有「计算器」标签，b2-2-settled 才有）；
+ *      参考视频 981c9428…mp4 的停驻段（f100 / f104）C 位标签是全程在的。
+ * 其余路径（桌面入场上浮、上滑移除淡出）的透明度仍挂在卡根 —— 那些场景需要【连标签一起】淡。 */
+function bodyOpacityOf(i) {
+  return i === frontIndex.value && hasFollow.value && !settledOne.value ? 0 : 1
+}
+
 /* 堆叠渲染态：统一的「藏 → 进场」编排，CSS transition 负责丝滑。 */
 function stackStyle(i) {
   const p = deckPose(i - focus.value, metrics.value, xFrac.value)
+  let x = p.x
   let y = p.y
   let opacity = 1
   let delay = '0ms'
   if (i === frontIndex.value && hasFollow.value) {
-    // 跟手卡顶替中：堆叠前卡先隐藏，落位后再接管（同位姿，无跳变）
-    opacity = settledOne.value ? 1 : 0
+    /* 跟手卡顶替中：卡根保持不透明（标签行要一直在），只把【卡体】藏起来 ——
+       见 bodyOpacityOf 的注释（透明度下沉到卡体是需求③「闪一下」的正解）。 */
+    opacity = 1
   } else if (homeEntranceFollowing.value) {
     /* 桌面手势进行中（第五轮新增）：卡片自下方 30% 处【跟手】上浮 ——
        上滑多少就升多少、同时亮多少（e = 进度）。逐帧直写：无 delay、无过渡。
@@ -328,12 +424,34 @@ function stackStyle(i) {
        - 手势取消：进度归零后落到这里 → 卡片原路【下沉】淡出（方向与入场一致）。 */
     opacity = 0
     if (deskPath.value) y += screenH.value * ENTRANCE_RISE_FRAC
+    /* 应用内停驻预提交的「待进场」态：自左侧 36px 处滑入（需求⑫「左侧卡片进场」）。
+       只在 preCommit 这一条路径上偏移 —— 其余路径的入场姿态各有各的语义，不能串味。 */
+    else if (preCommit.value) x -= NEIGHBOR_ENTER_DX
     delay = entranceDone.value ? '0ms' : `${i * 60}ms`
   }
+
+  /* 上滑移除跟手（第七轮·批次 2，需求⑧）——
+     Ricky 原话：「上滑删除卡片时，卡片未跟手上滑移动」。
+     旧实现在 onPointerMove 里对 v 模式直接 return，整段手势卡片零位移，
+     只有松手越过 110px 才「啪」地飞出去；现在被按住的那张卡实时跟随手指的纵向位移，
+     并随高度线性变淡（上滑越远越淡），松手时：过阈值 → 从当前位置直接飞出；
+     未过阈值 → 靠 CSS 过渡弹回原位（drag 置空即恢复过渡，见 .is-dragging 规则）。
+
+     vLetGo 是「松手后仍沿用一帧拖动态位姿」的接力棒：`.is-dragging` 摘掉的那一帧
+     浏览器才认得 transition，若同帧就把 transform 改成目标值，before-change style 里
+     transition 还是 none → 卡片瞬移，跟手的那段位移全白做。 */
+  const vOff = drag.value?.mode === 'v' ? drag.value : vLetGo.value
+  if (vOff && vOff.cardId === apps.value[i]) {
+    const ddy = Math.min(0, vOff.dy)
+    y += ddy
+    opacity = Math.min(opacity, Math.max(0, 1 + ddy / 320))
+    delay = '0ms'
+  }
+
   return {
     width: cardW.value + 'px',
     height: cardH.value + 'px',
-    transform: `translate3d(${p.x}px, ${y}px, 0) scale(${p.scale})`,
+    transform: `translate3d(${x}px, ${y}px, 0) scale(${p.scale})`,
     filter: `brightness(${p.bright})`,
     zIndex: deckZ(i),
     borderRadius: RADIUS.value + 'px',
@@ -416,6 +534,8 @@ function nameOf(id) {
 /* ================= 手势 ================= */
 
 const drag = ref(null)
+/** 上滑移除松手后的「位姿接力」：{ cardId, dy }，只存活一帧（见 stackStyle / onPointerUp） */
+const vLetGo = ref(null)
 const dismissing = ref(null)
 
 /* 速度追踪（环形缓冲 100ms）—— 松手投影用。
@@ -438,6 +558,7 @@ function vtVelocity(now = performance.now()) {
 function onPointerDown(e) {
   if (dismissing.value) return
   measure()
+  vLetGo.value = null
   vt.length = 0
   vtPush(e.clientX, performance.now())
   drag.value = {
@@ -447,6 +568,8 @@ function onPointerDown(e) {
     startT: performance.now(),
     mode: 'pending',
     dx: 0,
+    dy: 0,
+    cardId: null,
     vPx: 0
   }
   e.currentTarget.setPointerCapture(e.pointerId)
@@ -460,8 +583,22 @@ function onPointerMove(e) {
   if (d.mode === 'pending') {
     if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
     d.mode = Math.abs(dy) > Math.abs(dx) * 1.4 ? (dy < 0 ? 'v' : 'down') : 'h'
+    /* 上滑移除：在【模式锁定这一刻】就把拖动对象钉死（用按下点取命中卡）。
+       不能等松手再 elementFromPoint —— 拖动期间卡片跟着手指上移、手指也可能滑出卡片
+       范围，松手时命中判定会失手（拿到卡片外面的遮罩 → 整次上滑删不掉）。 */
+    if (d.mode === 'v') d.cardId = hitCardId({ clientX: d.startX, clientY: d.startY })
   }
-  if (d.mode !== 'h') return
+  if (d.mode === 'v') {
+    /* 上滑移除【跟手】（第七轮·批次 2，需求⑧）：旧代码在这一行直接 return，
+       拖动全程卡片零纵向位移 → Ricky 原话「上滑删除卡片时，卡片未跟手上滑移动」。
+       这里只记录位移，真正的位姿偏移由 stackStyle 逐帧直写（无过渡 → 严格跟手）。 */
+    d.dy = dy
+    return
+  }
+  if (d.mode !== 'h') {
+    d.dy = dy
+    return
+  }
   /* 跟手方向（Ricky 2026-09-12 纠正）：
      堆叠布局是「更早的卡在左、更新的卡在右」，手势要让【手往右拖，卡片也往右走】。
      位姿 x 随 focus 单调增，所以焦点跟手是 startFocus + dx/span（旧代码写成 - dx
@@ -497,8 +634,19 @@ function onPointerUp(e) {
     return
   }
   if (d.mode === 'v') {
-    const cardId = hitCardId(e)
-    if (cardId && dy < -110) dismissWithAnimation(cardId)
+    /* 上滑移除判定：位移过半即飞出（阈值 110px 与旧的松手判据保持一致），
+       拖动对象优先取模式锁定时钉下的卡片，取不到再退回松手点的命中判定。
+
+       松手后把「拖动态位姿」再续一帧（vLetGo），下一帧才切目标态 —— 见 stackStyle
+       里 vLetGo 的注释：`.is-dragging` 摘掉的那一帧 transition 才生效，同帧改目标值
+       会退化成瞬移。 */
+    const cardId = d.cardId || hitCardId(e)
+    const willDismiss = !!cardId && dy < -110
+    vLetGo.value = { cardId: d.cardId, dy: Math.min(0, dy) }
+    requestAnimationFrame(() => {
+      vLetGo.value = null
+      if (willDismiss) dismissWithAnimation(cardId)
+    })
     return
   }
   if (d.mode === 'down' && dy > 80) {
@@ -686,7 +834,9 @@ onBeforeUnmount(() => {
             <AppIcon :app="appOf(c.id)" :size="24" :show-label="false" ignore-hidden />
             <span v-if="c.i === labelIndex">{{ nameOf(c.id) }}</span>
           </div>
-          <div class="switcher-card-body">
+          <!-- 卡体单独吃一份透明度（bodyOpacityOf）：前卡被跟手卡顶替时只淡卡体、
+               卡根留 1 —— 这样标签行在停驻期就一直在场，交接那一帧也不用淡入（需求③）。 -->
+          <div class="switcher-card-body" :style="{ opacity: bodyOpacityOf(c.i) }">
             <div
               class="switcher-card-content"
               :style="{
@@ -705,7 +855,7 @@ onBeforeUnmount(() => {
 
     <!-- 底部：清空后台（与通知中心同款磨砂圆钮；进度到位后淡入） -->
     <div
-      v-if="system.appSwitcherOpen"
+      v-if="system.appSwitcherOpen || preCommit"
       class="switcher-dock"
       :style="{ opacity: chromeOpacity, zIndex: Z_CHROME, bottom: dockBottom + 'px' }"
     >
