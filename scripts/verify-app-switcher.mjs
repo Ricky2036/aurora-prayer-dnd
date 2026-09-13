@@ -195,9 +195,9 @@ const centeredId = async () => {
   return best ? best.id : null
 }
 
-/* ---- 规则⑤ 最多四层 ---- */
+/* ---- 规则⑤ 最多三层（第七轮：4 层 → 3 层）---- */
 let rows = await deck()
-check('同时最多渲染 4 层（第 5 张被剔除）', rows.length === 4, `渲染 ${rows.length} 张：${rows.map((r) => r.id).join(',')}`)
+check('同时最多渲染 3 层（第 4 张被剔除）', rows.length === 3, `渲染 ${rows.length} 张：${rows.map((r) => r.id).join(',')}`)
 check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id === 'settings'), rows.map((r) => r.id).join(','))
 
 /* ---- 规则④ 阶梯式缩小、露出越来越少 ---- */
@@ -243,11 +243,12 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
 
 /* ---- 规则① 层级只由列表索引决定 ---- */
 {
-  const byIndex = ['calculator', 'camera', 'phone', 'clock']
+  /* 第七轮：三层堆叠 → 只看前 3 张（calculator / camera / phone） */
+  const byIndex = ['calculator', 'camera', 'phone']
   const zs = byIndex.map((id) => rows.find((r) => r.id === id)?.z)
   check(
     'z 层级仅由列表索引决定（每层恰好差 1，越小越靠上）',
-    zs.every((z, i) => (i === 0 ? true : z === zs[i - 1] - 1)) && new Set(zs).size === 4,
+    zs.every((z, i) => (i === 0 ? true : z === zs[i - 1] - 1)) && new Set(zs).size === 3,
     zs.join(' > ')
   )
 }
@@ -280,7 +281,43 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
   })
   check('卡片左上角显示应用图标 + 名称', !!label && label.text.length > 0 && label.kids >= 2, JSON.stringify(label))
   check('标签贴在焦点卡左上角（卡顶上方）', !!label && Math.abs(label.dx) <= 4 && label.above > 0 && label.above < 14, label ? `dx=${label.dx.toFixed(1)} above=${label.above.toFixed(1)}` : 'null')
-  check('只有一张卡带标签（不重复刷）', (await page.locator('.switcher-card-label').count()) === 1)
+
+  /* ---- 第七轮·需求⑨：每张卡都有自己的图标，但只有 C 位显示应用名称 ---- */
+  const labels = await page.evaluate(() => {
+    const out = []
+    document.querySelectorAll('.switcher-card.is-deck').forEach((card) => {
+      const el = card.querySelector('.switcher-card-label')
+      if (!el) {
+        out.push({ id: card.dataset.appId, hasLabel: false })
+        return
+      }
+      const tile = el.querySelector('.icon-tile, img, svg')
+      const tileVis = tile ? getComputedStyle(tile.closest('.app-icon') || tile).visibility : 'none'
+      out.push({
+        id: card.dataset.appId,
+        hasLabel: true,
+        hasIcon: !!tile,
+        iconVisible: tileVis !== 'hidden',
+        text: el.textContent.trim(),
+        depth: Number(card.dataset.depth)
+      })
+    })
+    return out
+  })
+  /* 需求⑦ 的回归守卫：前台应用的图标在 AppWindow 打开期间被 home.hideIcon() 置为
+     全局隐藏态，标签行必须传 ignore-hidden 绕开，否则【C 位那张卡的图标是空的】。 */
+  check(
+    '需求⑦：每张卡的标签行都画出了图标，且没有被全局隐藏态吃掉',
+    labels.length === 3 && labels.every((l) => l.hasIcon && l.iconVisible),
+    labels.map((l) => `${l.id}:${l.hasIcon ? (l.iconVisible ? 'icon✓' : 'icon✗隐藏') : '无图标'}`).join(' ')
+  )
+  check(
+    '需求⑨：只有 C 位那张显示应用名称（后面两层只有图标）',
+    labels.filter((l) => l.text.length > 0).length === 1 &&
+      labels.find((l) => l.text.length > 0)?.depth === 0,
+    labels.map((l) => `d=${l.depth}${l.text ? `「${l.text}」` : '（仅图标）'}`).join(' ')
+  )
+  check('每张卡都有标签行（不再只给一张）', labels.every((l) => l.hasLabel), JSON.stringify(labels.map((l) => l.hasLabel)))
 
   check('底部「x 个应用正在进行」文案已移除', (await page.locator('.switcher-count').count()) === 0)
 
@@ -302,6 +339,34 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
     '删除按钮 = 通知中心同款磨砂圆钮（52×52 / blur24 / 8% 白）',
     !!trash && trash.shared && trash.w === 52 && trash.h === 52 && /blur\(24px\)/.test(trash.blur || '') && /rgba\(255, 255, 255, 0\.08\)/.test(trash.bg),
     JSON.stringify(trash)
+  )
+
+  /* ---- 第七轮·需求⑥：垃圾桶垂直位置对齐真机参考图（底边距屏幕底 ≈65px）----
+     旧值 40px（= home inset 14 + DECK_GAP 26）偏矮。现在 DECK_GAP = 50 ⇒ 64px。
+     同时校验「间距不再有两份来源」：.switcher-dock 的 bottom 必须等于
+     home inset + DECK.DOCK_GAP，而不是 CSS 里的某个字面量。 */
+  const dockPos = await page.evaluate(() => {
+    const dock = document.querySelector('.switcher-dock')
+    const btn = document.querySelector('.switcher-dock button')
+    const hi = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--home-indicator-inset')) || 14
+    const rect = btn.getBoundingClientRect()
+    return {
+      bottom: getComputedStyle(dock).bottom,
+      gapFromBottom: window.innerHeight - rect.bottom,
+      homeInset: hi,
+      btnTop: rect.top,
+      vh: window.innerHeight
+    }
+  })
+  check(
+    '需求⑥：垃圾桶底边距屏幕底 ≈65px（真机参考图；旧值 40px）',
+    Math.abs(dockPos.gapFromBottom - 64) <= 2,
+    `底边距屏幕底=${dockPos.gapFromBottom.toFixed(1)}px（目标 64 = homeInset ${dockPos.homeInset} + DOCK_GAP ${DECK.DOCK_GAP}）`
+  )
+  check(
+    '需求⑥：dock 的 bottom 由 DECK.DOCK_GAP 唯一给出（CSS 里没有第二份副本）',
+    Math.abs(parseFloat(dockPos.bottom) - (dockPos.homeInset + DECK.DOCK_GAP)) <= 0.5,
+    `bottom=${dockPos.bottom} ≟ ${dockPos.homeInset + DECK.DOCK_GAP}px`
   )
 }
 
@@ -335,8 +400,8 @@ check('最旧的应用（settings）不渲染卡片', !rows.some((r) => r.id ===
   )
   check(
     '修正 A：卡片整体已下移（旧版卡顶 84 / 卡底 680，上留白 84 vs 下留白 160 明显偏上）',
-    focusCard.y > 140 && focusCard.y < 195,
-    `卡顶=${focusCard.y.toFixed(1)} 卡底=${cardBottom.toFixed(1)}（期望 ≈ 167 / 763）`
+    focusCard.y > 130 && focusCard.y < 180,
+    `卡顶=${focusCard.y.toFixed(1)} 卡底=${cardBottom.toFixed(1)}（第七轮 DOCK_GAP 26→50 后期望 ≈ 155 / 751）`
   )
 
   const centers = byIdx.map((r) => r.y + r.h / 2)
@@ -584,6 +649,28 @@ await page.waitForTimeout(600)
 s = await S()
 check('点卡片恢复应用 + 切换器关闭', s.switcher === false && s.base === 'app' && s.app === 'camera', JSON.stringify(s))
 
+/* ---- 第七轮·需求⑪：切换器里点空白 → 回桌面（不是回到原来的应用）----
+   旧实现走 system.closeSwitcher()，它只回到 baseLayer —— 从应用内进来时 baseLayer 还是
+   'app'，于是「点空白」又回到了原来那个应用。正确行为与 iOS 一致：回桌面。
+   判据：baseLayer=home、activeAppId 清空、**最近任务列表保持不动**（点空白不是清理后台）。 */
+{
+  // 前置：此时 base='app' / app='camera'，从应用内再上滑进切换器
+  await fastPauseSwipe()
+  s = await S()
+  const recentBefore = s.recent.slice()
+  check('需求⑪ 前置：从应用内已进入切换器（baseLayer 仍为 app）', s.switcher === true && s.base === 'app', JSON.stringify(s))
+
+  // 点空白：卡片上方、标签行以上的区域
+  await page.mouse.click(215, 90)
+  await page.waitForTimeout(800)
+  s = await S()
+  check(
+    '需求⑪：点空白 → 回桌面（baseLayer=home / activeAppId 清空），且最近任务不被清空',
+    s.base === 'home' && s.app === null && s.switcher === false && JSON.stringify(s.recent) === JSON.stringify(recentBefore),
+    JSON.stringify(s)
+  )
+}
+
 // ---- 再进切换器，上滑移除当前应用（camera）----
 await fastPauseSwipe()
 s = await S()
@@ -677,8 +764,8 @@ await page.waitForTimeout(1000)
   const rows = await deck()
   const front = rows.reduce((a, b) => (Math.abs(b.depth) < Math.abs(a.depth) ? b : a), rows[0])
   check(
-    '桌面路径渲染 4 层、焦点层居中、无横向偏移',
-    rows.length === 4 && Math.abs(front.cx - screenCenterX) <= 2,
+    '桌面路径渲染 3 层（第七轮）、焦点层居中、无横向偏移',
+    rows.length === 3 && Math.abs(front.cx - screenCenterX) <= 2,
     `${rows.length} 层：${rows.map((r) => `${r.id}@${r.x.toFixed(0)}`).join(' ')}`
   )
   const opacities = await page.evaluate(() =>

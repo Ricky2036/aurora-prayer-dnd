@@ -30,18 +30,22 @@ test('几何度量：卡宽 275、焦点层水平居中', () => {
 })
 
 test('修正 A：卡片整体在删除按钮上方居中（图标行 + 卡片作为整体）', () => {
-  /* 锚点：状态栏底 54（--safe-top）、删除按钮顶 = 932 - 14(home inset) - 26 - 52 = 840 */
+  /* 锚点：状态栏底 54（--safe-top）、删除按钮顶 = 932 - 14(home inset) - 50 - 52 = 816
+     （第七轮：DOCK_GAP 26 → 50，垃圾桶整体抬高 24px，对齐真机参考图的 ≈65px） */
   assert.equal(m.topInset, 54)
-  assert.equal(m.dockTop, 840)
+  assert.equal(m.dockTop, 816)
   assert.equal(m.blockH, 24 + 12 + 596) // 图标行 24 + 间隙 12 + 卡高 596
-  assert.equal(m.gap, 77) // (840 - 54 - 632) / 2
-  assert.equal(m.labelY, 131) // 图标行顶部 = 54 + 77
-  assert.equal(m.cardY, 167) // 卡顶 = 131 + 24 + 12
-  assert.equal(m.cardY + m.cardH, 763) // 卡底
+  assert.equal(m.gap, 65) // (816 - 54 - 632) / 2
+  assert.equal(m.labelY, 119) // 图标行顶部 = 54 + 65
+  assert.equal(m.cardY, 155) // 卡顶 = 119 + 24 + 12
+  assert.equal(m.cardY + m.cardH, 751) // 卡底
   /* 「居中」的判定：卡片底到按钮顶的留白 === 状态栏底到图标顶的留白 */
   assert.equal(m.dockTop - (m.cardY + m.cardH), m.gap)
   /* 默认兜底比例（测不到 DOM 时）也要落在 54 附近 */
   assert.equal(deckMetrics(430, 932).topInset, 54)
+  /* 第七轮：垃圾桶底边距屏幕底 = home inset + DOCK_GAP，目标 ≈65px（真机参考图实测） */
+  assert.equal(m.dockTop + DECK.DOCK_SIZE + DECK.DOCK_GAP + DECK.DEFAULT_HOME_INSET, 932)
+  assert.equal(932 - (m.dockTop + DECK.DOCK_SIZE), 64)
 })
 
 test('修正 B：所有卡片与顶部卡片上下居中对齐（同一垂直中心）', () => {
@@ -69,10 +73,11 @@ test('规则④ 阶梯式缩小 + 露出越来越少', () => {
   assert.ok(Math.abs(exp[0] - 52.25) <= 1, `exp1=${exp[0]}`)
   assert.ok(Math.abs(exp[1] - 16.72) <= 1.2, `exp2=${exp[1]}`)
   assert.ok(Math.abs(exp[2] - 5.34) <= 1.2, `exp3=${exp[2]}`)
-  // 缩放按层等比递减
-  const scales = [0, 1, 2, 3].map((k) => deckPose(k, m, 0).scale)
+  // 缩放按层等比递减（第七轮：只到 MAX_DEPTH 层 —— 更深层在 deckPose 里被夹住）
+  const scales = [0, 1, 2].map((k) => deckPose(k, m, 0).scale)
   for (let k = 1; k < scales.length; k++) assert.ok(scales[k] < scales[k - 1], `scale ${scales}`)
-  assert.ok(Math.abs(scales[3] - 0.8306) < 0.01, `${scales[3]}`)
+  assert.ok(Math.abs(scales[2] - 0.8836) < 0.01, `${scales[2]}`)
+  assert.ok(Math.abs(scales[2] - DECK.SCALE_DECAY ** 2) < 1e-9)
 })
 
 test('规则③ 最深层左边缘不出屏（静态 + 牵连最大时都不越界）', () => {
@@ -95,11 +100,12 @@ test('规则① 层级只由索引决定，永不随焦点变化', () => {
   for (let i = 1; i < 4; i++) assert.ok(deckZ(i) < deckZ(i - 1))
 })
 
-test('规则⑤ 最多四层：4 个槽位 + 正在离场的卡，第 5 层起不渲染', () => {
-  assert.equal(DECK.MAX_DEPTH, 3)
-  assert.ok(deckVisible(3), '第 4 层（最深槽位）必须渲染')
-  assert.ok(!deckVisible(3.01), '超过第 4 个槽位即剔除')
-  assert.ok(!deckVisible(4), '第 5 张在层深 4 处必须剔除')
+test('规则⑤ 最多三层：3 个槽位 + 正在离场的卡，第 4 层起不渲染', () => {
+  /* 第七轮：MAX_DEPTH 3 → 2（Ricky 需求⑨「默认堆叠状态从四层改为三层」） */
+  assert.equal(DECK.MAX_DEPTH, 2)
+  assert.ok(deckVisible(2), '第 3 层（最深槽位）必须渲染')
+  assert.ok(!deckVisible(2.01), '超过第 3 个槽位即剔除')
+  assert.ok(!deckVisible(3), '第 4 张在层深 3 处必须剔除')
   /* 第六轮：离场卡到 a ≈ -1.51 才越过右屏边（frontX + 233.92×1.51 ≈ 431），
      所以剔除界从 -1.02 放宽到 -1.56，保证出屏全程有 DOM 可画。 */
   assert.ok(deckVisible(-1), '刚换出去的那张要留在屏内露出（参考视频实测露出 ≈96px）')
@@ -125,30 +131,26 @@ test('规则② 下层缩小后藏在上层下方（左边缘钉住 + 居中缩�
 test('规则⑥⑦ 层间位移按层递减（由 stair 的几何级数天然给出，不再叠加任何包络）', () => {
   // 两端 = 纯阶梯槽位 → 层边界零跳变（拖满整层时必须正好落进槽位）
   for (const x of [0, 1e-9]) {
-    for (const k of [0, 1, 2, 3]) {
+    for (const k of [0, 1, 2]) {
       const p = deckPose(k, m, x)
       assert.ok(Math.abs(p.x - (m.frontX - deckStair(k, m.cardW))) < 1e-6, `x=${x} k=${k} 未归位`)
       assert.ok(Math.abs(p.scale - Math.pow(DECK.SCALE_DECAY, k)) < 1e-9)
     }
   }
 
-  /* 一整层的净位移：
-       travel[0] = 顶卡退出（frontX → frontX + exit，量级 ~378px）
+  /* 一整层的净位移（第七轮：三层堆叠 → 只到 d = 2）：
+       travel[0] = 顶卡退出（frontX → frontX + exit，量级 ~234px）
        travel[d] = 第 d 层被推进一级槽位 = stair(d) − stair(d−1)  */
-  const travel = [0, 1, 2, 3].map((d) => deckPose(d - 1, m, 1 - 1e-9).x - deckPose(d, m, 0).x)
+  const travel = [0, 1, 2].map((d) => deckPose(d - 1, m, 1 - 1e-9).x - deckPose(d, m, 0).x)
 
   for (let k = 1; k < travel.length; k++) {
     assert.ok(travel[k] < travel[k - 1], `位移未按层递减：${travel.map((v) => v.toFixed(1))}`)
   }
-  assert.ok(travel[3] > 0, '最深层也必须真的往右走')
+  assert.ok(travel[2] > 0, '最深层也必须真的往右走')
 
-  /* 层间比例 = STAIR_DECAY 的幂：第二层 : 第三层 : 第四层 = 1 : 0.55 : 0.30。
+  /* 层间比例 = STAIR_DECAY 的幂：第二层 : 第三层 = 1 : 0.32。
      这是 stair 的几何级数决定的，改 STAIR_DECAY 就会同步变。 */
   assert.ok(Math.abs(travel[2] / travel[1] - DECK.STAIR_DECAY) < 1e-9, `第三层/第二层 = ${(travel[2] / travel[1]).toFixed(4)}`)
-  assert.ok(
-    Math.abs(travel[3] / travel[1] - DECK.STAIR_DECAY ** 2) < 1e-9,
-    `第四层/第二层 = ${(travel[3] / travel[1]).toFixed(4)}`
-  )
   /* 顶卡（离场卡）与第二层的量级差：第六轮逐帧实测参考视频 = 272 : 55 ≈ 4.9 : 1。
      本项目 = exit : stair(1) = 233.92 : 52.25 ≈ 4.5 : 1。
      第五轮是 378.4 : 33 ≈ 11.5 : 1 —— 正是 Ricky 口中的「一次只能滑走一张」。 */
@@ -308,9 +310,10 @@ test('第五轮：位移与放大「同时」发生（同相位，不是先位�
 })
 
 test('背景层任意时刻都不重叠（层间间距恒 > 2px）', () => {
+  /* 第七轮：三层堆叠 → 只检查 3 个槽位之间的 2 处间距 */
   for (const x of [0, 0.25, 0.5, 0.75, 1]) {
     for (const focus of [0, 0.25, 0.5, 0.75, 1]) {
-      const xs = [0, 1, 2, 3].map((i) => deckPose(i - focus, m, x).x)
+      const xs = [0, 1, 2].map((i) => deckPose(i - focus, m, x).x)
       for (let k = 1; k < xs.length; k++) {
         assert.ok(
           xs[k - 1] - xs[k] > 2,

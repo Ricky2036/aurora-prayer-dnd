@@ -398,6 +398,11 @@ const chromeOpacity = computed(
   () => Math.min(1, Math.max(0, (system.switcherProgress - 0.5) / 0.5))
 )
 
+/** 垃圾桶容器距屏幕底的像素（= home inset + DECK.DOCK_GAP）。
+ *  第七轮：改成由这里【唯一给出】并内联绑到 :style，CSS 里不再抄一份 gap ——
+ *  历史上 CSS 的 26px 与 DECK.DOCK_GAP 是两份副本，改一处必脱钩。 */
+const dockBottom = computed(() => homeInset.value + DECK.DOCK_GAP)
+
 function compOf(id) {
   return appComponents[id] || PlaceholderApp
 }
@@ -515,7 +520,12 @@ function onPointerUp(e) {
     }
     const cardId = hitCardId(e)
     if (cardId) resumeWithExpand(cardId)
-    else system.closeSwitcher()
+    /* 点空白 = 回桌面（第七轮，需求⑪）。
+       旧实现是 system.closeSwitcher()，它只把开关关掉、回到 baseLayer —— 从应用内
+       上滑进来时 baseLayer 还是 'app'，于是「点空白」又回到了原来那个应用。
+       与 iOS / 参考实现一致的行为是回桌面：清掉前台应用 + baseLayer 落到 home。
+       最近任务列表保持不动（那不是「清理」）。 */
+    else exitSwitcherToHome()
   }
 }
 
@@ -594,6 +604,12 @@ function clearAll() {
   system.dismissAll()
 }
 
+/** 点空白：关掉切换器并【回桌面】（需求⑪）。
+ *  与 dismissAll 的区别 —— 这里【不清】最近任务，只是离开切换器回桌面。 */
+function exitSwitcherToHome() {
+  system.exitSwitcherToHome()
+}
+
 onMounted(() => {
   measure()
   if (typeof ResizeObserver !== 'undefined' && screenRef.el) {
@@ -659,10 +675,16 @@ onBeforeUnmount(() => {
           :data-depth="+(c.i - focus).toFixed(3)"
           :style="cardStyle(c.id, c.i)"
         >
-          <!-- 卡片左上角：应用图标 + 名称（只跟离焦点最近的那张走） -->
-          <div v-if="c.i === labelIndex && !dismissing" class="switcher-card-label" :style="labelStyle()">
-            <AppIcon :app="appOf(c.id)" :size="24" :show-label="false" />
-            <span>{{ nameOf(c.id) }}</span>
+          <!-- 卡片上方一行：应用图标 + 名称（第七轮改）。
+               参考图（Ricky 2026-09-13 需求⑨）：**每张卡都有自己的图标**，
+               但**只有 C 位那张显示应用名称** —— 后面两层只画图标，形成向左上的图标阶梯。
+               ⚠️ 必须传 ignore-hidden：AppWindow 在前台应用打开期间会调用
+               home.hideIcon(activeAppId)，把该应用的图标置成全局隐藏态。
+               C 位初始正好就是前台应用 → 不加这个 prop 时「设置」那张卡的图标是空的
+               （名称还在，因为名称不吃隐藏态）。这是 Ricky 截图里「设置的图标消失了」的根因。 -->
+          <div v-if="!dismissing" class="switcher-card-label" :style="labelStyle()">
+            <AppIcon :app="appOf(c.id)" :size="24" :show-label="false" ignore-hidden />
+            <span v-if="c.i === labelIndex">{{ nameOf(c.id) }}</span>
           </div>
           <div class="switcher-card-body">
             <div
@@ -685,7 +707,7 @@ onBeforeUnmount(() => {
     <div
       v-if="system.appSwitcherOpen"
       class="switcher-dock"
-      :style="{ opacity: chromeOpacity, zIndex: Z_CHROME }"
+      :style="{ opacity: chromeOpacity, zIndex: Z_CHROME, bottom: dockBottom + 'px' }"
     >
       <GlassCircleButton
         class="switcher-trash"
@@ -794,7 +816,8 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(var(--home-indicator-inset, 14px) + 26px);
+  /* bottom 由模板内联绑定（dockBottom = homeInset + DECK.DOCK_GAP）——
+     第七轮起这里是唯一来源，CSS 不再抄一份 gap，避免两处脱钩。 */
   display: flex;
   flex-direction: column;
   align-items: center;

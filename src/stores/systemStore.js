@@ -149,6 +149,15 @@ export const useSystemStore = defineStore('system', {
       this.closeSwitcher()
     },
 
+    /** 切换器里点空白：关掉切换器并【回桌面】（需求⑪）。
+     *  与 dismissAll 的关键区别：**不清空 recentApps**（点空白不是「清理后台」）。
+     *  也与 closeSwitcher 不同：closeSwitcher 只回到 baseLayer，从应用内进来时会退回那个应用。 */
+    exitSwitcherToHome() {
+      this.activeAppId = null
+      this.baseLayer = 'home'
+      this.closeSwitcher()
+    },
+
     /** 切换器里点卡片恢复某个应用 */
     resumeApp(appId) {
       if (!this.recentApps.includes(appId)) return

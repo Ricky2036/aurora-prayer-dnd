@@ -133,9 +133,15 @@ export const DECK = {
   /* 顶部安全距离：状态栏底部。运行时从 CSS 变量 --safe-top 实测（本项目 54px）；
      这里 0.058 = 54/932 仅作测不到 DOM 时的兜底。 */
   TOP_INSET_FRAC: 0.058,
-  /* 底部删除按钮：直径 + 距 home indicator 的距离（须与 .switcher-dock 的 CSS 一致） */
+  /* 底部删除按钮：直径 + 距 home indicator 的距离。
+     第七轮（Ricky 2026-09-13 拍板）：对齐真机参考图 —— 垃圾桶底边距屏幕底 ≈65px
+     （旧 40px = 14 + 26 偏矮）。26 → 50 ⇒ 14 + 50 = 64px。
+     取偶数是为了让 deckMetrics 的 gap = (180 − DOCK_GAP)/2 保持整数，
+     卡片落在整数像素上（旧值 26 时 gap = 77 也是整数）。
+     注意：这两个值现在【只有一个来源】—— .switcher-dock 的 bottom 由 dockBottom
+     计算属性直接给出（不再在 CSS 里抄一份 gap），所以不会再脱钩。 */
   DOCK_SIZE: 52,
-  DOCK_GAP: 26,
+  DOCK_GAP: 50,
   DEFAULT_HOME_INSET: 14,
   /* 卡片上方的图标行：行高（= 图标尺寸）+ 与卡顶的间隙 */
   LABEL_ROW_H: 24,
@@ -162,7 +168,7 @@ export const DECK = {
      共用同一个 u 是「不再抢跑」的关键（见头部「定律一」）。=1 表示整条链从第一帧起
      与手指同速推进（旧 1.6 让背景层在前 1/3 段几乎不动，也是「只有顶卡在动」的成因之一）。 */
   TRANS_POW: 1,
-  MAX_DEPTH: 3, // 同时最多 4 层
+  MAX_DEPTH: 2, // 同时最多 3 层（第七轮：4 层 → 3 层，Ricky 2026-09-13）
   Z_BASE: 10000, // z(i) = Z_BASE - i（固定，永不随焦点变）
   FOCUS_SPAN_FRAC: 0.85, // 拖动 0.85 × cardW ≈ 完成一次换卡（对齐参考视频实测 0.87）
   RUBBER: 0.35 // 越界阻尼系数
